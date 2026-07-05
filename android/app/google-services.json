@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "19953138860",
+    "project_id": "moops-stride",
+    "storage_bucket": "moops-stride.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:19953138860:android:c48dca878e7ca3a69f7309",
+        "android_client_info": {
+          "package_name": "in.moops.stride"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "19953138860-tfvj001dlpve2birqlpfu1fs7n6g8dv9.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAnfxM7_-KWXpPEADpZuDWcAFEReBWrEvY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "19953138860-tfvj001dlpve2birqlpfu1fs7n6g8dv9.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "19953138860-sp8b1k3colspmif6mhfar7gstevkiasd.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "in.moops.stride"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
