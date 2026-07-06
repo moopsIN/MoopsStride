@@ -24,7 +24,6 @@ class AppTheme {
         primary: accentColor,
         secondary: accentColor,
         surface: surfaceDark,
-        background: backgroundDark,
       ),
       textTheme: GoogleFonts.plusJakartaSansTextTheme(
         ThemeData(brightness: Brightness.dark).textTheme,
@@ -57,7 +56,6 @@ class AppTheme {
         primary: accentColor,
         secondary: accentColor,
         surface: surfaceLight,
-        background: backgroundLight,
       ),
       textTheme: GoogleFonts.plusJakartaSansTextTheme(
         ThemeData(brightness: Brightness.light).textTheme,

@@ -158,7 +158,7 @@ class RunSummaryScreen extends StatelessWidget {
                             child: _buildStatCard(
                               context, 
                               'CALORIES', 
-                              '${activity.caloriesEstimate.toStringAsFixed(0)}',
+                              activity.caloriesEstimate.toStringAsFixed(0),
                             ),
                           ),
                         ],
@@ -186,7 +186,7 @@ class RunSummaryScreen extends StatelessWidget {
                     child: Text(
                       'DONE',
                       style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                        color: Theme.of(context).colorScheme.background,
+                        color: Theme.of(context).colorScheme.surface,
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                         letterSpacing: 2,
