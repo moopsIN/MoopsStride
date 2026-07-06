@@ -50,20 +50,20 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
               width: 80,
               height: 80,
               decoration: BoxDecoration(
-                color: AppTheme.accentColor,
+                color: Theme.of(context).colorScheme.primary,
                 borderRadius: BorderRadius.circular(24),
                 boxShadow: [
                   BoxShadow(
-                    color: AppTheme.accentColor.withValues(alpha: 0.3),
+                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
                     blurRadius: 20,
                     spreadRadius: 5,
                   )
                 ],
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.directions_run_rounded,
                 size: 48,
-                color: AppTheme.backgroundDark,
+                color: Theme.of(context).scaffoldBackgroundColor,
               ),
             )
                 .animate()
