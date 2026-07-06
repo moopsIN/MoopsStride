@@ -48,16 +48,24 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
     );
   }
 
+  static const double _idleZoom = 16.0;
+  static const double _activeZoom = 18.0;
+  bool _hasZoomedForActiveRun = false;
+
   @override
   Widget build(BuildContext context) {
     final trackingState = ref.watch(trackingProvider);
 
     // Update map camera if we have a location
     if (trackingState.currentLocation != null) {
-      if (trackingState.status == TrackingStatus.active && !trackingState.isLocked) {
+      if (trackingState.status == TrackingStatus.active) {
+         final targetZoom = _hasZoomedForActiveRun ? _mapController.camera.zoom : _activeZoom;
          WidgetsBinding.instance.addPostFrameCallback((_) {
-           _mapController.move(trackingState.currentLocation!, _mapController.camera.zoom);
+           _mapController.move(trackingState.currentLocation!, targetZoom);
          });
+         _hasZoomedForActiveRun = true;
+      } else if (trackingState.status == TrackingStatus.notStarted) {
+        _hasZoomedForActiveRun = false;
       }
     }
 
@@ -65,13 +73,11 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
       body: Stack(
         children: [
           // 1. FlutterMap Layer
-          IgnorePointer(
-            ignoring: trackingState.isLocked,
-            child: FlutterMap(
+          FlutterMap(
               mapController: _mapController,
               options: MapOptions(
                 initialCenter: trackingState.currentLocation ?? const LatLng(0, 0),
-                initialZoom: 16.0,
+                initialZoom: _idleZoom,
               ),
               children: [
                 TileLayer(
@@ -97,7 +103,6 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                 ),
               ],
             ),
-          ),
 
           // Dim overlay
           Positioned.fill(
@@ -126,7 +131,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (!trackingState.isLocked && trackingState.status != TrackingStatus.notStarted) ...[
+                if (trackingState.status != TrackingStatus.notStarted) ...[
                   GlassContainer(
                     padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
                     child: Row(
@@ -141,13 +146,20 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                   ).animate().slideY(begin: 0.2).fadeIn(duration: 400.ms),
                   const SizedBox(height: 32),
                 ],
-                
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    _buildControls(context, trackingState),
-                  ],
-                ),
+
+                _buildMainToggleButton(context, trackingState),
+
+                if (trackingState.status == TrackingStatus.active ||
+                    trackingState.status == TrackingStatus.paused) ...[
+                  const SizedBox(height: 24),
+                  _buildControlButton(
+                    icon: Icons.stop,
+                    color: Colors.redAccent,
+                    size: 56,
+                    iconSize: 26,
+                    onTap: _finishRun,
+                  ).animate().slideY(begin: 0.3).fadeIn(delay: 100.ms),
+                ],
               ],
             ),
           ),
@@ -156,59 +168,28 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
     );
   }
 
-  Widget _buildControls(BuildContext context, TrackingState state) {
-    if (state.isLocked) {
-      return _buildControlButton(
-        icon: Icons.lock_open,
-        color: Colors.white,
-        onTap: () => ref.read(trackingProvider.notifier).toggleLock(),
-      ).animate().scale(duration: 200.ms);
-    }
-
+  Widget _buildMainToggleButton(BuildContext context, TrackingState state) {
     if (state.status == TrackingStatus.notStarted) {
       return _buildCircularProgressStartButton(state);
     }
 
-    if (state.status == TrackingStatus.active) {
-      return Column(
-        children: [
-          _buildControlButton(
-            icon: Icons.pause,
-            color: Colors.amber,
-            onTap: () => ref.read(trackingProvider.notifier).pauseTracking(),
-          ).animate().scale(duration: 200.ms),
-          const SizedBox(height: 16),
-          _buildControlButton(
-            icon: Icons.lock_outline,
-            color: Colors.grey,
-            size: 60,
-            iconSize: 28,
-            onTap: () => ref.read(trackingProvider.notifier).toggleLock(),
-          ).animate().slideY(begin: 0.5).fadeIn(),
-        ],
-      );
-    }
+    final isActive = state.status == TrackingStatus.active;
 
-    if (state.status == TrackingStatus.paused) {
-      return Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          _buildControlButton(
-            icon: Icons.stop,
-            color: Colors.redAccent,
-            onTap: _finishRun,
-          ).animate().slideX(begin: 0.5).fadeIn(),
-          const SizedBox(width: 32),
-          _buildControlButton(
-            icon: Icons.play_arrow,
-            color: Theme.of(context).colorScheme.primary,
-            onTap: () => ref.read(trackingProvider.notifier).resumeTracking(),
-          ).animate().slideX(begin: -0.5).fadeIn(),
-        ],
-      );
-    }
-
-    return const SizedBox.shrink();
+    return _buildControlButton(
+      key: ValueKey(isActive),
+      icon: isActive ? Icons.pause : Icons.play_arrow,
+      color: isActive
+          ? Theme.of(context).colorScheme.secondary
+          : Theme.of(context).colorScheme.primary,
+      onTap: () {
+        final notifier = ref.read(trackingProvider.notifier);
+        if (isActive) {
+          notifier.pauseTracking();
+        } else {
+          notifier.resumeTracking();
+        }
+      },
+    ).animate(key: ValueKey(isActive)).scale(duration: 200.ms);
   }
 
   Widget _buildCircularProgressStartButton(TrackingState state) {
@@ -296,13 +277,15 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
   }
 
   Widget _buildControlButton({
-    required IconData icon, 
-    required Color color, 
+    Key? key,
+    required IconData icon,
+    required Color color,
     required VoidCallback onTap,
     double size = 80,
     double iconSize = 40,
   }) {
     return GestureDetector(
+      key: key,
       onTap: onTap,
       child: Container(
         width: size,
