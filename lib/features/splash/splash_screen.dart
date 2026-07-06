@@ -103,7 +103,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
             // Bottom Logo
             Image.asset(
               logoAsset,
-              height: 24,
+              height: 48,
             ).animate().fadeIn(delay: 1000.ms),
             
             const SizedBox(height: 24),
