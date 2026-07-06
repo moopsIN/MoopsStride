@@ -21,14 +21,13 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   String? _selectedExperience;
   String? _selectedActivity;
 
-  final _goals = ['Lose Weight', 'Build Endurance', 'Stay Healthy', 'Train for Race'];
+  final _goals = ['Endurance', 'Weight Loss', 'Fun'];
   final _experiences = ['Beginner', 'Intermediate', 'Advanced'];
-  final _activities = ['Sedentary', 'Lightly Active', 'Moderately Active', 'Very Active'];
+  final _activities = ['Sedentary', 'Light', 'Active'];
 
   @override
   void initState() {
     super.initState();
-    // Delay setting values to allow the provider to load if it hasn't
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final state = ref.read(profileProvider).value;
       if (state != null) {
@@ -76,6 +75,41 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     }
   }
 
+  Widget _buildOptionChip(String label, bool isSelected, VoidCallback onTap) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: GlassContainer(
+          padding: const EdgeInsets.all(16),
+          backgroundColor: isSelected 
+              ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.2)
+              : const Color(0x1AFFFFFF),
+          borderColor: isSelected
+              ? Theme.of(context).colorScheme.primary
+              : const Color(0x33FFFFFF),
+          child: Row(
+            children: [
+              Icon(
+                isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+                color: isSelected ? Theme.of(context).colorScheme.primary : Colors.white54,
+              ),
+              const SizedBox(width: 12),
+              Text(
+                label,
+                style: TextStyle(
+                  color: isSelected ? Colors.white : Colors.white70,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(profileProvider);
@@ -96,74 +130,92 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
-                    'PERSONAL DETAILS',
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(letterSpacing: 1.5),
-                  ),
-                  const SizedBox(height: 16),
-                  GlassContainer(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      children: [
-                        DropdownButtonFormField<String>(
-                          initialValue: _selectedGoal,
-                          decoration: const InputDecoration(labelText: 'Primary Goal'),
-                          dropdownColor: Theme.of(context).colorScheme.surface,
-                          items: _goals.map((g) => DropdownMenuItem(value: g, child: Text(g))).toList(),
-                          onChanged: (val) => setState(() => _selectedGoal = val),
-                        ),
-                        const SizedBox(height: 16),
-                        DropdownButtonFormField<String>(
-                          initialValue: _selectedExperience,
-                          decoration: const InputDecoration(labelText: 'Experience Level'),
-                          dropdownColor: Theme.of(context).colorScheme.surface,
-                          items: _experiences.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
-                          onChanged: (val) => setState(() => _selectedExperience = val),
-                        ),
-                        const SizedBox(height: 16),
-                        DropdownButtonFormField<String>(
-                          initialValue: _selectedActivity,
-                          decoration: const InputDecoration(labelText: 'Activity Level'),
-                          dropdownColor: Theme.of(context).colorScheme.surface,
-                          items: _activities.map((a) => DropdownMenuItem(value: a, child: Text(a))).toList(),
-                          onChanged: (val) => setState(() => _selectedActivity = val),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-                  Text(
                     'BODY METRICS',
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(letterSpacing: 1.5),
                   ),
                   const SizedBox(height: 16),
-                  GlassContainer(
-                    padding: const EdgeInsets.all(16),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: TextFormField(
-                            controller: _heightController,
-                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                            decoration: const InputDecoration(
-                              labelText: 'Height',
-                              suffixText: 'cm',
-                            ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: GlassContainer(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            children: [
+                              Text('HEIGHT', style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.white54)),
+                              TextFormField(
+                                controller: _heightController,
+                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                                decoration: const InputDecoration(
+                                  border: InputBorder.none,
+                                  suffixText: 'cm',
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: TextFormField(
-                            controller: _weightController,
-                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                            decoration: const InputDecoration(
-                              labelText: 'Weight',
-                              suffixText: 'kg',
-                            ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: GlassContainer(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            children: [
+                              Text('WEIGHT', style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.white54)),
+                              TextFormField(
+                                controller: _weightController,
+                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                                decoration: const InputDecoration(
+                                  border: InputBorder.none,
+                                  suffixText: 'kg',
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
+                  const SizedBox(height: 32),
+                  
+                  Text(
+                    'PRIMARY GOAL',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(letterSpacing: 1.5),
+                  ),
+                  const SizedBox(height: 16),
+                  ..._goals.map((g) => _buildOptionChip(
+                        g,
+                        _selectedGoal == g,
+                        () => setState(() => _selectedGoal = g),
+                      )),
+                  const SizedBox(height: 24),
+                  
+                  Text(
+                    'EXPERIENCE LEVEL',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(letterSpacing: 1.5),
+                  ),
+                  const SizedBox(height: 16),
+                  ..._experiences.map((e) => _buildOptionChip(
+                        e,
+                        _selectedExperience == e,
+                        () => setState(() => _selectedExperience = e),
+                      )),
+                  const SizedBox(height: 24),
+                  
+                  Text(
+                    'ACTIVITY LEVEL',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(letterSpacing: 1.5),
+                  ),
+                  const SizedBox(height: 16),
+                  ..._activities.map((a) => _buildOptionChip(
+                        a,
+                        _selectedActivity == a,
+                        () => setState(() => _selectedActivity = a),
+                      )),
+                  
                   const SizedBox(height: 48),
                   PrimaryButton(
                     text: 'Save Changes',
