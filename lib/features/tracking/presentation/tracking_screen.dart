@@ -244,7 +244,16 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                 color: Theme.of(context).colorScheme.primary,
                 size: 80,
                 iconSize: 40,
-                onTap: () => ref.read(trackingProvider.notifier).startTracking(),
+                onTap: () async {
+                  final success = await ref.read(trackingProvider.notifier).startTracking();
+                  if (!success && mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Please enable Location Services and grant permissions to track your run.'),
+                      ),
+                    );
+                  }
+                },
               ),
             ],
           ),

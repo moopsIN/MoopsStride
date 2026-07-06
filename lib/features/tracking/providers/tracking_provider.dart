@@ -155,10 +155,10 @@ class TrackingNotifier extends Notifier<TrackingState> {
     }
   }
 
-  Future<void> startTracking() async {
+  Future<bool> startTracking() async {
     final locService = ref.read(locationServiceProvider);
     final hasPerm = await locService.requestPermission();
-    if (!hasPerm) return;
+    if (!hasPerm) return false;
 
     state = state.copyWith(status: TrackingStatus.active, startTime: DateTime.now());
     
@@ -186,6 +186,8 @@ class TrackingNotifier extends Notifier<TrackingState> {
         distanceMeters: state.distanceMeters + addedDistance,
       );
     });
+
+    return true;
   }
 
   void pauseTracking() {
