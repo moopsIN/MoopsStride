@@ -176,6 +176,18 @@ class TrackingNotifier extends Notifier<TrackingState> {
     final hasPerm = await locService.requestPermission();
     if (!hasPerm) return false;
 
+    if (Platform.isAndroid) {
+      // Android 13+ requires an explicit runtime grant before any
+      // notification can be shown, including the foreground-service
+      // notification the location stream relies on to keep running in the
+      // background. Without this, the foreground service can fail to start
+      // and position updates silently stop arriving.
+      final notificationStatus = await Permission.notification.status;
+      if (!notificationStatus.isGranted) {
+        await Permission.notification.request();
+      }
+    }
+
     await locService.requestBackgroundPermission();
 
     _accumulatedDuration = Duration.zero;
@@ -193,19 +205,21 @@ class TrackingNotifier extends Notifier<TrackingState> {
 
     _positionSubscription = locService.getPositionStream().listen((Position position) {
       if (state.status != TrackingStatus.active) return;
-      
+
       final newPoint = LatLng(position.latitude, position.longitude);
-      
+
       double addedDistance = 0;
       if (state.routePoints.isNotEmpty) {
         addedDistance = locService.calculateDistance(state.routePoints.last, newPoint);
       }
-      
+
       state = state.copyWith(
         currentLocation: newPoint,
         routePoints: [...state.routePoints, newPoint],
         distanceMeters: state.distanceMeters + addedDistance,
       );
+    }, onError: (e) {
+      debugPrint("Position stream error: $e");
     });
 
     return true;
