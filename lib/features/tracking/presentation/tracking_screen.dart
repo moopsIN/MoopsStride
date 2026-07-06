@@ -284,6 +284,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
     const green = Color(0xFF4CAF6D);
     const fadedYellow = Color(0xFFE6C55C);
     final color = isActive ? fadedYellow : green;
+    final size = isNotStarted ? 200.0 : 140.0;
 
     return GestureDetector(
       key: ValueKey(state.status),
@@ -305,8 +306,8 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
         }
       },
       child: Container(
-        width: 140,
-        height: 140,
+        width: size,
+        height: size,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: color,
