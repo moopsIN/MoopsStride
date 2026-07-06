@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:pedometer/pedometer.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:stride/features/tracking/providers/location_service.dart';
 import 'package:uuid/uuid.dart';
 import 'package:stride/core/database/local_db.dart';
@@ -112,6 +114,13 @@ class TrackingNotifier extends Notifier<TrackingState> {
         state = state.copyWith(durationSeconds: state.durationSeconds + 1);
       }
     });
+
+    if (Platform.isAndroid) {
+      final activityStatus = await Permission.activityRecognition.request();
+      if (!activityStatus.isGranted) {
+        debugPrint("Activity recognition permission denied.");
+      }
+    }
 
     _initialSteps = null;
     try {
