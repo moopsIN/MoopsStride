@@ -5,6 +5,7 @@ import 'package:stride/theme/theme_provider.dart';
 import 'package:stride/features/auth/providers/auth_provider.dart';
 import 'package:stride/features/auth/presentation/auth_screen.dart';
 import 'package:stride/features/profile/presentation/edit_profile_screen.dart';
+import 'package:stride/features/profile/presentation/about_screen.dart';
 import 'package:stride/features/profile/providers/profile_provider.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -146,6 +147,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
+                  ListTile(
+                    leading: const Icon(Icons.info_outline),
+                    title: const Text('About'),
+                    trailing: const Icon(Icons.chevron_right, size: 20, color: Colors.white54),
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const AboutScreen()),
+                      );
+                    },
+                  ),
+                  const Divider(height: 1, color: Colors.white24),
                   ListTile(
                     leading: Icon(
                       isGuest ? Icons.login : Icons.logout,
