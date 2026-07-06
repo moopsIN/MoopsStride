@@ -98,6 +98,22 @@ CREATE TABLE user_profile (
     );
   }
 
+  Future<Map<String, dynamic>?> getUserProfile() async {
+    final db = await instance.database;
+    final result = await db.query('user_profile', limit: 1);
+    return result.isNotEmpty ? result.first : null;
+  }
+
+  Future<void> updateUserProfile(Map<String, dynamic> profile) async {
+    final db = await instance.database;
+    final result = await db.query('user_profile', limit: 1);
+    if (result.isNotEmpty) {
+      await db.update('user_profile', profile, where: 'id = ?', whereArgs: [result.first['id']]);
+    } else {
+      await db.insert('user_profile', profile);
+    }
+  }
+
   Future<void> close() async {
     final db = await instance.database;
     db.close();

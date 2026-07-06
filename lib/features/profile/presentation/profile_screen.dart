@@ -4,6 +4,7 @@ import 'package:stride/theme/glass_container.dart';
 import 'package:stride/theme/theme_provider.dart';
 import 'package:stride/features/auth/providers/auth_provider.dart';
 import 'package:stride/features/auth/presentation/auth_screen.dart';
+import 'package:stride/features/profile/presentation/edit_profile_screen.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -84,31 +85,46 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             
             GlassContainer(
               padding: const EdgeInsets.all(16),
-              child: ListTile(
-                leading: Icon(
-                  isGuest ? Icons.login : Icons.logout,
-                  color: isGuest ? Theme.of(context).colorScheme.primary : Colors.redAccent,
-                ),
-                title: Text(
-                  isGuest ? 'Sign In to Sync' : 'Sign Out',
-                  style: TextStyle(
-                    color: isGuest ? Theme.of(context).colorScheme.primary : Colors.redAccent,
+              child: Column(
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.edit_outlined),
+                    title: const Text('Edit Profile'),
+                    trailing: const Icon(Icons.chevron_right, size: 20, color: Colors.white54),
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const EditProfileScreen()),
+                      );
+                    },
                   ),
-                ),
-                onTap: () async {
-                  if (isGuest) {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const AuthScreen()),
-                    );
-                  } else {
-                    await ref.read(authProvider.notifier).signOut();
-                    if (context.mounted) {
-                       Navigator.of(context).pushReplacement(
-                         MaterialPageRoute(builder: (_) => const AuthScreen()),
-                       );
-                    }
-                  }
-                },
+                  const Divider(height: 1, color: Colors.white24),
+                  ListTile(
+                    leading: Icon(
+                      isGuest ? Icons.login : Icons.logout,
+                      color: isGuest ? Theme.of(context).colorScheme.primary : Colors.redAccent,
+                    ),
+                    title: Text(
+                      isGuest ? 'Sign In to Sync' : 'Sign Out',
+                      style: TextStyle(
+                        color: isGuest ? Theme.of(context).colorScheme.primary : Colors.redAccent,
+                      ),
+                    ),
+                    onTap: () async {
+                      if (isGuest) {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const AuthScreen()),
+                        );
+                      } else {
+                        await ref.read(authProvider.notifier).signOut();
+                        if (context.mounted) {
+                           Navigator.of(context).pushReplacement(
+                             MaterialPageRoute(builder: (_) => const AuthScreen()),
+                           );
+                        }
+                      }
+                    },
+                  ),
+                ],
               ),
             ),
           ],
