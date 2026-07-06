@@ -6,6 +6,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:pedometer/pedometer.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:stride/features/tracking/providers/location_service.dart';
 import 'package:uuid/uuid.dart';
 import 'package:stride/core/database/local_db.dart';
@@ -22,6 +23,8 @@ class TrackingState {
   final DateTime? startTime;
   final LatLng? currentLocation;
   final int currentSteps;
+  final int dailySteps;
+  final bool isLocked;
 
   TrackingState({
     this.status = TrackingStatus.notStarted,
@@ -31,6 +34,8 @@ class TrackingState {
     this.startTime,
     this.currentLocation,
     this.currentSteps = 0,
+    this.dailySteps = 0,
+    this.isLocked = false,
   });
 
   TrackingState copyWith({
@@ -41,6 +46,8 @@ class TrackingState {
     DateTime? startTime,
     LatLng? currentLocation,
     int? currentSteps,
+    int? dailySteps,
+    bool? isLocked,
   }) {
     return TrackingState(
       status: status ?? this.status,
@@ -50,6 +57,8 @@ class TrackingState {
       startTime: startTime ?? this.startTime,
       currentLocation: currentLocation ?? this.currentLocation,
       currentSteps: currentSteps ?? this.currentSteps,
+      dailySteps: dailySteps ?? this.dailySteps,
+      isLocked: isLocked ?? this.isLocked,
     );
   }
   
@@ -83,15 +92,59 @@ class TrackingState {
 
 class TrackingNotifier extends Notifier<TrackingState> {
   StreamSubscription<Position>? _positionSubscription;
-  StreamSubscription<StepCount>? _stepSubscription;
+  StreamSubscription<StepCount>? _globalStepSubscription;
   Timer? _timer;
-  int? _initialSteps;
+  int? _runInitialSteps;
 
   @override
   TrackingState build() {
-    // Initial fetch of current location to center map before starting
     _initCurrentLocation();
+    _initDailySteps();
     return TrackingState();
+  }
+
+  Future<void> _initDailySteps() async {
+    if (Platform.isAndroid) {
+      final activityStatus = await Permission.activityRecognition.status;
+      if (!activityStatus.isGranted) {
+        await Permission.activityRecognition.request();
+      }
+    }
+    
+    final prefs = await SharedPreferences.getInstance();
+    
+    _globalStepSubscription ??= Pedometer.stepCountStream.listen((StepCount event) {
+      final today = DateTime.now();
+      final dateString = "${today.year}-${today.month}-${today.day}";
+      
+      final savedDate = prefs.getString('last_step_date');
+      int midnightOffset = prefs.getInt('midnight_step_offset') ?? event.steps;
+
+      if (savedDate != dateString) {
+        midnightOffset = event.steps;
+        prefs.setString('last_step_date', dateString);
+        prefs.setInt('midnight_step_offset', midnightOffset);
+      }
+      
+      final currentDaily = event.steps - midnightOffset;
+
+      int currentRun = state.currentSteps;
+      if (state.status == TrackingStatus.active) {
+        _runInitialSteps ??= event.steps;
+        currentRun = event.steps - _runInitialSteps!;
+      }
+      
+      state = state.copyWith(
+        dailySteps: currentDaily > 0 ? currentDaily : 0, 
+        currentSteps: currentRun
+      );
+    }, onError: (e) {
+      debugPrint("Global pedometer error: $e");
+    });
+  }
+
+  void toggleLock() {
+    state = state.copyWith(isLocked: !state.isLocked);
   }
 
   Future<void> _initCurrentLocation() async {
@@ -115,26 +168,7 @@ class TrackingNotifier extends Notifier<TrackingState> {
       }
     });
 
-    if (Platform.isAndroid) {
-      final activityStatus = await Permission.activityRecognition.request();
-      if (!activityStatus.isGranted) {
-        debugPrint("Activity recognition permission denied.");
-      }
-    }
-
-    _initialSteps = null;
-    try {
-      _stepSubscription = Pedometer.stepCountStream.listen((StepCount event) {
-        if (state.status == TrackingStatus.active) {
-          _initialSteps ??= event.steps;
-          state = state.copyWith(currentSteps: event.steps - _initialSteps!);
-        }
-      }, onError: (error) {
-        debugPrint("Pedometer error: $error");
-      });
-    } catch (e) {
-      debugPrint("Pedometer init error: $e");
-    }
+    _runInitialSteps = null;
 
     _positionSubscription = locService.getPositionStream().listen((Position position) {
       if (state.status != TrackingStatus.active) return;
@@ -166,7 +200,6 @@ class TrackingNotifier extends Notifier<TrackingState> {
     state = state.copyWith(status: TrackingStatus.stopped);
     _timer?.cancel();
     _positionSubscription?.cancel();
-    _stepSubscription?.cancel();
     
     // In Phase 5/6, we will trigger save logic here.
     if (state.distanceMeters < 10 || state.durationSeconds < 10) return null; // Too short to save
