@@ -4,9 +4,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:stride/core/widgets/primary_button.dart';
 import 'package:stride/features/onboarding/providers/onboarding_provider.dart';
 import 'package:stride/theme/glass_container.dart';
-
-// We'll create a placeholder for Home since it's built in Phase 4
-import 'package:stride/features/splash/splash_screen.dart' show PlaceholderHome;
+import 'package:stride/features/home/presentation/home_screen.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
@@ -43,7 +41,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     
     if (success && mounted) {
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const PlaceholderHome()),
+        MaterialPageRoute(builder: (_) => const HomeScreen()),
       );
     }
   }

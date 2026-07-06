@@ -94,15 +94,4 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 }
 
-// Temporary placeholder for home until Phase 3
-class PlaceholderHome extends StatelessWidget {
-  const PlaceholderHome({super.key});
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Home')),
-      body: const Center(child: Text('Home Dashboard (Coming Soon)')),
-    );
-  }
-}
