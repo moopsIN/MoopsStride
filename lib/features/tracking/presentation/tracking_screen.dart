@@ -69,11 +69,15 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
       }
     }
 
+    final hasStarted = trackingState.status != TrackingStatus.notStarted;
+
     return Scaffold(
       body: Stack(
         children: [
           // 1. FlutterMap Layer
-          FlutterMap(
+          IgnorePointer(
+            ignoring: trackingState.isLocked,
+            child: FlutterMap(
               mapController: _mapController,
               options: MapOptions(
                 initialCenter: trackingState.currentLocation ?? const LatLng(0, 0),
@@ -103,6 +107,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                 ),
               ],
             ),
+          ),
 
           // Dim overlay
           Positioned.fill(
@@ -114,55 +119,66 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
             ),
           ),
 
-          // Home Header (Only when not started)
-          if (trackingState.status == TrackingStatus.notStarted)
-            Positioned(
-              top: MediaQuery.of(context).padding.top + 16,
-              left: 16,
-              right: 16,
-              child: _buildHomeHeader(context),
-            ),
-
-          // 2. Controls & Stats (Bottom)
+          // Header (always present)
           Positioned(
-            bottom: 48,
+            top: MediaQuery.of(context).padding.top + 16,
             left: 16,
             right: 16,
-            child: Column(
+            child: _buildHomeHeader(context),
+          ),
+
+          // 2. Main toggle + Lock/Stop, dead center of the screen
+          Center(
+            child: Row(
               mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                if (trackingState.status != TrackingStatus.notStarted) ...[
-                  GlassContainer(
-                    padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        _buildStatItem('TIME', trackingState.formattedDuration),
-                        _buildStatItem('KM', trackingState.distanceKm.toStringAsFixed(2)),
-                        _buildStatItem('PACE', trackingState.formattedPace),
-                        _buildStatItem('STEPS', trackingState.currentSteps.toString()),
-                      ],
-                    ),
-                  ).animate().slideY(begin: 0.2).fadeIn(duration: 400.ms),
-                  const SizedBox(height: 32),
+                if (hasStarted) ...[
+                  _buildControlButton(
+                    icon: trackingState.isLocked ? Icons.lock : Icons.lock_open,
+                    color: Colors.white.withValues(alpha: 0.15),
+                    size: 52,
+                    iconSize: 22,
+                    onTap: () => ref.read(trackingProvider.notifier).toggleLock(),
+                  ).animate().fadeIn(duration: 300.ms),
+                  const SizedBox(width: 20),
                 ],
 
                 _buildMainToggleButton(context, trackingState),
 
-                if (trackingState.status == TrackingStatus.active ||
-                    trackingState.status == TrackingStatus.paused) ...[
-                  const SizedBox(height: 24),
+                if (hasStarted) ...[
+                  const SizedBox(width: 20),
                   _buildControlButton(
                     icon: Icons.stop,
                     color: Colors.redAccent,
-                    size: 56,
-                    iconSize: 26,
+                    size: 52,
+                    iconSize: 22,
                     onTap: _finishRun,
-                  ).animate().slideY(begin: 0.3).fadeIn(delay: 100.ms),
+                  ).animate().fadeIn(duration: 300.ms),
                 ],
               ],
             ),
           ),
+
+          // 3. Stats (bottom)
+          if (hasStarted)
+            Positioned(
+              bottom: 48,
+              left: 16,
+              right: 16,
+              child: GlassContainer(
+                padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _buildStatItem('TIME', trackingState.formattedDuration),
+                    _buildStatItem('KM', trackingState.distanceKm.toStringAsFixed(2)),
+                    _buildStatItem('PACE', trackingState.formattedPace),
+                    _buildStatItem('STEPS', trackingState.currentSteps.toString()),
+                  ],
+                ),
+              ).animate().slideY(begin: 0.2).fadeIn(duration: 400.ms),
+            ),
         ],
       ),
     );
@@ -172,19 +188,13 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
     final isActive = state.status == TrackingStatus.active;
     final isNotStarted = state.status == TrackingStatus.notStarted;
 
-    final icon = isNotStarted
-        ? Icons.play_arrow
-        : (isActive ? Icons.pause : Icons.play_arrow);
+    final label = isNotStarted ? 'START' : (isActive ? 'PAUSE' : 'RESUME');
     final color = isActive
         ? Theme.of(context).colorScheme.secondary
         : Theme.of(context).colorScheme.primary;
 
-    return _buildControlButton(
+    return GestureDetector(
       key: ValueKey(state.status),
-      icon: icon,
-      color: color,
-      size: 100,
-      iconSize: 48,
       onTap: () async {
         final notifier = ref.read(trackingProvider.notifier);
         if (isNotStarted) {
@@ -202,6 +212,31 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
           notifier.resumeTracking();
         }
       },
+      child: Container(
+        width: 140,
+        height: 140,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: color,
+          boxShadow: [
+            BoxShadow(
+              color: color.withValues(alpha: 0.3),
+              blurRadius: 24,
+              spreadRadius: 2,
+            )
+          ],
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          label,
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+            color: Colors.black87,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+            letterSpacing: 1.5,
+          ),
+        ),
+      ),
     ).animate(key: ValueKey(state.status)).scale(duration: 200.ms);
   }
 
