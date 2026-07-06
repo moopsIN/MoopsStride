@@ -36,16 +36,19 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
     if (!mounted) return;
     
     if (activity == null) {
-      // Run was too short, just pop
-      Navigator.of(context).pop();
+      // Run was too short to save; just reset back to the idle state.
+      ref.read(trackingProvider.notifier).reset();
       return;
     }
     
-    Navigator.of(context).pushReplacement(
+    await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => RunSummaryScreen(activity: activity),
       ),
     );
+
+    if (!mounted) return;
+    ref.read(trackingProvider.notifier).reset();
   }
 
   static const double _idleZoom = 16.0;
