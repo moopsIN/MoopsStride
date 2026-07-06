@@ -163,6 +163,20 @@ class RunSummaryScreen extends StatelessWidget {
                           ),
                         ],
                       ).animate().slideY(begin: 0.2).fadeIn(delay: 350.ms),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildStatCard(
+                              context, 
+                              'STEPS', 
+                              activity.steps.toString(),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          const Expanded(child: SizedBox()),
+                        ],
+                      ).animate().slideY(begin: 0.2).fadeIn(delay: 500.ms),
                     ],
                   ),
                 ),

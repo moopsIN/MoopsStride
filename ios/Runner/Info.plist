@@ -68,5 +68,7 @@
 	</array>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Moops Stride needs location access to track your walks and runs.</string>
+	<key>NSMotionUsageDescription</key>
+	<string>Moops Stride needs motion access to count your steps during activities.</string>
 </dict>
 </plist>

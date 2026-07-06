@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:pedometer/pedometer.dart';
 import 'package:stride/features/tracking/providers/location_service.dart';
 import 'package:uuid/uuid.dart';
 import 'package:stride/core/database/local_db.dart';
@@ -17,6 +19,7 @@ class TrackingState {
   final int durationSeconds;
   final DateTime? startTime;
   final LatLng? currentLocation;
+  final int currentSteps;
 
   TrackingState({
     this.status = TrackingStatus.notStarted,
@@ -25,6 +28,7 @@ class TrackingState {
     this.durationSeconds = 0,
     this.startTime,
     this.currentLocation,
+    this.currentSteps = 0,
   });
 
   TrackingState copyWith({
@@ -34,6 +38,7 @@ class TrackingState {
     int? durationSeconds,
     DateTime? startTime,
     LatLng? currentLocation,
+    int? currentSteps,
   }) {
     return TrackingState(
       status: status ?? this.status,
@@ -42,6 +47,7 @@ class TrackingState {
       durationSeconds: durationSeconds ?? this.durationSeconds,
       startTime: startTime ?? this.startTime,
       currentLocation: currentLocation ?? this.currentLocation,
+      currentSteps: currentSteps ?? this.currentSteps,
     );
   }
   
@@ -75,7 +81,9 @@ class TrackingState {
 
 class TrackingNotifier extends Notifier<TrackingState> {
   StreamSubscription<Position>? _positionSubscription;
+  StreamSubscription<StepCount>? _stepSubscription;
   Timer? _timer;
+  int? _initialSteps;
 
   @override
   TrackingState build() {
@@ -104,6 +112,20 @@ class TrackingNotifier extends Notifier<TrackingState> {
         state = state.copyWith(durationSeconds: state.durationSeconds + 1);
       }
     });
+
+    _initialSteps = null;
+    try {
+      _stepSubscription = Pedometer.stepCountStream.listen((StepCount event) {
+        if (state.status == TrackingStatus.active) {
+          _initialSteps ??= event.steps;
+          state = state.copyWith(currentSteps: event.steps - _initialSteps!);
+        }
+      }, onError: (error) {
+        debugPrint("Pedometer error: $error");
+      });
+    } catch (e) {
+      debugPrint("Pedometer init error: $e");
+    }
 
     _positionSubscription = locService.getPositionStream().listen((Position position) {
       if (state.status != TrackingStatus.active) return;
@@ -135,6 +157,7 @@ class TrackingNotifier extends Notifier<TrackingState> {
     state = state.copyWith(status: TrackingStatus.stopped);
     _timer?.cancel();
     _positionSubscription?.cancel();
+    _stepSubscription?.cancel();
     
     // In Phase 5/6, we will trigger save logic here.
     if (state.distanceMeters < 10 || state.durationSeconds < 10) return null; // Too short to save
@@ -151,8 +174,9 @@ class TrackingNotifier extends Notifier<TrackingState> {
       distanceMeters: state.distanceMeters,
       durationSeconds: state.durationSeconds,
       avgPace: state.currentPace,
-      caloriesEstimate: state.distanceKm * 60.0, // rough estimate
+      caloriesEstimate: state.distanceMeters * 0.06,
       routePoints: state.routePoints,
+      steps: state.currentSteps,
       synced: false,
     );
     

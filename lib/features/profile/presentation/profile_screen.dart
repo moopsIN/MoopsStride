@@ -16,7 +16,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final user = ref.watch(authProvider);
     final themeMode = ref.watch(themeModeProvider);
     final isDarkMode = themeMode == ThemeMode.dark || (themeMode == ThemeMode.system && MediaQuery.of(context).platformBrightness == Brightness.dark);
 

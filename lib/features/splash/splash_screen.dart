@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:stride/theme/app_theme.dart';
 import 'package:stride/features/auth/presentation/auth_screen.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';

@@ -11,6 +11,7 @@ class ActivityModel {
   final double avgPace;
   final double caloriesEstimate;
   final List<LatLng> routePoints;
+  final int steps;
   final bool synced;
 
   ActivityModel({
@@ -23,6 +24,7 @@ class ActivityModel {
     required this.avgPace,
     required this.caloriesEstimate,
     required this.routePoints,
+    this.steps = 0,
     this.synced = false,
   });
 
@@ -37,6 +39,7 @@ class ActivityModel {
       'avg_pace': avgPace,
       'calories_estimate': caloriesEstimate,
       'route_polyline': jsonEncode(routePoints.map((p) => [p.latitude, p.longitude]).toList()),
+      'steps': steps,
       'synced': synced ? 1 : 0,
     };
   }
@@ -65,6 +68,7 @@ class ActivityModel {
       avgPace: map['avg_pace'] as double,
       caloriesEstimate: map['calories_estimate'] as double,
       routePoints: parsedRoute,
+      steps: map['steps'] as int? ?? 0,
       synced: (map['synced'] as int) == 1,
     );
   }

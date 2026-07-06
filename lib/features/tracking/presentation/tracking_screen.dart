@@ -109,6 +109,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                   _buildStatItem('TIME', trackingState.formattedDuration),
                   _buildStatItem('KM', trackingState.distanceKm.toStringAsFixed(2)),
                   _buildStatItem('PACE', trackingState.formattedPace),
+                  _buildStatItem('STEPS', trackingState.currentSteps.toString()),
                 ],
               ),
             ).animate().slideY(begin: -0.2).fadeIn(duration: 400.ms),
@@ -157,7 +158,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
       children: [
         Text(
           value,
-          style: Theme.of(context).textTheme.displayLarge?.copyWith(fontSize: 32),
+          style: Theme.of(context).textTheme.displayLarge?.copyWith(fontSize: 24),
         ),
         const SizedBox(height: 4),
         Text(

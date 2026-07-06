@@ -19,7 +19,13 @@ class LocalDatabase {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, filePath);
 
-    return await openDatabase(path, version: 1, onCreate: _createDB);
+    return await openDatabase(path, version: 2, onCreate: _createDB, onUpgrade: _upgradeDB);
+  }
+
+  Future _upgradeDB(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute('ALTER TABLE activities ADD COLUMN steps INTEGER NOT NULL DEFAULT 0');
+    }
   }
 
   Future _createDB(Database db, int version) async {
@@ -34,7 +40,8 @@ CREATE TABLE activities (
   avg_pace REAL NOT NULL,
   calories_estimate REAL NOT NULL,
   route_polyline TEXT,
-  synced INTEGER NOT NULL DEFAULT 0
+  synced INTEGER NOT NULL DEFAULT 0,
+  steps INTEGER NOT NULL DEFAULT 0
 )
 ''');
 
