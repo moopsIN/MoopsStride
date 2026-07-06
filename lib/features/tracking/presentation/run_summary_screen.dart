@@ -15,7 +15,7 @@ class RunSummaryScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     // Calculate bounding box for map to show entire route
     LatLngBounds? bounds;
-    if (activity.routePoints.isNotEmpty) {
+    if (activity.routePoints.length > 1) {
       bounds = LatLngBounds.fromPoints(activity.routePoints);
     }
 

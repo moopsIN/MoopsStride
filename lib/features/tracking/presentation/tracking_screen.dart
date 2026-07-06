@@ -252,7 +252,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                         ).animate().fadeIn(duration: 300.ms),
                         const SizedBox(width: 20),
                       ],
-                      Opacity(opacity: 0, child: _buildMainToggleButton(context, trackingState)),
+                      Opacity(opacity: 0, child: IgnorePointer(child: _buildMainToggleButton(context, trackingState))),
                       if (hasStarted) ...[
                         const SizedBox(width: 20),
                         Opacity(
