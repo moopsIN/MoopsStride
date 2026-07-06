@@ -1,4 +1,4 @@
-package in.moops.stride.location
+package `in`.moops.stride.location
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -17,7 +17,7 @@ import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
-import in.moops.stride.MainActivity
+import `in`.moops.stride.MainActivity
 
 class StrideLocationService : Service() {
     private val CHANNEL_ID = "stride_location_channel"

@@ -1,4 +1,4 @@
-package in.moops.stride.location
+package `in`.moops.stride.location
 
 import android.content.Context
 import android.content.Intent
