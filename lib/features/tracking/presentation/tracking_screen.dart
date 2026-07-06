@@ -169,94 +169,40 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
   }
 
   Widget _buildMainToggleButton(BuildContext context, TrackingState state) {
-    if (state.status == TrackingStatus.notStarted) {
-      return _buildCircularProgressStartButton(state);
-    }
-
     final isActive = state.status == TrackingStatus.active;
+    final isNotStarted = state.status == TrackingStatus.notStarted;
+
+    final icon = isNotStarted
+        ? Icons.play_arrow
+        : (isActive ? Icons.pause : Icons.play_arrow);
+    final color = isActive
+        ? Theme.of(context).colorScheme.secondary
+        : Theme.of(context).colorScheme.primary;
 
     return _buildControlButton(
-      key: ValueKey(isActive),
-      icon: isActive ? Icons.pause : Icons.play_arrow,
-      color: isActive
-          ? Theme.of(context).colorScheme.secondary
-          : Theme.of(context).colorScheme.primary,
-      onTap: () {
+      key: ValueKey(state.status),
+      icon: icon,
+      color: color,
+      size: 100,
+      iconSize: 48,
+      onTap: () async {
         final notifier = ref.read(trackingProvider.notifier);
-        if (isActive) {
+        if (isNotStarted) {
+          final success = await notifier.startTracking();
+          if (!success && context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Please enable Location Services and grant permissions to track your run.'),
+              ),
+            );
+          }
+        } else if (isActive) {
           notifier.pauseTracking();
         } else {
           notifier.resumeTracking();
         }
       },
-    ).animate(key: ValueKey(isActive)).scale(duration: 200.ms);
-  }
-
-  Widget _buildCircularProgressStartButton(TrackingState state) {
-    int goal = 1000;
-    if (state.dailySteps >= 1000) goal = 2000;
-    if (state.dailySteps >= 2000) goal = 5000;
-    if (state.dailySteps >= 5000) goal = 10000;
-    if (state.dailySteps >= 10000) goal = 15000;
-    if (state.dailySteps >= 15000) goal = 20000;
-    
-    final progress = (state.dailySteps / goal).clamp(0.0, 1.0);
-
-    return Column(
-      children: [
-        Text(
-          'DAILY STEPS: \${state.dailySteps} / $goal',
-          style: Theme.of(context).textTheme.labelSmall?.copyWith(
-            letterSpacing: 2,
-            color: Colors.white,
-            shadows: [const Shadow(blurRadius: 4, color: Colors.black87)],
-          ),
-        ),
-        const SizedBox(height: 16),
-        SizedBox(
-          width: 100,
-          height: 100,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              SizedBox(
-                width: 100,
-                height: 100,
-                child: TweenAnimationBuilder<double>(
-                  tween: Tween<double>(begin: 0, end: progress),
-                  duration: const Duration(seconds: 1),
-                  curve: Curves.easeOutCubic,
-                  builder: (context, value, _) {
-                    return CircularProgressIndicator(
-                      value: value,
-                      strokeWidth: 8,
-                      backgroundColor: Colors.black45,
-                      color: Theme.of(context).colorScheme.primary,
-                    );
-                  },
-                ),
-              ),
-              _buildControlButton(
-                icon: Icons.play_arrow,
-                color: Theme.of(context).colorScheme.primary,
-                size: 80,
-                iconSize: 40,
-                onTap: () async {
-                  final success = await ref.read(trackingProvider.notifier).startTracking();
-                  if (!success && mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Please enable Location Services and grant permissions to track your run.'),
-                      ),
-                    );
-                  }
-                },
-              ),
-            ],
-          ),
-        ).animate().scale(duration: 400.ms),
-      ],
-    );
+    ).animate(key: ValueKey(state.status)).scale(duration: 200.ms);
   }
 
   Widget _buildStatItem(String label, String value) {
