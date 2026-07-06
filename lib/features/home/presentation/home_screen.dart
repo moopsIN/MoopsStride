@@ -128,7 +128,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         child: Text(
                           'START',
                           style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                                color: Theme.of(context).colorScheme.background,
+                                color: Theme.of(context).colorScheme.surface,
                                 fontSize: 32,
                                 letterSpacing: 2,
                               ),
