@@ -12,5 +12,6 @@ import UIKit
 
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
+    StrideLocationPlugin.register(with: engineBridge.pluginRegistry.registrar(forPlugin: "StrideLocationPlugin")!)
   }
 }

@@ -40,7 +40,6 @@ dependencies:
   google_sign_in: ^7.2.0
   sqflite: ^2.4.3
   path_provider: ^2.1.6
-  geolocator: ^14.0.3
   fl_chart: ^1.2.0
   flutter_animate: ^4.5.2
   flutter_riverpod: ^3.3.2

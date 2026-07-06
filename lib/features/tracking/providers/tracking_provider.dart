@@ -3,11 +3,10 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:geolocator/geolocator.dart';
+import 'package:stride/features/tracking/providers/native_location_service.dart';
 import 'package:pedometer/pedometer.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:stride/features/tracking/providers/location_service.dart';
 import 'package:uuid/uuid.dart';
 import 'package:stride/core/database/local_db.dart';
 import 'package:stride/features/tracking/models/activity_model.dart';
@@ -91,7 +90,7 @@ class TrackingState {
 }
 
 class TrackingNotifier extends Notifier<TrackingState> {
-  StreamSubscription<Position>? _positionSubscription;
+  StreamSubscription<LocationFix>? _positionSubscription;
   StreamSubscription<StepCount>? _globalStepSubscription;
   Timer? _timer;
   int? _runInitialSteps;
@@ -176,10 +175,24 @@ class TrackingNotifier extends Notifier<TrackingState> {
     final hasPerm = await locService.requestPermission();
     if (!hasPerm) return false;
 
-    // NOTE: background/locked-screen tracking is currently disabled — see
-    // the comment in LocationService._platformLocationSettings for why.
-    // requestBackgroundPermission() and the POST_NOTIFICATIONS runtime
-    // request that supported it are on hold until that's revisited.
+    await locService.requestBackgroundPermission();
+    if (Platform.isAndroid) {
+      final notifStatus = await Permission.notification.status;
+      if (!notifStatus.isGranted) {
+        await Permission.notification.request();
+      }
+
+      final isIgnoring = await locService.isIgnoringBatteryOptimizations();
+      if (!isIgnoring) {
+        final prefs = await SharedPreferences.getInstance();
+        if (prefs.getBool('battery_prompt_shown') != true) {
+          await prefs.setBool('battery_prompt_shown', true);
+          await locService.requestIgnoreBatteryOptimizations();
+        }
+      }
+    }
+
+    await locService.startService();
 
     _accumulatedDuration = Duration.zero;
     _lastResumedAt = DateTime.now();
@@ -194,7 +207,7 @@ class TrackingNotifier extends Notifier<TrackingState> {
 
     _runInitialSteps = null;
 
-    _positionSubscription = locService.getPositionStream().listen((Position position) {
+    _positionSubscription = locService.getPositionStream().listen((LocationFix position) {
       if (state.status != TrackingStatus.active) return;
 
       final newPoint = LatLng(position.latitude, position.longitude);
@@ -234,6 +247,8 @@ class TrackingNotifier extends Notifier<TrackingState> {
     state = state.copyWith(status: TrackingStatus.stopped);
     _timer?.cancel();
     _positionSubscription?.cancel();
+    
+    await ref.read(locationServiceProvider).stopService();
     
     // If you want to reject short runs in the future, add it here.
     // For now, always show the summary screen.
