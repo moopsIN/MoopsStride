@@ -5,6 +5,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:stride/features/tracking/providers/tracking_provider.dart';
 import 'package:stride/theme/glass_container.dart';
+import 'package:stride/core/config/secrets.dart';
 
 class TrackingScreen extends ConsumerStatefulWidget {
   const TrackingScreen({super.key});
@@ -58,8 +59,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
             ),
             children: [
               TileLayer(
-                // Placeholder MapTiler Key. Using the 'dataviz-dark' style to match our aesthetic.
-                urlTemplate: 'https://api.maptiler.com/maps/dataviz-dark/{z}/{x}/{y}.png?key=YOUR_MAPTILER_API_KEY',
+                urlTemplate: 'https://api.maptiler.com/maps/dataviz-dark/{z}/{x}/{y}.png?key=${Secrets.mapTilerKey}',
                 userAgentPackageName: 'com.moops.stride',
               ),
               PolylineLayer(
