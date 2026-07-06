@@ -230,8 +230,8 @@ class TrackingNotifier extends Notifier<TrackingState> {
     _timer?.cancel();
     _positionSubscription?.cancel();
     
-    // In Phase 5/6, we will trigger save logic here.
-    if (state.distanceMeters < 10 || state.durationSeconds < 10) return null; // Too short to save
+    // If you want to reject short runs in the future, add it here.
+    // For now, always show the summary screen.
 
     final id = const Uuid().v4();
     final endTime = DateTime.now();
