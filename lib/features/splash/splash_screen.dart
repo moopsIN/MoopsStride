@@ -39,11 +39,14 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final logoAsset = isDark ? 'assets/images/moops-logo-dark.png' : 'assets/images/moops-logo-light.png';
+
     return Scaffold(
-      body: Center(
+      body: SafeArea(
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            const Spacer(),
             // Abstract Path/Stride Logo placeholder
             Container(
               width: 80,
@@ -93,6 +96,16 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
             )
                 .animate()
                 .fadeIn(delay: 800.ms, duration: 600.ms),
+                
+            const Spacer(),
+            
+            // Bottom Logo
+            Image.asset(
+              logoAsset,
+              height: 24,
+            ).animate().fadeIn(delay: 1000.ms),
+            
+            const SizedBox(height: 24),
           ],
         ),
       ),

@@ -167,6 +167,18 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                 onPressed: _handleGuestLogin,
                 child: const Text('Continue as Guest'),
               ).animate().fadeIn(delay: 1000.ms),
+              const SizedBox(height: 48),
+              
+              // Bottom Logo
+              Center(
+                child: Image.asset(
+                  Theme.of(context).brightness == Brightness.dark
+                      ? 'assets/images/moops-logo-dark.png'
+                      : 'assets/images/moops-logo-light.png',
+                  height: 24,
+                ).animate().fadeIn(delay: 1200.ms),
+              ),
+              const SizedBox(height: 24),
             ],
           ),
         ),
