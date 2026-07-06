@@ -44,7 +44,7 @@ class RunSummaryScreen extends StatelessWidget {
             ),
             children: [
               TileLayer(
-                urlTemplate: 'https://api.maptiler.com/maps/dataviz-dark/{z}/{x}/{y}.png?key=${Secrets.mapTilerKey}',
+                urlTemplate: 'https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=${Secrets.mapTilerKey}',
                 userAgentPackageName: 'com.moops.stride',
               ),
               PolylineLayer(

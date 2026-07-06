@@ -92,6 +92,16 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
             ),
           ),
 
+          // Dim overlay
+          Positioned.fill(
+            child: IgnorePointer(
+              ignoring: true,
+              child: Container(
+                color: Colors.black.withValues(alpha: 0.5),
+              ),
+            ),
+          ),
+
           // 2. Controls & Stats (Bottom)
           Positioned(
             bottom: 48,
