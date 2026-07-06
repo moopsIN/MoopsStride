@@ -61,12 +61,21 @@ class NativeLocationService {
     }
   }
 
-  Future<void> startService() async {
-    await _methodChannel.invokeMethod('start');
+  Future<bool> startService() async {
+    try {
+      await _methodChannel.invokeMethod('start');
+      return true;
+    } catch (e) {
+      return false;
+    }
   }
 
   Future<void> stopService() async {
-    await _methodChannel.invokeMethod('stop');
+    try {
+      await _methodChannel.invokeMethod('stop');
+    } catch (e) {
+      // Already stopped/never started — nothing to clean up.
+    }
   }
 
   Stream<LocationFix> getPositionStream() {

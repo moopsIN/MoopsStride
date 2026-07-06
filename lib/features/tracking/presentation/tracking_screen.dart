@@ -59,6 +59,14 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
   Widget build(BuildContext context) {
     final trackingState = ref.watch(trackingProvider);
 
+    ref.listen<TrackingState>(trackingProvider, (previous, next) {
+      final message = next.errorMessage;
+      if (message != null) {
+        ref.read(trackingProvider.notifier).clearError();
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+      }
+    });
+
     // Update map camera if we have a location
     if (trackingState.currentLocation != null) {
       if (trackingState.status == TrackingStatus.active) {

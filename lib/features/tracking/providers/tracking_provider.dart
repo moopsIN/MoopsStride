@@ -24,6 +24,7 @@ class TrackingState {
   final int currentSteps;
   final int dailySteps;
   final bool isLocked;
+  final String? errorMessage;
 
   TrackingState({
     this.status = TrackingStatus.notStarted,
@@ -35,6 +36,7 @@ class TrackingState {
     this.currentSteps = 0,
     this.dailySteps = 0,
     this.isLocked = false,
+    this.errorMessage,
   });
 
   TrackingState copyWith({
@@ -47,6 +49,8 @@ class TrackingState {
     int? currentSteps,
     int? dailySteps,
     bool? isLocked,
+    String? errorMessage,
+    bool clearErrorMessage = false,
   }) {
     return TrackingState(
       status: status ?? this.status,
@@ -58,9 +62,10 @@ class TrackingState {
       currentSteps: currentSteps ?? this.currentSteps,
       dailySteps: dailySteps ?? this.dailySteps,
       isLocked: isLocked ?? this.isLocked,
+      errorMessage: clearErrorMessage ? null : (errorMessage ?? this.errorMessage),
     );
   }
-  
+
   double get distanceKm => distanceMeters / 1000.0;
   
   // Pace in minutes per kilometer
@@ -192,7 +197,8 @@ class TrackingNotifier extends Notifier<TrackingState> {
       }
     }
 
-    await locService.startService();
+    final serviceStarted = await locService.startService();
+    if (!serviceStarted) return false;
 
     _accumulatedDuration = Duration.zero;
     _lastResumedAt = DateTime.now();
@@ -224,6 +230,12 @@ class TrackingNotifier extends Notifier<TrackingState> {
       );
     }, onError: (e) {
       debugPrint("Position stream error: $e");
+      if (state.status == TrackingStatus.active) {
+        pauseTracking();
+      }
+      state = state.copyWith(
+        errorMessage: 'Location permission was lost, so tracking has been paused.',
+      );
     });
 
     return true;
@@ -235,6 +247,10 @@ class TrackingNotifier extends Notifier<TrackingState> {
       _lastResumedAt = null;
     }
     state = state.copyWith(status: TrackingStatus.paused);
+  }
+
+  void clearError() {
+    state = state.copyWith(clearErrorMessage: true);
   }
 
   void resumeTracking() {

@@ -100,6 +100,10 @@ class StrideLocationService : Service() {
             )
         } catch (e: SecurityException) {
             Log.e("StrideLocationService", "Missing location permissions", e)
+            android.os.Handler(Looper.getMainLooper()).post {
+                eventSink?.error("PERMISSION_DENIED", "Location permission was revoked", null)
+            }
+            stopSelf()
         }
     }
 
