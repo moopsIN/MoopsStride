@@ -44,9 +44,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
     return Scaffold(
       body: SafeArea(
-        child: Column(
-          children: [
-            const Spacer(),
+        child: Center(
+          child: Column(
+            children: [
+              const Spacer(),
             // Abstract Path/Stride Logo placeholder
             Container(
               width: 80,
