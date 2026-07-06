@@ -2,41 +2,51 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
-  // Brand Colors
-  static const Color accentColor = Color(0xFF00E5FF); // Electric Cyan
-  static const Color backgroundDark = Color(0xFF0B0D17); // Deep near-black
-  static const Color surfaceDark = Color(0xFF151828); // Slightly lighter for cards
-  static const Color textPrimaryDark = Colors.white;
-  static const Color textSecondaryDark = Color(0xFF9E9EA7);
+  // Light Mode Colors (Primary)
+  static const Color lightBg = Color(0xFFF5F2ED);
+  static const Color lightBgAlt = Color(0xFFEDE6DA);
+  static const Color lightInk = Color(0xFF0E0E0C);
+  static const Color lightInkSoft = Color(0xFF2A2A26);
+  static const Color lightInkMute = Color(0xFF6B6B63);
+  static const Color lightLine = Color(0x1E0E0E0C); 
+  static const Color lightLineSoft = Color(0x0F0E0E0C);
+  static const Color lightAccent = Color(0xFFFF4D3D);
+  static const Color lightAccentDeep = Color(0xFFE63B2B);
 
-  // Light Mode Colors (Secondary)
-  static const Color backgroundLight = Color(0xFFF4F5F7);
-  static const Color surfaceLight = Colors.white;
-  static const Color textPrimaryLight = Color(0xFF0B0D17);
-  static const Color textSecondaryLight = Color(0xFF6B6C7E);
+  // Dark Mode Colors
+  static const Color darkBg = Color(0xFF0E0E0C);
+  static const Color darkBgAlt = Color(0xFF1A1A16);
+  static const Color darkInk = Color(0xFFF5F2ED);
+  static const Color darkInkSoft = Color(0xFFD8D4C8);
+  static const Color darkInkMute = Color(0xFF8C8C82);
+  static const Color darkLine = Color(0x1EF5F2ED);
+  static const Color darkLineSoft = Color(0x0FF5F2ED);
+  static const Color darkAccent = Color(0xFFFF6B5C);
+  static const Color darkAccentDeep = Color(0xFFFF4D3D);
 
   static ThemeData get darkTheme {
     return ThemeData(
       brightness: Brightness.dark,
-      scaffoldBackgroundColor: backgroundDark,
-      primaryColor: accentColor,
+      scaffoldBackgroundColor: darkBg,
+      primaryColor: darkAccent,
       colorScheme: const ColorScheme.dark(
-        primary: accentColor,
-        secondary: accentColor,
-        surface: surfaceDark,
+        primary: darkAccent,
+        secondary: darkAccentDeep,
+        surface: darkBgAlt,
       ),
+      dividerColor: darkLine,
       textTheme: GoogleFonts.plusJakartaSansTextTheme(
         ThemeData(brightness: Brightness.dark).textTheme,
       ).copyWith(
-        displayLarge: GoogleFonts.plusJakartaSans(color: textPrimaryDark, fontWeight: FontWeight.bold),
-        titleLarge: GoogleFonts.plusJakartaSans(color: textPrimaryDark, fontWeight: FontWeight.w600),
-        bodyLarge: GoogleFonts.plusJakartaSans(color: textPrimaryDark),
-        bodyMedium: GoogleFonts.plusJakartaSans(color: textSecondaryDark),
+        displayLarge: GoogleFonts.plusJakartaSans(color: darkInk, fontWeight: FontWeight.bold),
+        titleLarge: GoogleFonts.plusJakartaSans(color: darkInk, fontWeight: FontWeight.w600),
+        bodyLarge: GoogleFonts.plusJakartaSans(color: darkInk),
+        bodyMedium: GoogleFonts.plusJakartaSans(color: darkInkSoft),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: accentColor,
-          foregroundColor: backgroundDark,
+          backgroundColor: darkAccent,
+          foregroundColor: darkBg,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
@@ -50,25 +60,26 @@ class AppTheme {
   static ThemeData get lightTheme {
     return ThemeData(
       brightness: Brightness.light,
-      scaffoldBackgroundColor: backgroundLight,
-      primaryColor: accentColor,
+      scaffoldBackgroundColor: lightBg,
+      primaryColor: lightAccent,
       colorScheme: const ColorScheme.light(
-        primary: accentColor,
-        secondary: accentColor,
-        surface: surfaceLight,
+        primary: lightAccent,
+        secondary: lightAccentDeep,
+        surface: lightBgAlt,
       ),
+      dividerColor: lightLine,
       textTheme: GoogleFonts.plusJakartaSansTextTheme(
         ThemeData(brightness: Brightness.light).textTheme,
       ).copyWith(
-        displayLarge: GoogleFonts.plusJakartaSans(color: textPrimaryLight, fontWeight: FontWeight.bold),
-        titleLarge: GoogleFonts.plusJakartaSans(color: textPrimaryLight, fontWeight: FontWeight.w600),
-        bodyLarge: GoogleFonts.plusJakartaSans(color: textPrimaryLight),
-        bodyMedium: GoogleFonts.plusJakartaSans(color: textSecondaryLight),
+        displayLarge: GoogleFonts.plusJakartaSans(color: lightInk, fontWeight: FontWeight.bold),
+        titleLarge: GoogleFonts.plusJakartaSans(color: lightInk, fontWeight: FontWeight.w600),
+        bodyLarge: GoogleFonts.plusJakartaSans(color: lightInk),
+        bodyMedium: GoogleFonts.plusJakartaSans(color: lightInkSoft),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: accentColor,
-          foregroundColor: textPrimaryLight,
+          backgroundColor: lightAccent,
+          foregroundColor: lightBg,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),

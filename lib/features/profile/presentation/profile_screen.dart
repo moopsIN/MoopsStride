@@ -1,19 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:stride/features/auth/providers/auth_provider.dart';
 import 'package:stride/theme/glass_container.dart';
+import 'package:stride/theme/theme_provider.dart';
 
-class ProfileScreen extends StatefulWidget {
+class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
 
   @override
-  State<ProfileScreen> createState() => _ProfileScreenState();
+  ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
+class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   bool _isKm = true;
-  bool _isDarkMode = true;
 
   @override
   Widget build(BuildContext context) {
+    final user = ref.watch(authProvider);
+    final themeMode = ref.watch(themeModeProvider);
+    final isDarkMode = themeMode == ThemeMode.dark || (themeMode == ThemeMode.system && MediaQuery.of(context).platformBrightness == Brightness.dark);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Settings'),
@@ -58,8 +64,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   const Divider(height: 1, color: Colors.white24),
                   SwitchListTile.adaptive(
                     title: const Text('Dark Mode'),
-                    value: _isDarkMode,
-                    onChanged: (val) => setState(() => _isDarkMode = val),
+                    value: isDarkMode,
+                    onChanged: (val) => ref.read(themeModeProvider.notifier).toggleTheme(val),
                     activeTrackColor: Theme.of(context).colorScheme.primary,
                   ),
                 ],

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'firebase_options.dart';
 
 import 'package:stride/theme/app_theme.dart';
+import 'package:stride/theme/theme_provider.dart';
 import 'package:stride/features/splash/splash_screen.dart';
 
 void main() async {
@@ -18,16 +19,18 @@ void main() async {
   );
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends ConsumerWidget {
   const MyApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final themeMode = ref.watch(themeModeProvider);
+
     return MaterialApp(
       title: 'Moops Stride',
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.dark, // Defaulting to dark as requested
+      themeMode: themeMode,
       home: const SplashScreen(),
     );
   }
