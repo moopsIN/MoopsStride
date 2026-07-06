@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:stride/core/widgets/primary_button.dart';
+
 import 'package:stride/theme/glass_container.dart';
 import 'package:stride/features/tracking/presentation/tracking_screen.dart';
 import 'package:stride/features/profile/presentation/profile_screen.dart';

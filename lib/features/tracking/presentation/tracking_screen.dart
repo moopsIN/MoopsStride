@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:stride/features/tracking/providers/tracking_provider.dart';
 import 'package:stride/theme/glass_container.dart';
@@ -13,22 +14,7 @@ class TrackingScreen extends ConsumerStatefulWidget {
 }
 
 class _TrackingScreenState extends ConsumerState<TrackingScreen> {
-  GoogleMapController? _mapController;
-
-  // Modern dark styling for the map
-  final String _darkMapStyle = '''
-  [
-    {"elementType": "geometry", "stylers": [{"color": "#242f3e"}]},
-    {"elementType": "labels.text.stroke", "stylers": [{"color": "#242f3e"}]},
-    {"elementType": "labels.text.fill", "stylers": [{"color": "#746855"}]},
-    {"featureType": "administrative.locality", "elementType": "labels.text.fill", "stylers": [{"color": "#d59563"}]},
-    {"featureType": "road", "elementType": "geometry", "stylers": [{"color": "#38414e"}]},
-    {"featureType": "road", "elementType": "geometry.stroke", "stylers": [{"color": "#212a37"}]},
-    {"featureType": "road", "elementType": "labels.text.fill", "stylers": [{"color": "#9ca5b3"}]},
-    {"featureType": "water", "elementType": "geometry", "stylers": [{"color": "#17263c"}]},
-    {"featureType": "water", "elementType": "labels.text.fill", "stylers": [{"color": "#515c6d"}]}
-  ]
-  ''';
+  final MapController _mapController = MapController();
 
   @override
   void initState() {
@@ -37,17 +23,6 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(trackingProvider.notifier).startTracking();
     });
-  }
-
-  @override
-  void dispose() {
-    _mapController?.dispose();
-    super.dispose();
-  }
-
-  void _onMapCreated(GoogleMapController controller) {
-    _mapController = controller;
-    _mapController?.setMapStyle(_darkMapStyle);
   }
 
   void _finishRun() {
@@ -61,41 +36,52 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
     final trackingState = ref.watch(trackingProvider);
 
     // Update map camera if we have a location
-    if (_mapController != null && trackingState.currentLocation != null) {
-      _mapController!.animateCamera(
-        CameraUpdate.newLatLng(trackingState.currentLocation!),
-      );
+    if (trackingState.currentLocation != null) {
+      // In flutter_map, we can use move to recenter the map on the current location.
+      // We only do this if tracking is active so the user isn't pulled back if they scroll around while paused.
+      if (trackingState.status == TrackingStatus.active) {
+         WidgetsBinding.instance.addPostFrameCallback((_) {
+           _mapController.move(trackingState.currentLocation!, _mapController.camera.zoom);
+         });
+      }
     }
-
-    final Set<Polyline> polylines = {
-      if (trackingState.routePoints.isNotEmpty)
-        Polyline(
-          polylineId: const PolylineId('route'),
-          points: trackingState.routePoints,
-          color: Theme.of(context).colorScheme.primary,
-          width: 6,
-          startCap: Cap.roundCap,
-          endCap: Cap.roundCap,
-          jointType: JointType.round,
-        ),
-    };
 
     return Scaffold(
       body: Stack(
         children: [
-          // 1. Google Map Layer
-          GoogleMap(
-            onMapCreated: _onMapCreated,
-            initialCameraPosition: CameraPosition(
-              target: trackingState.currentLocation ?? const LatLng(0, 0),
-              zoom: 16.0,
+          // 1. FlutterMap Layer (OpenStreetMap via MapTiler)
+          FlutterMap(
+            mapController: _mapController,
+            options: MapOptions(
+              initialCenter: trackingState.currentLocation ?? const LatLng(0, 0),
+              initialZoom: 16.0,
             ),
-            polylines: polylines,
-            myLocationEnabled: true,
-            myLocationButtonEnabled: false,
-            zoomControlsEnabled: false,
-            compassEnabled: false,
-            mapToolbarEnabled: false,
+            children: [
+              TileLayer(
+                // Placeholder MapTiler Key. Using the 'dataviz-dark' style to match our aesthetic.
+                urlTemplate: 'https://api.maptiler.com/maps/dataviz-dark/{z}/{x}/{y}.png?key=YOUR_MAPTILER_API_KEY',
+                userAgentPackageName: 'com.moops.stride',
+              ),
+              PolylineLayer(
+                polylines: [
+                  if (trackingState.routePoints.isNotEmpty)
+                    Polyline(
+                      points: trackingState.routePoints,
+                      color: Theme.of(context).colorScheme.primary,
+                      strokeWidth: 6,
+                      strokeCap: StrokeCap.round,
+                      strokeJoin: StrokeJoin.round,
+                    ),
+                ],
+              ),
+              const RichAttributionWidget(
+                attributions: [
+                  TextSourceAttribution(
+                    '© OpenStreetMap contributors',
+                  ),
+                ],
+              ),
+            ],
           ),
 
           // 2. Stats Overlay (Top)

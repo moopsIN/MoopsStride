@@ -15,7 +15,7 @@ void main() {
     setUp(() async {
       dbHelper = LocalDatabase.instance;
       // In-memory database for tests
-      final db = await databaseFactory.openDatabase(inMemoryDatabasePath);
+      await dbHelper.database;
       // We cannot easily override the singleton's internal path in the current design
       // But sqflite_common_ffi handles 'stride.db' by writing it to the project root during tests.
       // For a more robust setup we might dependency inject the path, but this suffices for the test.

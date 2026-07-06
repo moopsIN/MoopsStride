@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stride/core/widgets/stat_card.dart';
-import 'package:stride/core/widgets/primary_button.dart';
 import 'package:stride/core/widgets/empty_state.dart';
-import 'package:stride/core/widgets/skeleton_loader.dart';
 import 'package:stride/theme/app_theme.dart';
 
 void main() {

@@ -1,11 +1,9 @@
 import 'dart:async';
 import 'package:geolocator/geolocator.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:latlong2/latlong.dart';
 
 class LocationService {
-  StreamSubscription<Position>? _positionStream;
-
   Future<bool> requestPermission() async {
     bool serviceEnabled;
     LocationPermission permission;
@@ -42,7 +40,9 @@ class LocationService {
   Future<Position?> getCurrentPosition() async {
     if (await requestPermission()) {
       return await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+        ),
       );
     }
     return null;
