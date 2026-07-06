@@ -4,7 +4,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:stride/core/widgets/primary_button.dart';
 import 'package:stride/features/onboarding/providers/onboarding_provider.dart';
 import 'package:stride/theme/glass_container.dart';
-import 'package:stride/features/home/presentation/home_screen.dart';
+import 'package:stride/features/tracking/presentation/tracking_screen.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
@@ -41,7 +41,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     
     if (success && mounted) {
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
+        MaterialPageRoute(builder: (_) => const TrackingScreen()),
       );
     }
   }

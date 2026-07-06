@@ -3,7 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:stride/core/widgets/primary_button.dart';
 import 'package:stride/features/onboarding/presentation/onboarding_screen.dart';
 import 'package:stride/core/database/local_db.dart';
-import 'package:stride/features/home/presentation/home_screen.dart';
+import 'package:stride/features/tracking/presentation/tracking_screen.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stride/features/auth/providers/auth_provider.dart';
@@ -35,7 +35,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
         Navigator.of(context).pop();
       } else {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const HomeScreen()),
+          MaterialPageRoute(builder: (_) => const TrackingScreen()),
         );
       }
     } else {

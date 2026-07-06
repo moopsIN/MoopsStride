@@ -4,7 +4,7 @@ import 'package:stride/features/auth/presentation/auth_screen.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stride/features/auth/providers/auth_provider.dart';
-import 'package:stride/features/home/presentation/home_screen.dart';
+import 'package:stride/features/tracking/presentation/tracking_screen.dart';
 import 'package:stride/features/onboarding/presentation/onboarding_screen.dart';
 import 'package:stride/core/database/local_db.dart';
 
@@ -34,7 +34,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       
       Widget nextScreen;
       if (hasCompletedOnboarding) {
-        nextScreen = const HomeScreen();
+        nextScreen = const TrackingScreen();
       } else if (user != null) {
         nextScreen = const OnboardingScreen();
       } else {

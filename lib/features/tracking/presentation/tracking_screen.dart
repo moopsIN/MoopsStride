@@ -7,6 +7,10 @@ import 'package:stride/features/tracking/providers/tracking_provider.dart';
 import 'package:stride/theme/glass_container.dart';
 import 'package:stride/core/config/secrets.dart';
 import 'package:stride/features/tracking/presentation/run_summary_screen.dart';
+import 'package:stride/features/profile/presentation/profile_screen.dart';
+import 'package:stride/features/progress/providers/progress_provider.dart';
+import 'package:stride/features/progress/presentation/progress_screen.dart';
+import 'package:stride/features/sync/providers/sync_engine.dart';
 
 class TrackingScreen extends ConsumerStatefulWidget {
   const TrackingScreen({super.key});
@@ -21,7 +25,10 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
   @override
   void initState() {
     super.initState();
-    // Do not start tracking automatically, let user press the start button.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(progressProvider.notifier).refresh();
+      ref.read(syncEngineProvider);
+    });
   }
 
   Future<void> _finishRun() async {
@@ -102,6 +109,15 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
             ),
           ),
 
+          // Home Header (Only when not started)
+          if (trackingState.status == TrackingStatus.notStarted)
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 16,
+              left: 16,
+              right: 16,
+              child: _buildHomeHeader(context),
+            ),
+
           // 2. Controls & Stats (Bottom)
           Positioned(
             bottom: 48,
@@ -110,7 +126,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (!trackingState.isLocked) ...[
+                if (!trackingState.isLocked && trackingState.status != TrackingStatus.notStarted) ...[
                   GlassContainer(
                     padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
                     child: Row(
@@ -304,6 +320,75 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
         ),
         child: Icon(icon, size: iconSize, color: Colors.black87),
       ),
+    );
+  }
+
+  Widget _buildHomeHeader(BuildContext context) {
+    final progressState = ref.watch(progressProvider);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Ready to run?',
+                  style: Theme.of(context).textTheme.displayLarge?.copyWith(fontSize: 28),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Let\'s crush those goals today.',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              ],
+            ),
+            GestureDetector(
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const ProfileScreen()),
+              ),
+              child: const CircleAvatar(
+                radius: 24,
+                backgroundColor: Colors.grey,
+                child: Icon(Icons.person, color: Colors.white),
+              ),
+            ),
+          ],
+        ).animate().slideY(begin: -0.2).fadeIn(duration: 400.ms),
+        
+        const SizedBox(height: 24),
+        
+        GlassContainer(
+          padding: const EdgeInsets.all(20),
+          child: Row(
+            children: [
+              Icon(Icons.local_fire_department, color: Theme.of(context).colorScheme.primary, size: 32),
+              const SizedBox(width: 16),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('${progressState.currentStreak} Day Streak', style: Theme.of(context).textTheme.titleLarge),
+                  Text('Keep it up!', style: Theme.of(context).textTheme.bodyMedium),
+                ],
+              ),
+              const Spacer(),
+              IconButton(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const ProgressScreen()),
+                  ).then((_) {
+                    ref.read(progressProvider.notifier).refresh();
+                  });
+                },
+                icon: const Icon(Icons.bar_chart, color: Colors.white70),
+              ),
+            ],
+          ),
+        ).animate().slideX(begin: 0.1, delay: 200.ms).fadeIn(delay: 200.ms),
+      ],
     );
   }
 }
