@@ -5,6 +5,7 @@ import 'package:stride/theme/theme_provider.dart';
 import 'package:stride/features/auth/providers/auth_provider.dart';
 import 'package:stride/features/auth/presentation/auth_screen.dart';
 import 'package:stride/features/profile/presentation/edit_profile_screen.dart';
+import 'package:stride/features/profile/providers/profile_provider.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -16,10 +17,24 @@ class ProfileScreen extends ConsumerStatefulWidget {
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   bool _isKm = true;
 
+  Widget _buildDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(color: Colors.white70)),
+          Text(value.isNotEmpty ? value : '-', style: const TextStyle(fontWeight: FontWeight.bold)),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final themeMode = ref.watch(themeModeProvider);
     final user = ref.watch(authProvider);
+    final profileState = ref.watch(profileProvider);
     final isGuest = user == null;
     final isDarkMode = themeMode == ThemeMode.dark || (themeMode == ThemeMode.system && MediaQuery.of(context).platformBrightness == Brightness.dark);
 
@@ -46,6 +61,49 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 48),
+
+            Text(
+              'PERSONAL DETAILS',
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(letterSpacing: 1.5),
+            ),
+            const SizedBox(height: 16),
+            
+            profileState.when(
+              data: (state) {
+                return GlassContainer(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      _buildDetailRow('Goal', state.goal),
+                      const Divider(height: 16, color: Colors.white24),
+                      _buildDetailRow('Experience', state.experienceLevel),
+                      const Divider(height: 16, color: Colors.white24),
+                      _buildDetailRow('Activity', state.activityLevel),
+                      const Divider(height: 16, color: Colors.white24),
+                      _buildDetailRow('Height', '${state.height} cm'),
+                      const Divider(height: 16, color: Colors.white24),
+                      _buildDetailRow('Weight', '${state.weight} kg'),
+                      const SizedBox(height: 8),
+                      Center(
+                        child: TextButton.icon(
+                          onPressed: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(builder: (_) => const EditProfileScreen()),
+                            );
+                          },
+                          icon: const Icon(Icons.edit, size: 18),
+                          label: const Text('Edit Details'),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (err, stack) => const Text('Failed to load profile.'),
+            ),
+            
+            const SizedBox(height: 32),
             
             Text(
               'PREFERENCES',
@@ -87,17 +145,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
-                  ListTile(
-                    leading: const Icon(Icons.edit_outlined),
-                    title: const Text('Edit Profile'),
-                    trailing: const Icon(Icons.chevron_right, size: 20, color: Colors.white54),
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const EditProfileScreen()),
-                      );
-                    },
-                  ),
-                  const Divider(height: 1, color: Colors.white24),
                   ListTile(
                     leading: Icon(
                       isGuest ? Icons.login : Icons.logout,
