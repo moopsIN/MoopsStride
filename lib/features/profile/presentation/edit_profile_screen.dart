@@ -122,8 +122,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       ),
       body: state.when(
         data: (profileState) {
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(24.0),
+          return SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24.0),
             child: Form(
               key: _formKey,
               child: Column(
@@ -225,7 +226,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                 ],
               ),
             ),
-          );
+          ));
         },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, stack) => Center(child: Text('Error: $err')),
