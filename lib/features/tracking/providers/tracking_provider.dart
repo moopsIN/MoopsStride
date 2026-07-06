@@ -160,6 +160,8 @@ class TrackingNotifier extends Notifier<TrackingState> {
     final hasPerm = await locService.requestPermission();
     if (!hasPerm) return false;
 
+    await locService.requestBackgroundPermission();
+
     state = state.copyWith(status: TrackingStatus.active, startTime: DateTime.now());
     
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
