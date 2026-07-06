@@ -68,7 +68,13 @@
 	</array>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Moops Stride needs location access to track your walks and runs.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Moops Stride needs background location access to keep tracking your walk or run while your phone is locked or the app is in the background.</string>
 	<key>NSMotionUsageDescription</key>
 	<string>Moops Stride needs motion access to count your steps during activities.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+	</array>
 </dict>
 </plist>
