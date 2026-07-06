@@ -11,6 +11,13 @@
         android:label="Stride by Moops"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+        
+        <!-- Required by geolocator for background tracking -->
+        <service
+            android:name="com.baseflow.geolocator.GeolocatorLocationService"
+            android:foregroundServiceType="location"
+            android:exported="false" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
