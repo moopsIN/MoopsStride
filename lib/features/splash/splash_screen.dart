@@ -5,6 +5,8 @@ import 'package:stride/features/auth/presentation/auth_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stride/features/auth/providers/auth_provider.dart';
 import 'package:stride/features/home/presentation/home_screen.dart';
+import 'package:stride/features/onboarding/presentation/onboarding_screen.dart';
+import 'package:stride/core/database/local_db.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -19,12 +21,27 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     super.initState();
     // Simulate some loading time (e.g. database init, auth check)
     // In future phases we will navigate based on Auth state.
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) {
-        final user = ref.read(authProvider);
-        final Widget nextScreen = user != null ? const HomeScreen() : const AuthScreen();
-        
-        Navigator.of(context).pushReplacement(
+    Future.delayed(const Duration(seconds: 2), () async {
+      if (!mounted) return;
+      
+      final db = await LocalDatabase.instance.database;
+      final profiles = await db.query('user_profile');
+      final hasCompletedOnboarding = profiles.isNotEmpty;
+      
+      if (!mounted) return;
+
+      final user = ref.read(authProvider);
+      
+      Widget nextScreen;
+      if (hasCompletedOnboarding) {
+        nextScreen = const HomeScreen();
+      } else if (user != null) {
+        nextScreen = const OnboardingScreen();
+      } else {
+        nextScreen = const AuthScreen();
+      }
+      
+      Navigator.of(context).pushReplacement(
           PageRouteBuilder(
             pageBuilder: (context, animation, secondaryAnimation) => nextScreen,
             transitionsBuilder: (context, animation, secondaryAnimation, child) {
@@ -33,7 +50,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
             transitionDuration: const Duration(milliseconds: 800),
           ),
         );
-      }
     });
   }
 

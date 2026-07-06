@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stride/theme/glass_container.dart';
 import 'package:stride/theme/theme_provider.dart';
+import 'package:stride/features/auth/providers/auth_provider.dart';
+import 'package:stride/features/auth/presentation/auth_screen.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -16,6 +18,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final themeMode = ref.watch(themeModeProvider);
+    final user = ref.watch(authProvider);
+    final isGuest = user == null;
     final isDarkMode = themeMode == ThemeMode.dark || (themeMode == ThemeMode.system && MediaQuery.of(context).platformBrightness == Brightness.dark);
 
     return Scaffold(
@@ -36,7 +40,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ),
             const SizedBox(height: 16),
             Text(
-              'Guest User',
+              isGuest ? 'Guest User' : user.email ?? 'User',
               style: Theme.of(context).textTheme.titleLarge,
               textAlign: TextAlign.center,
             ),
@@ -81,10 +85,29 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             GlassContainer(
               padding: const EdgeInsets.all(16),
               child: ListTile(
-                leading: const Icon(Icons.logout, color: Colors.redAccent),
-                title: const Text('Sign Out', style: TextStyle(color: Colors.redAccent)),
-                onTap: () {
-                  // Phase 6 logic
+                leading: Icon(
+                  isGuest ? Icons.login : Icons.logout,
+                  color: isGuest ? Theme.of(context).colorScheme.primary : Colors.redAccent,
+                ),
+                title: Text(
+                  isGuest ? 'Sign In to Sync' : 'Sign Out',
+                  style: TextStyle(
+                    color: isGuest ? Theme.of(context).colorScheme.primary : Colors.redAccent,
+                  ),
+                ),
+                onTap: () async {
+                  if (isGuest) {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const AuthScreen()),
+                    );
+                  } else {
+                    await ref.read(authProvider.notifier).signOut();
+                    if (context.mounted) {
+                       Navigator.of(context).pushReplacement(
+                         MaterialPageRoute(builder: (_) => const AuthScreen()),
+                       );
+                    }
+                  }
                 },
               ),
             ),

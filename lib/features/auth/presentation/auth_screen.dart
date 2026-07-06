@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:stride/core/widgets/primary_button.dart';
 import 'package:stride/features/onboarding/presentation/onboarding_screen.dart';
+import 'package:stride/core/database/local_db.dart';
+import 'package:stride/features/home/presentation/home_screen.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stride/features/auth/providers/auth_provider.dart';
@@ -20,9 +22,27 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   bool _isLogin = true;
 
   void _handleGuestLogin() {
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => const OnboardingScreen()),
-    );
+    _routeAfterLogin();
+  }
+
+  Future<void> _routeAfterLogin() async {
+    final db = await LocalDatabase.instance.database;
+    final profiles = await db.query('user_profile');
+    if (!mounted) return;
+    
+    if (profiles.isNotEmpty) {
+      if (Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
+      } else {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const HomeScreen()),
+        );
+      }
+    } else {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const OnboardingScreen()),
+      );
+    }
   }
 
   Future<void> _handleEmailAuth() async {
@@ -39,9 +59,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
         await ref.read(authProvider.notifier).signUpWithEmail(email, password);
       }
       if (mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const OnboardingScreen()),
-        );
+        await _routeAfterLogin();
       }
     } catch (e) {
       if (mounted) {
@@ -59,9 +77,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     try {
       await ref.read(authProvider.notifier).signInWithGoogle();
       if (mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const OnboardingScreen()),
-        );
+        await _routeAfterLogin();
       }
     } catch (e) {
       if (mounted) {
