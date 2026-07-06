@@ -6,6 +6,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:stride/features/tracking/providers/tracking_provider.dart';
 import 'package:stride/theme/glass_container.dart';
 import 'package:stride/core/config/secrets.dart';
+import 'package:stride/features/tracking/presentation/run_summary_screen.dart';
 
 class TrackingScreen extends ConsumerStatefulWidget {
   const TrackingScreen({super.key});
@@ -26,10 +27,21 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
     });
   }
 
-  void _finishRun() {
-    ref.read(trackingProvider.notifier).stopTracking();
-    Navigator.of(context).pop();
-    // In Phase 5 we will navigate to Run Summary here
+  Future<void> _finishRun() async {
+    final activity = await ref.read(trackingProvider.notifier).stopTracking();
+    if (!mounted) return;
+    
+    if (activity == null) {
+      // Run was too short, just pop
+      Navigator.of(context).pop();
+      return;
+    }
+    
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (_) => RunSummaryScreen(activity: activity),
+      ),
+    );
   }
 
   @override

@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:stride/features/tracking/providers/location_service.dart';
+import 'package:uuid/uuid.dart';
+import 'package:stride/core/database/local_db.dart';
+import 'package:stride/features/tracking/models/activity_model.dart';
 
 enum TrackingStatus { notStarted, active, paused, stopped }
 
@@ -11,6 +14,7 @@ class TrackingState {
   final List<LatLng> routePoints;
   final double distanceMeters;
   final int durationSeconds;
+  final DateTime? startTime;
   final LatLng? currentLocation;
 
   TrackingState({
@@ -18,6 +22,7 @@ class TrackingState {
     this.routePoints = const [],
     this.distanceMeters = 0.0,
     this.durationSeconds = 0,
+    this.startTime,
     this.currentLocation,
   });
 
@@ -26,6 +31,7 @@ class TrackingState {
     List<LatLng>? routePoints,
     double? distanceMeters,
     int? durationSeconds,
+    DateTime? startTime,
     LatLng? currentLocation,
   }) {
     return TrackingState(
@@ -33,6 +39,7 @@ class TrackingState {
       routePoints: routePoints ?? this.routePoints,
       distanceMeters: distanceMeters ?? this.distanceMeters,
       durationSeconds: durationSeconds ?? this.durationSeconds,
+      startTime: startTime ?? this.startTime,
       currentLocation: currentLocation ?? this.currentLocation,
     );
   }
@@ -89,7 +96,7 @@ class TrackingNotifier extends Notifier<TrackingState> {
     final hasPerm = await locService.requestPermission();
     if (!hasPerm) return;
 
-    state = state.copyWith(status: TrackingStatus.active);
+    state = state.copyWith(status: TrackingStatus.active, startTime: DateTime.now());
     
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (state.status == TrackingStatus.active) {
@@ -123,12 +130,34 @@ class TrackingNotifier extends Notifier<TrackingState> {
     state = state.copyWith(status: TrackingStatus.active);
   }
 
-  void stopTracking() {
+  Future<ActivityModel?> stopTracking() async {
     state = state.copyWith(status: TrackingStatus.stopped);
     _timer?.cancel();
     _positionSubscription?.cancel();
     
     // In Phase 5/6, we will trigger save logic here.
+    if (state.distanceMeters < 10 || state.durationSeconds < 10) return null; // Too short to save
+
+    final id = const Uuid().v4();
+    final endTime = DateTime.now();
+    final startTime = state.startTime ?? endTime.subtract(Duration(seconds: state.durationSeconds));
+    
+    final activity = ActivityModel(
+      id: id,
+      type: 'run',
+      startTime: startTime,
+      endTime: endTime,
+      distanceMeters: state.distanceMeters,
+      durationSeconds: state.durationSeconds,
+      avgPace: state.currentPace,
+      caloriesEstimate: state.distanceKm * 60.0, // rough estimate
+      routePoints: state.routePoints,
+      synced: false,
+    );
+    
+    await LocalDatabase.instance.insertActivity(activity.toMap());
+    
+    return activity;
   }
 
   void reset() {

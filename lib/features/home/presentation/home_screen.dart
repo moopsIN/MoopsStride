@@ -4,12 +4,30 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:stride/theme/glass_container.dart';
 import 'package:stride/features/tracking/presentation/tracking_screen.dart';
 import 'package:stride/features/profile/presentation/profile_screen.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:stride/features/progress/providers/progress_provider.dart';
+import 'package:stride/features/progress/presentation/progress_screen.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends ConsumerState<HomeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(progressProvider.notifier).refresh();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final progressState = ref.watch(progressProvider);
+
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -61,7 +79,7 @@ class HomeScreen extends StatelessWidget {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('3 Day Streak', style: Theme.of(context).textTheme.titleLarge),
+                        Text('${progressState.currentStreak} Day Streak', style: Theme.of(context).textTheme.titleLarge),
                         Text('Keep it up!', style: Theme.of(context).textTheme.bodyMedium),
                       ],
                     ),
@@ -120,6 +138,24 @@ class HomeScreen extends StatelessWidget {
               ),
             ),
             
+            // View Progress Button
+            Center(
+              child: TextButton.icon(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const ProgressScreen()),
+                  ).then((_) {
+                    ref.read(progressProvider.notifier).refresh();
+                  });
+                },
+                icon: const Icon(Icons.bar_chart, color: Colors.white70),
+                label: Text(
+                  'VIEW PROGRESS',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(letterSpacing: 2, color: Colors.white70),
+                ),
+              ),
+            ).animate().slideY(begin: 0.2, delay: 400.ms).fadeIn(delay: 400.ms),
+
             const Spacer(),
           ],
         ),
