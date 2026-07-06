@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:stride/theme/app_theme.dart';
+import 'package:stride/features/auth/presentation/auth_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -17,10 +18,9 @@ class _SplashScreenState extends State<SplashScreen> {
     // In future phases we will navigate based on Auth state.
     Future.delayed(const Duration(seconds: 3), () {
       if (mounted) {
-        // Placeholder navigation for now
         Navigator.of(context).pushReplacement(
           PageRouteBuilder(
-            pageBuilder: (context, animation, secondaryAnimation) => const PlaceholderHome(),
+            pageBuilder: (context, animation, secondaryAnimation) => const AuthScreen(),
             transitionsBuilder: (context, animation, secondaryAnimation, child) {
               return FadeTransition(opacity: animation, child: child);
             },

@@ -40,7 +40,7 @@ class PrimaryButton extends StatelessWidget {
               ],
             ),
     )
-        .animate(onPlay: (controller) => controller.repeat(reverse: true))
+        .animate()
         .shimmer(
           duration: 3.seconds,
           color: Colors.white.withValues(alpha: 0.2), // Added small shimmer effect to draw attention
