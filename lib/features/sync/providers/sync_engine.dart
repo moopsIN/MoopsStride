@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stride/core/database/local_db.dart';
 import 'package:stride/features/auth/providers/auth_provider.dart';
@@ -71,7 +72,7 @@ class SyncEngine {
 
     } catch (e) {
       // Sync failed (offline, permission denied, etc). Will retry later.
-      print('Sync failed: $e');
+      debugPrint('Sync failed: $e');
     } finally {
       _isSyncing = false;
     }
