@@ -6,6 +6,7 @@ import 'package:stride/features/tracking/providers/location_service.dart';
 import 'package:uuid/uuid.dart';
 import 'package:stride/core/database/local_db.dart';
 import 'package:stride/features/tracking/models/activity_model.dart';
+import 'package:stride/features/sync/providers/sync_engine.dart';
 
 enum TrackingStatus { notStarted, active, paused, stopped }
 
@@ -156,6 +157,9 @@ class TrackingNotifier extends Notifier<TrackingState> {
     );
     
     await LocalDatabase.instance.insertActivity(activity.toMap());
+    
+    // Trigger sync to cloud
+    ref.read(syncEngineProvider).syncUnsyncedActivities();
     
     return activity;
   }

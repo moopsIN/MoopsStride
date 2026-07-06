@@ -3,17 +3,21 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:stride/core/widgets/primary_button.dart';
 import 'package:stride/features/onboarding/presentation/onboarding_screen.dart';
 
-class AuthScreen extends StatefulWidget {
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:stride/features/auth/providers/auth_provider.dart';
+
+class AuthScreen extends ConsumerStatefulWidget {
   const AuthScreen({super.key});
 
   @override
-  State<AuthScreen> createState() => _AuthScreenState();
+  ConsumerState<AuthScreen> createState() => _AuthScreenState();
 }
 
-class _AuthScreenState extends State<AuthScreen> {
+class _AuthScreenState extends ConsumerState<AuthScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
+  bool _isLogin = true;
 
   void _handleGuestLogin() {
     Navigator.of(context).pushReplacement(
@@ -21,16 +25,53 @@ class _AuthScreenState extends State<AuthScreen> {
     );
   }
 
-  void _handleEmailLogin() {
+  Future<void> _handleEmailAuth() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+    if (email.isEmpty || password.isEmpty) return;
+
     setState(() => _isLoading = true);
-    // Mock login delay
-    Future.delayed(const Duration(seconds: 1), () {
+    
+    try {
+      if (_isLogin) {
+        await ref.read(authProvider.notifier).signInWithEmail(email, password);
+      } else {
+        await ref.read(authProvider.notifier).signUpWithEmail(email, password);
+      }
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const OnboardingScreen()),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+      }
+    } finally {
       if (mounted) {
         setState(() => _isLoading = false);
-        // Will connect to Firebase in Phase 6
-        _handleGuestLogin();
       }
-    });
+    }
+  }
+
+  Future<void> _handleGoogleLogin() async {
+    setState(() => _isLoading = true);
+    try {
+      await ref.read(authProvider.notifier).signInWithGoogle();
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const OnboardingScreen()),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   @override
@@ -85,10 +126,16 @@ class _AuthScreenState extends State<AuthScreen> {
               const SizedBox(height: 24),
               
               PrimaryButton(
-                text: 'Sign In',
+                text: _isLogin ? 'Sign In' : 'Sign Up',
                 isLoading: _isLoading,
-                onPressed: _handleEmailLogin,
+                onPressed: _handleEmailAuth,
               ).animate().slideY(begin: 0.2, delay: 600.ms).fadeIn(delay: 600.ms),
+              
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed: () => setState(() => _isLogin = !_isLogin),
+                child: Text(_isLogin ? "Don't have an account? Sign Up" : 'Already have an account? Sign In'),
+              ).animate().fadeIn(delay: 650.ms),
               
               const SizedBox(height: 24),
               Row(
@@ -105,7 +152,7 @@ class _AuthScreenState extends State<AuthScreen> {
               
               // Social Mocks
               OutlinedButton.icon(
-                onPressed: _handleEmailLogin,
+                onPressed: _handleGoogleLogin,
                 icon: const Icon(Icons.g_mobiledata, size: 28),
                 label: const Text('Continue with Google'),
                 style: OutlinedButton.styleFrom(

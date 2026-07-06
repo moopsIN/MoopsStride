@@ -7,6 +7,7 @@ import 'package:stride/features/profile/presentation/profile_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stride/features/progress/providers/progress_provider.dart';
 import 'package:stride/features/progress/presentation/progress_screen.dart';
+import 'package:stride/features/sync/providers/sync_engine.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -21,6 +22,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(progressProvider.notifier).refresh();
+      // Eagerly initialize sync engine to listen for auth state changes
+      ref.read(syncEngineProvider);
     });
   }
 
