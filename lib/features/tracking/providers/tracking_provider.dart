@@ -176,19 +176,10 @@ class TrackingNotifier extends Notifier<TrackingState> {
     final hasPerm = await locService.requestPermission();
     if (!hasPerm) return false;
 
-    if (Platform.isAndroid) {
-      // Android 13+ requires an explicit runtime grant before any
-      // notification can be shown, including the foreground-service
-      // notification the location stream relies on to keep running in the
-      // background. Without this, the foreground service can fail to start
-      // and position updates silently stop arriving.
-      final notificationStatus = await Permission.notification.status;
-      if (!notificationStatus.isGranted) {
-        await Permission.notification.request();
-      }
-    }
-
-    await locService.requestBackgroundPermission();
+    // NOTE: background/locked-screen tracking is currently disabled — see
+    // the comment in LocationService._platformLocationSettings for why.
+    // requestBackgroundPermission() and the POST_NOTIFICATIONS runtime
+    // request that supported it are on hold until that's revisited.
 
     _accumulatedDuration = Duration.zero;
     _lastResumedAt = DateTime.now();

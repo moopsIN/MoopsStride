@@ -51,15 +51,17 @@ class LocationService {
 
   LocationSettings _platformLocationSettings() {
     if (Platform.isAndroid) {
+      // Deliberately not passing foregroundNotificationConfig: on
+      // geolocator_android 5.0.3 (the latest published version as of this
+      // writing), enabling it starts the Android foreground service and
+      // notification correctly, but Position updates then never reach Dart
+      // — confirmed on-device (native logs showed continuous fused-location
+      // scanning with zero callbacks reaching the Flutter side). Foreground
+      // tracking works reliably without it; background/locked-screen
+      // tracking is a known gap until this plugin bug is fixed or replaced.
       return AndroidSettings(
         accuracy: LocationAccuracy.high,
         distanceFilter: 0,
-        foregroundNotificationConfig: const ForegroundNotificationConfig(
-          notificationTitle: 'Stride is tracking your activity',
-          notificationText: 'Tap to return to your run or walk.',
-          enableWakeLock: true,
-          setOngoing: true,
-        ),
       );
     }
 
