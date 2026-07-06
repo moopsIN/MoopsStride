@@ -189,9 +189,9 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
     final isNotStarted = state.status == TrackingStatus.notStarted;
 
     final label = isNotStarted ? 'START' : (isActive ? 'PAUSE' : 'RESUME');
-    final color = isActive
-        ? Theme.of(context).colorScheme.secondary
-        : Theme.of(context).colorScheme.primary;
+    const green = Color(0xFF4CAF6D);
+    const fadedYellow = Color(0xFFE6C55C);
+    final color = isActive ? fadedYellow : green;
 
     return GestureDetector(
       key: ValueKey(state.status),
