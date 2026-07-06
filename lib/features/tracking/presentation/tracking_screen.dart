@@ -136,62 +136,75 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
           child: _buildHomeHeader(context),
         ),
 
-        // 2. Main toggle + Lock/Stop and Stats, dead center of the screen
-        Center(
-          child: Column(
+        // 2. Stats (dead center)
+        if (hasStarted)
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: GlassContainer(
+                padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _buildStatItem('TIME', trackingState.formattedDuration),
+                    _buildStatItem('KM', trackingState.distanceKm.toStringAsFixed(2)),
+                    _buildStatItem('PACE', trackingState.formattedPace),
+                    _buildStatItem('STEPS', trackingState.currentSteps.toString()),
+                  ],
+                ),
+              ).animate().slideY(begin: 0.2).fadeIn(duration: 400.ms),
+            ),
+          ),
+
+        // 3. Controls (66% from top)
+        Align(
+          alignment: const Alignment(0, 0.33),
+          child: Row(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               if (hasStarted) ...[
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: GlassContainer(
-                    padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        _buildStatItem('TIME', trackingState.formattedDuration),
-                        _buildStatItem('KM', trackingState.distanceKm.toStringAsFixed(2)),
-                        _buildStatItem('PACE', trackingState.formattedPace),
-                        _buildStatItem('STEPS', trackingState.currentSteps.toString()),
-                      ],
-                    ),
-                  ).animate().slideY(begin: 0.2).fadeIn(duration: 400.ms),
-                ),
-                const SizedBox(height: 32),
+                if (trackingState.isLocked)
+                  const SizedBox(width: 52, height: 52)
+                else
+                  _buildControlButton(
+                    icon: Icons.lock_open,
+                    color: Colors.white.withValues(alpha: 0.15),
+                    size: 52,
+                    iconSize: 22,
+                    onTap: () => ref.read(trackingProvider.notifier).toggleLock(),
+                  ).animate().fadeIn(duration: 300.ms),
+                const SizedBox(width: 20),
               ],
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  if (hasStarted) ...[
-                    if (trackingState.isLocked)
-                      const SizedBox(width: 52, height: 52)
-                    else
-                      _buildControlButton(
-                        icon: Icons.lock_open,
-                        color: Colors.white.withValues(alpha: 0.15),
-                        size: 52,
-                        iconSize: 22,
-                        onTap: () => ref.read(trackingProvider.notifier).toggleLock(),
-                      ).animate().fadeIn(duration: 300.ms),
-                    const SizedBox(width: 20),
-                  ],
 
-                  _buildMainToggleButton(context, trackingState),
+              _buildMainToggleButton(context, trackingState),
 
-                  if (hasStarted) ...[
-                    const SizedBox(width: 20),
-                    _buildControlButton(
-                      icon: Icons.stop,
-                      color: Colors.redAccent,
-                      size: 52,
-                      iconSize: 22,
-                      onTap: _finishRun,
-                    ).animate().fadeIn(duration: 300.ms),
-                  ],
-                ],
-              ),
+              if (hasStarted) ...[
+                const SizedBox(width: 20),
+                _buildControlButton(
+                  icon: Icons.stop,
+                  color: Colors.redAccent,
+                  size: 52,
+                  iconSize: 22,
+                  onTap: _finishRun,
+                ).animate().fadeIn(duration: 300.ms),
+              ],
             ],
+          ),
+        ),
+
+        // 4. Branding
+        Align(
+          alignment: Alignment.bottomCenter,
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 32.0),
+            child: Text(
+              'Stride by Moops',
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                color: Colors.white54,
+                letterSpacing: 2,
+              ),
+            ).animate().fadeIn(delay: 500.ms),
           ),
         ),
       ],
@@ -211,34 +224,13 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
             ),
           ),
           
-          // Lock overlay interactive layer (perfectly aligns via invisible copies)
+          // Lock overlay interactive layer (perfectly aligns via exact alignments)
           if (trackingState.isLocked)
-            Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (hasStarted) ...[
-                    Opacity(
-                      opacity: 0,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                        child: GlassContainer(
-                          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: [
-                              _buildStatItem('TIME', trackingState.formattedDuration),
-                              _buildStatItem('KM', trackingState.distanceKm.toStringAsFixed(2)),
-                              _buildStatItem('PACE', trackingState.formattedPace),
-                              _buildStatItem('STEPS', trackingState.currentSteps.toString()),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-                  ],
-                  Row(
+            Stack(
+              children: [
+                Align(
+                  alignment: const Alignment(0, 0.33),
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
@@ -268,8 +260,8 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                       ],
                     ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
         ],
       ),
