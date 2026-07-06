@@ -77,7 +77,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
             
             // Brand Name
             Text(
-              'Moops Stride',
+              'Stride by Moops',
               style: Theme.of(context).textTheme.displayLarge?.copyWith(
                     fontSize: 32,
                   ),

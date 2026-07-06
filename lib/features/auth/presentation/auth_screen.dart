@@ -91,7 +91,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               ).animate().scale(duration: 500.ms).fadeIn(),
               const SizedBox(height: 24),
               Text(
-                'Welcome to Stride',
+                'Welcome to Stride by Moops',
                 style: Theme.of(context).textTheme.displayLarge?.copyWith(fontSize: 28),
                 textAlign: TextAlign.center,
               ).animate().fadeIn(delay: 200.ms),

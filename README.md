@@ -1,6 +1,6 @@
-# Moops Stride
+# Stride by Moops
 
-**Moops Stride** is a boutique showcase application focused on walking and running tracking, featuring an integrated lightweight AI coaching experience.
+A boutique running and walking tracker built with Flutter, Riverpod, and Firebase.
 
 ## Project Details
 
