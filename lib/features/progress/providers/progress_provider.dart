@@ -37,7 +37,7 @@ class ProgressState {
 class ProgressNotifier extends Notifier<ProgressState> {
   @override
   ProgressState build() {
-    _loadActivities();
+    Future.microtask(() => _loadActivities());
     return ProgressState();
   }
 
