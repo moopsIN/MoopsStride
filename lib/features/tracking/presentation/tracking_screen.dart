@@ -74,113 +74,202 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
 
     final hasStarted = trackingState.status != TrackingStatus.notStarted;
 
+    const greyscaleMatrix = <double>[
+      0.2126, 0.7152, 0.0722, 0, 0,
+      0.2126, 0.7152, 0.0722, 0, 0,
+      0.2126, 0.7152, 0.0722, 0, 0,
+      0,      0,      0,      1, 0,
+    ];
+
+    final baseUi = Stack(
+      children: [
+        // 1. FlutterMap Layer
+        IgnorePointer(
+          ignoring: trackingState.isLocked,
+          child: FlutterMap(
+            mapController: _mapController,
+            options: MapOptions(
+              initialCenter: trackingState.currentLocation ?? const LatLng(0, 0),
+              initialZoom: _idleZoom,
+            ),
+            children: [
+              TileLayer(
+                urlTemplate: 'https://api.maptiler.com/maps/dataviz-dark/{z}/{x}/{y}.png?key=${Secrets.mapTilerKey}',
+                userAgentPackageName: 'com.moops.stride',
+              ),
+              PolylineLayer(
+                polylines: [
+                  if (trackingState.routePoints.isNotEmpty)
+                    Polyline(
+                      points: trackingState.routePoints,
+                      color: Theme.of(context).colorScheme.primary,
+                      strokeWidth: 6,
+                      strokeCap: StrokeCap.round,
+                      strokeJoin: StrokeJoin.round,
+                    ),
+                ],
+              ),
+              const RichAttributionWidget(
+                attributions: [
+                  TextSourceAttribution('© OpenStreetMap contributors'),
+                ],
+              ),
+            ],
+          ),
+        ),
+
+        // Dim overlay
+        Positioned.fill(
+          child: IgnorePointer(
+            ignoring: true,
+            child: Container(
+              color: Colors.black.withValues(alpha: 0.5),
+            ),
+          ),
+        ),
+
+        // Header (always present)
+        Positioned(
+          top: MediaQuery.of(context).padding.top + 16,
+          left: 16,
+          right: 16,
+          child: _buildHomeHeader(context),
+        ),
+
+        // 2. Main toggle + Lock/Stop and Stats, dead center of the screen
+        Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (hasStarted) ...[
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: GlassContainer(
+                    padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _buildStatItem('TIME', trackingState.formattedDuration),
+                        _buildStatItem('KM', trackingState.distanceKm.toStringAsFixed(2)),
+                        _buildStatItem('PACE', trackingState.formattedPace),
+                        _buildStatItem('STEPS', trackingState.currentSteps.toString()),
+                      ],
+                    ),
+                  ).animate().slideY(begin: 0.2).fadeIn(duration: 400.ms),
+                ),
+                const SizedBox(height: 32),
+              ],
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  if (hasStarted) ...[
+                    if (trackingState.isLocked)
+                      const SizedBox(width: 52, height: 52)
+                    else
+                      _buildControlButton(
+                        icon: Icons.lock_open,
+                        color: Colors.white.withValues(alpha: 0.15),
+                        size: 52,
+                        iconSize: 22,
+                        onTap: () => ref.read(trackingProvider.notifier).toggleLock(),
+                      ).animate().fadeIn(duration: 300.ms),
+                    const SizedBox(width: 20),
+                  ],
+
+                  _buildMainToggleButton(context, trackingState),
+
+                  if (hasStarted) ...[
+                    const SizedBox(width: 20),
+                    _buildControlButton(
+                      icon: Icons.stop,
+                      color: Colors.redAccent,
+                      size: 52,
+                      iconSize: 22,
+                      onTap: _finishRun,
+                    ).animate().fadeIn(duration: 300.ms),
+                  ],
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+
     return Scaffold(
       body: Stack(
         children: [
-          // 1. FlutterMap Layer
-          IgnorePointer(
-            ignoring: trackingState.isLocked,
-            child: FlutterMap(
-              mapController: _mapController,
-              options: MapOptions(
-                initialCenter: trackingState.currentLocation ?? const LatLng(0, 0),
-                initialZoom: _idleZoom,
-              ),
-              children: [
-                TileLayer(
-                  urlTemplate: 'https://api.maptiler.com/maps/dataviz-dark/{z}/{x}/{y}.png?key=${Secrets.mapTilerKey}',
-                  userAgentPackageName: 'com.moops.stride',
-                ),
-                PolylineLayer(
-                  polylines: [
-                    if (trackingState.routePoints.isNotEmpty)
-                      Polyline(
-                        points: trackingState.routePoints,
-                        color: Theme.of(context).colorScheme.primary,
-                        strokeWidth: 6,
-                        strokeCap: StrokeCap.round,
-                        strokeJoin: StrokeJoin.round,
-                      ),
-                  ],
-                ),
-                const RichAttributionWidget(
-                  attributions: [
-                    TextSourceAttribution('© OpenStreetMap contributors'),
-                  ],
-                ),
-              ],
-            ),
-          ),
-
-          // Dim overlay
-          Positioned.fill(
+          // Base layer with greyscale & ignore pointer when locked
+          ColorFiltered(
+            colorFilter: trackingState.isLocked
+                ? const ColorFilter.matrix(greyscaleMatrix)
+                : const ColorFilter.mode(Colors.transparent, BlendMode.dst),
             child: IgnorePointer(
-              ignoring: true,
-              child: Container(
-                color: Colors.black.withValues(alpha: 0.5),
-              ),
+              ignoring: trackingState.isLocked,
+              child: baseUi,
             ),
           ),
-
-          // Header (always present)
-          Positioned(
-            top: MediaQuery.of(context).padding.top + 16,
-            left: 16,
-            right: 16,
-            child: _buildHomeHeader(context),
-          ),
-
-          // 2. Main toggle + Lock/Stop, dead center of the screen
-          Center(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                if (hasStarted) ...[
-                  _buildControlButton(
-                    icon: trackingState.isLocked ? Icons.lock : Icons.lock_open,
-                    color: Colors.white.withValues(alpha: 0.15),
-                    size: 52,
-                    iconSize: 22,
-                    onTap: () => ref.read(trackingProvider.notifier).toggleLock(),
-                  ).animate().fadeIn(duration: 300.ms),
-                  const SizedBox(width: 20),
-                ],
-
-                _buildMainToggleButton(context, trackingState),
-
-                if (hasStarted) ...[
-                  const SizedBox(width: 20),
-                  _buildControlButton(
-                    icon: Icons.stop,
-                    color: Colors.redAccent,
-                    size: 52,
-                    iconSize: 22,
-                    onTap: _finishRun,
-                  ).animate().fadeIn(duration: 300.ms),
-                ],
-              ],
-            ),
-          ),
-
-          // 3. Stats (bottom)
-          if (hasStarted)
-            Positioned(
-              bottom: 48,
-              left: 16,
-              right: 16,
-              child: GlassContainer(
-                padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    _buildStatItem('TIME', trackingState.formattedDuration),
-                    _buildStatItem('KM', trackingState.distanceKm.toStringAsFixed(2)),
-                    _buildStatItem('PACE', trackingState.formattedPace),
-                    _buildStatItem('STEPS', trackingState.currentSteps.toString()),
+          
+          // Lock overlay interactive layer (perfectly aligns via invisible copies)
+          if (trackingState.isLocked)
+            Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (hasStarted) ...[
+                    Opacity(
+                      opacity: 0,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        child: GlassContainer(
+                          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              _buildStatItem('TIME', trackingState.formattedDuration),
+                              _buildStatItem('KM', trackingState.distanceKm.toStringAsFixed(2)),
+                              _buildStatItem('PACE', trackingState.formattedPace),
+                              _buildStatItem('STEPS', trackingState.currentSteps.toString()),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 32),
                   ],
-                ),
-              ).animate().slideY(begin: 0.2).fadeIn(duration: 400.ms),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      if (hasStarted) ...[
+                        _buildControlButton(
+                          icon: Icons.lock,
+                          color: Colors.white,
+                          size: 52,
+                          iconSize: 22,
+                          onTap: () => ref.read(trackingProvider.notifier).toggleLock(),
+                        ).animate().fadeIn(duration: 300.ms),
+                        const SizedBox(width: 20),
+                      ],
+                      Opacity(opacity: 0, child: _buildMainToggleButton(context, trackingState)),
+                      if (hasStarted) ...[
+                        const SizedBox(width: 20),
+                        Opacity(
+                          opacity: 0,
+                          child: _buildControlButton(
+                            icon: Icons.stop,
+                            color: Colors.redAccent,
+                            size: 52,
+                            iconSize: 22,
+                            onTap: () {},
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ],
+              ),
             ),
         ],
       ),
