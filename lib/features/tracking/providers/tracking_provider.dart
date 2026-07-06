@@ -96,6 +96,22 @@ class TrackingNotifier extends Notifier<TrackingState> {
   Timer? _timer;
   int? _runInitialSteps;
 
+  // Duration is derived from wall-clock time rather than counted by the
+  // Timer tick, since the OS can suspend Dart timers while the app is
+  // backgrounded/the device is locked — ticks would be lost, but elapsed
+  // real time is always correct once the app resumes.
+  DateTime? _lastResumedAt;
+  Duration _accumulatedDuration = Duration.zero;
+
+  Duration _currentElapsed() {
+    if (_lastResumedAt == null) return _accumulatedDuration;
+    return _accumulatedDuration + DateTime.now().difference(_lastResumedAt!);
+  }
+
+  void _tickDuration() {
+    state = state.copyWith(durationSeconds: _currentElapsed().inSeconds);
+  }
+
   @override
   TrackingState build() {
     _initCurrentLocation();
@@ -162,11 +178,14 @@ class TrackingNotifier extends Notifier<TrackingState> {
 
     await locService.requestBackgroundPermission();
 
+    _accumulatedDuration = Duration.zero;
+    _lastResumedAt = DateTime.now();
+
     state = state.copyWith(status: TrackingStatus.active, startTime: DateTime.now());
-    
+
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (state.status == TrackingStatus.active) {
-        state = state.copyWith(durationSeconds: state.durationSeconds + 1);
+        _tickDuration();
       }
     });
 
@@ -193,14 +212,20 @@ class TrackingNotifier extends Notifier<TrackingState> {
   }
 
   void pauseTracking() {
+    if (_lastResumedAt != null) {
+      _accumulatedDuration += DateTime.now().difference(_lastResumedAt!);
+      _lastResumedAt = null;
+    }
     state = state.copyWith(status: TrackingStatus.paused);
   }
 
   void resumeTracking() {
+    _lastResumedAt = DateTime.now();
     state = state.copyWith(status: TrackingStatus.active);
   }
 
   Future<ActivityModel?> stopTracking() async {
+    _tickDuration();
     state = state.copyWith(status: TrackingStatus.stopped);
     _timer?.cancel();
     _positionSubscription?.cancel();
@@ -237,6 +262,8 @@ class TrackingNotifier extends Notifier<TrackingState> {
   void reset() {
     _timer?.cancel();
     _positionSubscription?.cancel();
+    _accumulatedDuration = Duration.zero;
+    _lastResumedAt = null;
     state = TrackingState();
     _initCurrentLocation();
   }
