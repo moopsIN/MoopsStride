@@ -53,7 +53,7 @@ class LocationService {
     if (Platform.isAndroid) {
       return AndroidSettings(
         accuracy: LocationAccuracy.high,
-        distanceFilter: 5,
+        distanceFilter: 0,
         foregroundNotificationConfig: const ForegroundNotificationConfig(
           notificationTitle: 'Stride is tracking your activity',
           notificationText: 'Tap to return to your run or walk.',
@@ -66,7 +66,7 @@ class LocationService {
     if (Platform.isIOS) {
       return AppleSettings(
         accuracy: LocationAccuracy.high,
-        distanceFilter: 5,
+        distanceFilter: 0,
         activityType: ActivityType.fitness,
         allowBackgroundLocationUpdates: true,
         showBackgroundLocationIndicator: true,
@@ -75,7 +75,7 @@ class LocationService {
 
     return const LocationSettings(
       accuracy: LocationAccuracy.high,
-      distanceFilter: 5,
+      distanceFilter: 0,
     );
   }
 
