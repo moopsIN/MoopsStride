@@ -299,27 +299,23 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             ),
           ],
         ),
-        const SizedBox(height: 24),
-        Row(
-          children: [
-            Expanded(
-              child: ValueListenableBuilder<TextEditingValue>(
-                valueListenable: _heightController,
-                builder: (context, value, child) {
-                  final cm = double.tryParse(value.text) ?? 0.0;
-                  return _buildMetricField(
-                    _heightController, 
-                    'Height', 
-                    'cm',
-                    subtitle: formatHeightToFtIn(cm)
-                  );
-                },
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(child: _buildMetricField(_weightController, 'Weight', isKg ? 'kg' : 'lbs')),
-          ],
+        const SizedBox(height: 16),
+        Divider(color: theme.colorScheme.onSurface.withValues(alpha: 0.1)),
+        const SizedBox(height: 16),
+        ValueListenableBuilder<TextEditingValue>(
+          valueListenable: _heightController,
+          builder: (context, value, child) {
+            final cm = double.tryParse(value.text) ?? 0.0;
+            return _buildMetricField(
+              _heightController, 
+              'Height', 
+              'cm',
+              subtitle: formatHeightToFtIn(cm)
+            );
+          },
         ),
+        const SizedBox(height: 16),
+        _buildMetricField(_weightController, 'Weight', isKg ? 'kg' : 'lbs'),
       ],
     );
   }
