@@ -356,9 +356,30 @@ class RunSummaryScreen extends ConsumerWidget {
                 side: BorderSide(color: theme.colorScheme.onSurface.withValues(alpha: 0.1)),
               ),
             ),
-            onPressed: () {
-              ref.read(progressProvider.notifier).deleteActivity(activity.id);
-              Navigator.of(context).popUntil((route) => route.isFirst);
+            onPressed: () async {
+              final confirmed = await showDialog<bool>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: const Text('Delete Run?'),
+                  content: const Text('Are you sure you want to delete this run? This action cannot be undone.'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(ctx).pop(false),
+                      child: const Text('CANCEL'),
+                    ),
+                    TextButton(
+                      style: TextButton.styleFrom(foregroundColor: theme.colorScheme.error),
+                      onPressed: () => Navigator.of(ctx).pop(true),
+                      child: const Text('DELETE'),
+                    ),
+                  ],
+                ),
+              );
+
+              if (confirmed == true && context.mounted) {
+                ref.read(progressProvider.notifier).deleteActivity(activity.id);
+                Navigator.of(context).popUntil((route) => route.isFirst);
+              }
             },
             child: const Icon(Icons.delete_rounded, size: 30),
           ),
