@@ -274,7 +274,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SizedBox(height: 48),
+              const SizedBox(height: 96), // Increased top padding
               Icon(
                 Icons.directions_run_rounded,
                 size: 64,
@@ -321,11 +321,14 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               ).animate().fadeIn(delay: 500.ms),
               const SizedBox(height: 32),
               
-              OutlinedButton.icon(
+              ElevatedButton.icon(
                 onPressed: _handleGoogleLogin,
                 icon: const Icon(Icons.g_mobiledata, size: 28),
-                label: const Text('Continue with Google'),
-                style: OutlinedButton.styleFrom(
+                label: const Text('Continue with Google', style: TextStyle(fontWeight: FontWeight.w600)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: Colors.red,
+                  elevation: 0,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
