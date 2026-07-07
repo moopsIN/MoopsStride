@@ -526,7 +526,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
           ],
         ).animate().slideY(begin: -0.2).fadeIn(duration: 400.ms),
 
-        const SizedBox(height: 40),
+        const SizedBox(height: 64),
 
         GestureDetector(
           onTap: () {
