@@ -6,6 +6,7 @@ import 'package:stride/theme/glass_container.dart';
 import 'package:stride/features/progress/providers/progress_provider.dart';
 import 'package:stride/features/tracking/models/activity_model.dart';
 import 'package:stride/features/tracking/presentation/run_summary_screen.dart';
+import 'package:stride/core/providers/preferences_provider.dart';
 
 class ProgressScreen extends ConsumerWidget {
   const ProgressScreen({super.key});
@@ -13,6 +14,7 @@ class ProgressScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(progressProvider);
+    final isKm = ref.watch(isKmProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -24,7 +26,7 @@ class ProgressScreen extends ConsumerWidget {
           ? const Center(child: CircularProgressIndicator())
           : state.activities.isEmpty
               ? _buildEmptyState(context)
-              : _buildBody(context, state),
+              : _buildBody(context, state, isKm),
     );
   }
 
@@ -49,7 +51,10 @@ class ProgressScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildBody(BuildContext context, ProgressState state) {
+  Widget _buildBody(BuildContext context, ProgressState state, bool isKm) {
+    final distanceUnit = isKm ? 'km' : 'mi';
+    final distanceMultiplier = isKm ? 1.0 : 0.621371;
+
     return CustomScrollView(
       slivers: [
         SliverToBoxAdapter(
@@ -65,7 +70,7 @@ class ProgressScreen extends ConsumerWidget {
                       child: _buildPRCard(
                         context, 
                         'Longest Run', 
-                        state.longestRun != null ? '${(state.longestRun!.distanceMeters / 1000).toStringAsFixed(2)} km' : '--',
+                        state.longestRun != null ? '${((state.longestRun!.distanceMeters / 1000) * distanceMultiplier).toStringAsFixed(2)} $distanceUnit' : '--',
                       ),
                     ),
                     const SizedBox(width: 16),
@@ -82,13 +87,13 @@ class ProgressScreen extends ConsumerWidget {
                 const SizedBox(height: 32),
                 
                 // Chart
-                Text('Recent Distances (km)', style: Theme.of(context).textTheme.titleMedium),
+                Text('Recent Distances ($distanceUnit)', style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 16),
                 SizedBox(
                   height: 200,
                   child: GlassContainer(
                     padding: const EdgeInsets.all(16),
-                    child: _buildChart(context, state.activities),
+                    child: _buildChart(context, state.activities, distanceMultiplier),
                   ),
                 ).animate().slideY(begin: 0.2).fadeIn(delay: 150.ms),
 
@@ -128,7 +133,7 @@ class ProgressScreen extends ConsumerWidget {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                '${(activity.distanceMeters / 1000).toStringAsFixed(2)} km',
+                                '${((activity.distanceMeters / 1000) * distanceMultiplier).toStringAsFixed(2)} $distanceUnit',
                                 style: Theme.of(context).textTheme.displayLarge?.copyWith(fontSize: 20),
                               ),
                             ],
@@ -162,7 +167,7 @@ class ProgressScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildChart(BuildContext context, List<ActivityModel> activities) {
+  Widget _buildChart(BuildContext context, List<ActivityModel> activities, double distanceMultiplier) {
     if (activities.length < 2) {
       return Center(
         child: Text('More data needed for chart', style: Theme.of(context).textTheme.bodyMedium),
@@ -173,7 +178,7 @@ class ProgressScreen extends ConsumerWidget {
     final latest = sorted.length > 7 ? sorted.sublist(sorted.length - 7) : sorted;
 
     final spots = latest.asMap().entries.map((e) {
-      return FlSpot(e.key.toDouble(), e.value.distanceMeters / 1000.0);
+      return FlSpot(e.key.toDouble(), (e.value.distanceMeters / 1000.0) * distanceMultiplier);
     }).toList();
 
     return LineChart(
