@@ -77,6 +77,11 @@ class ProgressNotifier extends Notifier<ProgressState> {
     _loadActivities();
   }
 
+  Future<void> deleteActivity(String id) async {
+    await LocalDatabase.instance.deleteActivity(id);
+    _loadActivities();
+  }
+
   int _calculateStreak(List<ActivityModel> acts) {
     if (acts.isEmpty) return 0;
     

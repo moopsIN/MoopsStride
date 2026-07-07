@@ -5,6 +5,7 @@ import 'package:stride/core/config/secrets.dart';
 import 'package:stride/features/tracking/models/activity_model.dart';
 import 'package:stride/theme/glass_container.dart';
 import 'package:stride/core/providers/preferences_provider.dart';
+import 'package:stride/features/progress/providers/progress_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class RunSummaryScreen extends ConsumerWidget {
@@ -42,7 +43,7 @@ class RunSummaryScreen extends ConsumerWidget {
                     begin: Alignment.bottomCenter,
                     end: Alignment.topCenter,
                     colors: [bg, bg, bg.withValues(alpha: 0.0)],
-                    stops: const [0.0, 0.34, 0.66],
+                    stops: const [0.0, 0.44, 0.76],
                   ),
                 ),
               ),
@@ -78,7 +79,7 @@ class RunSummaryScreen extends ConsumerWidget {
 
                   const SizedBox(height: 24),
 
-                  _buildDoneButton(context),
+                  _buildDoneButton(context, ref),
                   const SizedBox(height: 4),
                 ],
               ),
@@ -337,28 +338,49 @@ class RunSummaryScreen extends ConsumerWidget {
     ).animate().slideY(begin: 0.2, curve: Curves.easeOut).fadeIn(delay: delayMs.ms);
   }
 
-  Widget _buildDoneButton(BuildContext context) {
+  Widget _buildDoneButton(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: 20),
-          backgroundColor: theme.colorScheme.primary,
-          elevation: 0,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+    return Row(
+      children: [
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            padding: const EdgeInsets.all(20),
+            backgroundColor: theme.colorScheme.surface,
+            foregroundColor: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(18),
+              side: BorderSide(color: theme.colorScheme.onSurface.withValues(alpha: 0.1)),
+            ),
+          ),
+          onPressed: () {
+            ref.read(progressProvider.notifier).deleteActivity(activity.id);
+            Navigator.of(context).popUntil((route) => route.isFirst);
+          },
+          child: const Icon(Icons.delete_outline_rounded),
         ),
-        onPressed: () => Navigator.of(context).popUntil((route) => route.isFirst),
-        child: Text(
-          'DONE',
-          style: theme.textTheme.labelLarge?.copyWith(
-            color: theme.scaffoldBackgroundColor,
-            fontSize: 15,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 2.5,
+        const SizedBox(width: 12),
+        Expanded(
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              backgroundColor: theme.colorScheme.primary,
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+            ),
+            onPressed: () => Navigator.of(context).popUntil((route) => route.isFirst),
+            child: Text(
+              'DONE',
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: theme.scaffoldBackgroundColor,
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 2.5,
+              ),
+            ),
           ),
         ),
-      ),
+      ],
     ).animate().slideY(begin: 0.4, delay: 640.ms, curve: Curves.easeOutBack).fadeIn(delay: 640.ms);
   }
 

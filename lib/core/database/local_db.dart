@@ -82,6 +82,11 @@ CREATE TABLE user_profile (
     );
   }
 
+  Future<void> deleteActivity(String id) async {
+    final db = await instance.database;
+    await db.delete('activities', where: 'id = ?', whereArgs: [id]);
+  }
+
   Future<List<Map<String, dynamic>>> getActivities() async {
     final db = await instance.database;
     return await db.query('activities', orderBy: 'start_time DESC');
