@@ -360,7 +360,7 @@ class RunSummaryScreen extends ConsumerWidget {
               ref.read(progressProvider.notifier).deleteActivity(activity.id);
               Navigator.of(context).popUntil((route) => route.isFirst);
             },
-            child: const Icon(Icons.delete_outline_rounded, size: 30),
+            child: const Icon(Icons.delete_rounded, size: 30),
           ),
         ),
         const SizedBox(width: 12),
