@@ -47,6 +47,7 @@ app.*.map.json
 # Project Planning & Docs
 OVERVIEW.md
 PLAN.md
+GEOLOCATION_PLUGIN_PLAN.md
 
 # Secrets
 lib/core/config/secrets.dart
