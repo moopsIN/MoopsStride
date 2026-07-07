@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'dart:ui' as ui;
+import 'dart:io';
+import 'package:flutter/rendering.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:stride/core/config/secrets.dart';
 import 'package:stride/features/tracking/models/activity_model.dart';
 import 'package:stride/theme/glass_container.dart';
@@ -8,13 +13,24 @@ import 'package:stride/core/providers/preferences_provider.dart';
 import 'package:stride/features/progress/providers/progress_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class RunSummaryScreen extends ConsumerWidget {
+class RunSummaryScreen extends ConsumerStatefulWidget {
   final ActivityModel activity;
 
   const RunSummaryScreen({super.key, required this.activity});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<RunSummaryScreen> createState() => _RunSummaryScreenState();
+}
+
+class _RunSummaryScreenState extends ConsumerState<RunSummaryScreen> {
+  final GlobalKey _globalKey = GlobalKey();
+  bool _isSharing = false;
+
+  ActivityModel get activity => widget.activity;
+
+  @override
+  Widget build(BuildContext context) {
+    final activity = widget.activity;
     final theme = Theme.of(context);
     final bg = theme.scaffoldBackgroundColor;
     final hasRoute = activity.routePoints.isNotEmpty;
@@ -25,8 +41,10 @@ class RunSummaryScreen extends ConsumerWidget {
     }
 
     return Scaffold(
-      body: Stack(
-        children: [
+      body: RepaintBoundary(
+        key: _globalKey,
+        child: Stack(
+          children: [
           // 1. Bright map (or a themed placeholder if no route was recorded)
           Positioned.fill(
             child: hasRoute ? _buildMap(context, bounds) : _buildNoRoute(context),
@@ -63,6 +81,16 @@ class RunSummaryScreen extends ConsumerWidget {
                         icon: Icons.close_rounded,
                         onTap: () => Navigator.of(context).pop(),
                       ).animate().fadeIn(duration: 400.ms),
+                      const Spacer(),
+                      _isSharing 
+                        ? const Padding(
+                            padding: EdgeInsets.all(12),
+                            child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+                          )
+                        : _GlassIconButton(
+                            icon: Icons.ios_share_rounded,
+                            onTap: _shareRun,
+                          ).animate().fadeIn(duration: 400.ms),
                     ],
                   ),
 
@@ -87,7 +115,35 @@ class RunSummaryScreen extends ConsumerWidget {
           ),
         ],
       ),
-    );
+    ),
+  );
+}
+
+  Future<void> _shareRun() async {
+    setState(() => _isSharing = true);
+    try {
+      await Future.delayed(const Duration(milliseconds: 100));
+      final boundary = _globalKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+      if (boundary == null) return;
+      final image = await boundary.toImage(pixelRatio: 3.0);
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      final pngBytes = byteData?.buffer.asUint8List();
+      if (pngBytes == null) return;
+      final tempDir = await getTemporaryDirectory();
+      final file = File('${tempDir.path}/stride_run_summary.png');
+      await file.writeAsBytes(pngBytes);
+      
+      // ignore: deprecated_member_use
+      await Share.shareXFiles([XFile(file.path)], text: 'Check out my run on Moops Stride!');
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to share run.')));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSharing = false);
+      }
+    }
   }
 
   Widget _buildMap(BuildContext context, LatLngBounds? bounds) {
