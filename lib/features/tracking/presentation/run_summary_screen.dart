@@ -342,22 +342,26 @@ class RunSummaryScreen extends ConsumerWidget {
     final theme = Theme.of(context);
     return Row(
       children: [
-        ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            padding: const EdgeInsets.all(12),
-            backgroundColor: theme.colorScheme.surface,
-            foregroundColor: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-            elevation: 0,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(18),
-              side: BorderSide(color: theme.colorScheme.onSurface.withValues(alpha: 0.1)),
+        SizedBox(
+          width: 62,
+          height: 62,
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              padding: EdgeInsets.zero,
+              backgroundColor: theme.colorScheme.surface,
+              foregroundColor: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(18),
+                side: BorderSide(color: theme.colorScheme.onSurface.withValues(alpha: 0.1)),
+              ),
             ),
+            onPressed: () {
+              ref.read(progressProvider.notifier).deleteActivity(activity.id);
+              Navigator.of(context).popUntil((route) => route.isFirst);
+            },
+            child: const Icon(Icons.delete_outline_rounded, size: 30),
           ),
-          onPressed: () {
-            ref.read(progressProvider.notifier).deleteActivity(activity.id);
-            Navigator.of(context).popUntil((route) => route.isFirst);
-          },
-          child: const Icon(Icons.delete_outline_rounded, size: 30),
         ),
         const SizedBox(width: 12),
         Expanded(
