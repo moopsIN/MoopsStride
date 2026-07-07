@@ -19,8 +19,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
 
-  final _heightController = TextEditingController();
-  final _weightController = TextEditingController();
+  final _heightController = TextEditingController(text: '170');
+  final _weightController = TextEditingController(text: '70');
   final _ageController = TextEditingController(text: '25');
 
   static const _stepCount = 5;
