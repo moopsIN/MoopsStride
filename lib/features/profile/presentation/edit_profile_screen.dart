@@ -230,38 +230,59 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                         ),
                         const SizedBox(width: 14),
                         _buildMetricField(context, 'WEIGHT', _weightController, isKg ? 'kg' : 'lbs'),
-                        const SizedBox(width: 14),
-                        _buildMetricField(context, 'AGE', _ageController, 'yrs', isInt: true),
                       ],
                     ).animate().fadeIn(duration: 350.ms).slideY(begin: 0.08),
 
-                    const SizedBox(height: 28),
-
-                    _sectionLabel(context, 'GENDER'),
-                    GlassContainer(
-                      borderRadius: 18,
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                          value: _selectedGender,
-                          isExpanded: true,
-                          dropdownColor: theme.colorScheme.surface,
-                          icon: Icon(Icons.keyboard_arrow_down_rounded, color: theme.colorScheme.primary),
-                          style: theme.textTheme.bodyLarge,
-                          items: _genders.map((String value) {
-                            return DropdownMenuItem<String>(
-                              value: value,
-                              child: Text(value),
-                            );
-                          }).toList(),
-                          onChanged: (newValue) {
-                            setState(() {
-                              _selectedGender = newValue;
-                            });
-                          },
+                    const SizedBox(height: 24),
+                    _sectionLabel(context, 'PERSONAL DETAILS'),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildMetricField(context, 'AGE', _ageController, 'yrs', isInt: true),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: GlassContainer(
+                            borderRadius: 18,
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            child: Column(
+                              children: [
+                                Text(
+                                  'GENDER',
+                                  style: theme.textTheme.labelSmall?.copyWith(
+                                    color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                DropdownButtonHideUnderline(
+                                  child: DropdownButton<String>(
+                                    value: _selectedGender,
+                                    isExpanded: true,
+                                    alignment: Alignment.center,
+                                    dropdownColor: theme.colorScheme.surface,
+                                    icon: Icon(Icons.keyboard_arrow_down_rounded, color: theme.colorScheme.primary),
+                                    style: theme.textTheme.titleMedium?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      color: theme.colorScheme.onSurface,
+                                    ),
+                                    items: _genders.map((String value) {
+                                      return DropdownMenuItem<String>(
+                                        value: value,
+                                        child: Text(value),
+                                      );
+                                    }).toList(),
+                                    onChanged: (newValue) {
+                                      setState(() {
+                                        _selectedGender = newValue;
+                                      });
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
+                      ],
+                    ).animate().fadeIn(duration: 350.ms, delay: 50.ms).slideY(begin: 0.08),
                     const SizedBox(height: 28),
 
                     _sectionLabel(context, 'PRIMARY GOAL'),
