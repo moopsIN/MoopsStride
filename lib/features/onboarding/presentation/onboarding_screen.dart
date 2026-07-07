@@ -271,14 +271,17 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               children: [
                 Text('Distance Units', style: theme.textTheme.labelSmall),
                 const SizedBox(height: 8),
-                SegmentedButton<bool>(
-                  segments: const [
-                    ButtonSegment(value: true, label: Text('km')),
-                    ButtonSegment(value: false, label: Text('mi')),
-                  ],
-                  selected: {isKm},
-                  onSelectionChanged: (set) => ref.read(isKmProvider.notifier).setKm(set.first),
-                  showSelectedIcon: false,
+                Transform.scale(
+                  scale: 1.1,
+                  child: SegmentedButton<bool>(
+                    segments: const [
+                      ButtonSegment(value: true, label: Text('km')),
+                      ButtonSegment(value: false, label: Text('mi')),
+                    ],
+                    selected: {isKm},
+                    onSelectionChanged: (set) => ref.read(isKmProvider.notifier).setKm(set.first),
+                    showSelectedIcon: false,
+                  ),
                 ),
               ],
             ),
@@ -286,14 +289,17 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               children: [
                 Text('Weight Units', style: theme.textTheme.labelSmall),
                 const SizedBox(height: 8),
-                SegmentedButton<bool>(
-                  segments: const [
-                    ButtonSegment(value: true, label: Text('kg')),
-                    ButtonSegment(value: false, label: Text('lbs')),
-                  ],
-                  selected: {isKg},
-                  onSelectionChanged: (set) => ref.read(isKgProvider.notifier).setKg(set.first),
-                  showSelectedIcon: false,
+                Transform.scale(
+                  scale: 1.1,
+                  child: SegmentedButton<bool>(
+                    segments: const [
+                      ButtonSegment(value: true, label: Text('kg')),
+                      ButtonSegment(value: false, label: Text('lbs')),
+                    ],
+                    selected: {isKg},
+                    onSelectionChanged: (set) => ref.read(isKgProvider.notifier).setKg(set.first),
+                    showSelectedIcon: false,
+                  ),
                 ),
               ],
             ),
