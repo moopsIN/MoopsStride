@@ -104,20 +104,46 @@ class _SyncPromptScreenState extends ConsumerState<SyncPromptScreen> {
               
               const SizedBox(height: 16),
               
-              OutlinedButton(
+              ElevatedButton(
                 onPressed: (_isSyncing || _isWiping) ? null : () { _handleStartFresh(); },
-                style: OutlinedButton.styleFrom(
+                style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  backgroundColor: Colors.white,
                   foregroundColor: Colors.red,
-                  side: const BorderSide(color: Colors.red),
+                  elevation: 0,
                 ),
                 child: _isWiping 
                   ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.red))
                   : const Text('Start Fresh (Delete Cloud Data)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
               ).animate().fadeIn(delay: 500.ms).slideY(begin: 0.2),
               
-              const SizedBox(height: 32),
+              const SizedBox(height: 48),
+              
+              // Bottom Logo & Text
+              Center(
+                child: Column(
+                  children: [
+                    Image.asset(
+                      Theme.of(context).brightness == Brightness.dark
+                          ? 'assets/images/moops-logo-dark.png'
+                          : 'assets/images/moops-logo-light.png',
+                      height: 48,
+                      opacity: const AlwaysStoppedAnimation(0.5),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'STRIDE BY MOOPS',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                        letterSpacing: 2,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ).animate().fadeIn(delay: 600.ms),
+              ),
+              const SizedBox(height: 16),
             ],
           ),
         ),
