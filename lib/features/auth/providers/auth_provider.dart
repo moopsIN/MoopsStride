@@ -8,7 +8,9 @@ class AuthNotifier extends Notifier<User?> {
 
   Future<void> _ensureInitialized() async {
     if (!_initialized) {
-      await GoogleSignIn.instance.initialize();
+      await GoogleSignIn.instance.initialize(
+        serverClientId: '19953138860-tfvj001dlpve2birqlpfu1fs7n6g8dv9.apps.googleusercontent.com',
+      );
       _initialized = true;
     }
   }
