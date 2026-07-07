@@ -14,9 +14,11 @@ class AboutScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final logoAsset = isDarkMode 
-        ? 'assets/images/moops-logo-dark.png' 
+    final theme = Theme.of(context);
+    final muted = theme.colorScheme.onSurface.withValues(alpha: 0.6);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    final logoAsset = isDarkMode
+        ? 'assets/images/moops-logo-dark.png'
         : 'assets/images/moops-logo-light.png';
 
     return Scaffold(
@@ -24,10 +26,11 @@ class AboutScreen extends StatelessWidget {
         title: const Text('About'),
         backgroundColor: Colors.transparent,
         elevation: 0,
+        centerTitle: false,
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -36,62 +39,53 @@ class AboutScreen extends StatelessWidget {
                 child: Image.asset(
                   logoAsset,
                   height: 80,
-                  errorBuilder: (context, error, stackTrace) => 
-                      const Icon(Icons.fitness_center, size: 80),
+                  errorBuilder: (context, error, stackTrace) =>
+                      Icon(Icons.fitness_center_rounded, size: 80, color: theme.colorScheme.primary),
                 ),
               ),
               const SizedBox(height: 16),
               Text(
                 'Moops Design',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 48),
+              const SizedBox(height: 40),
               GlassContainer(
+                borderRadius: 24,
                 padding: const EdgeInsets.all(24),
                 child: Column(
                   children: [
-                    const Text(
+                    Text(
                       'Stride by Moops',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: theme.textTheme.titleLarge?.copyWith(fontSize: 20),
                     ),
                     const SizedBox(height: 16),
-                    const Text(
+                    Text(
                       'Stride is a beautiful and minimalist running and activity tracker designed to help you hit your fitness goals without the clutter. Built with passion and focus on premium user experiences.',
-                      style: TextStyle(
-                        fontSize: 16,
-                        height: 1.5,
-                        color: Colors.white70,
-                      ),
+                      style: theme.textTheme.bodyLarge?.copyWith(height: 1.5, color: muted),
                       textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 28),
                     InkWell(
                       onTap: _launchUrl,
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(14),
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                         decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
-                          border: Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5)),
-                          borderRadius: BorderRadius.circular(12),
+                          color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                          border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.4)),
+                          borderRadius: BorderRadius.circular(14),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.language, color: Theme.of(context).colorScheme.primary),
+                            Icon(Icons.language_rounded, color: theme.colorScheme.primary),
                             const SizedBox(width: 8),
                             Text(
                               'moops.in',
-                              style: TextStyle(
-                                color: Theme.of(context).colorScheme.primary,
+                              style: theme.textTheme.bodyLarge?.copyWith(
+                                color: theme.colorScheme.primary,
                                 fontWeight: FontWeight.bold,
-                                fontSize: 16,
                               ),
                             ),
                           ],
@@ -101,11 +95,11 @@ class AboutScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(height: 48),
-              const Center(
+              const SizedBox(height: 40),
+              Center(
                 child: Text(
                   'Version 1.0.0',
-                  style: TextStyle(color: Colors.white38),
+                  style: theme.textTheme.bodySmall?.copyWith(color: muted),
                 ),
               ),
             ],

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:stride/core/widgets/primary_button.dart';
 import 'package:stride/features/profile/providers/profile_provider.dart';
 import 'package:stride/theme/glass_container.dart';
@@ -51,7 +52,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
   Future<void> _saveProfile() async {
     if (!_formKey.currentState!.validate()) return;
-    
+
     final height = double.tryParse(_heightController.text) ?? 170.0;
     final weight = double.tryParse(_weightController.text) ?? 70.0;
 
@@ -75,32 +76,51 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     }
   }
 
-  Widget _buildOptionChip(String label, bool isSelected, VoidCallback onTap) {
+  Widget _sectionLabel(BuildContext context, String text) {
+    final theme = Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8.0),
+      padding: const EdgeInsets.only(left: 4, bottom: 12),
+      child: Text(
+        text,
+        style: theme.textTheme.labelSmall?.copyWith(
+          letterSpacing: 2,
+          fontWeight: FontWeight.w700,
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOptionChip(String label, bool isSelected, VoidCallback onTap) {
+    final theme = Theme.of(context);
+    final onSurface = theme.colorScheme.onSurface;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10.0),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
         child: GlassContainer(
-          padding: const EdgeInsets.all(16),
-          backgroundColor: isSelected 
-              ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.2)
-              : const Color(0x1AFFFFFF),
+          borderRadius: 18,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          backgroundColor: isSelected
+              ? theme.colorScheme.primary.withValues(alpha: 0.14)
+              : onSurface.withValues(alpha: 0.05),
           borderColor: isSelected
-              ? Theme.of(context).colorScheme.primary
-              : const Color(0x33FFFFFF),
+              ? theme.colorScheme.primary
+              : onSurface.withValues(alpha: 0.1),
           child: Row(
             children: [
               Icon(
-                isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
-                color: isSelected ? Theme.of(context).colorScheme.primary : Colors.white54,
+                isSelected ? Icons.radio_button_checked_rounded : Icons.radio_button_unchecked_rounded,
+                color: isSelected ? theme.colorScheme.primary : onSurface.withValues(alpha: 0.35),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 14),
               Text(
                 label,
-                style: TextStyle(
-                  color: isSelected ? Colors.white : Colors.white70,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: isSelected ? onSurface : onSurface.withValues(alpha: 0.75),
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.normal,
                 ),
               ),
             ],
@@ -110,8 +130,45 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     );
   }
 
+  Widget _buildMetricField(
+      BuildContext context, String label, TextEditingController controller, String unit) {
+    final theme = Theme.of(context);
+    return Expanded(
+      child: GlassContainer(
+        borderRadius: 18,
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+        child: Column(
+          children: [
+            Text(
+              label,
+              style: theme.textTheme.labelSmall?.copyWith(
+                letterSpacing: 1.5,
+                fontWeight: FontWeight.w600,
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+              ),
+            ),
+            TextFormField(
+              controller: controller,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              textAlign: TextAlign.center,
+              style: theme.textTheme.displayLarge?.copyWith(fontSize: 26),
+              decoration: InputDecoration(
+                border: InputBorder.none,
+                suffixText: unit,
+                suffixStyle: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final state = ref.watch(profileProvider);
 
     return Scaffold(
@@ -119,117 +176,68 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         title: const Text('Edit Profile'),
         backgroundColor: Colors.transparent,
         elevation: 0,
+        centerTitle: false,
       ),
       body: state.when(
         data: (profileState) {
           return SafeArea(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24.0),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    'BODY METRICS',
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(letterSpacing: 1.5),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: GlassContainer(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            children: [
-                              Text('HEIGHT', style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.white54)),
-                              TextFormField(
-                                controller: _heightController,
-                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                                decoration: const InputDecoration(
-                                  border: InputBorder.none,
-                                  suffixText: 'cm',
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: GlassContainer(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            children: [
-                              Text('WEIGHT', style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.white54)),
-                              TextFormField(
-                                controller: _weightController,
-                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                                decoration: const InputDecoration(
-                                  border: InputBorder.none,
-                                  suffixText: 'kg',
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 32),
-                  
-                  Text(
-                    'PRIMARY GOAL',
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(letterSpacing: 1.5),
-                  ),
-                  const SizedBox(height: 16),
-                  ..._goals.map((g) => _buildOptionChip(
-                        g,
-                        _selectedGoal == g,
-                        () => setState(() => _selectedGoal = g),
-                      )),
-                  const SizedBox(height: 24),
-                  
-                  Text(
-                    'EXPERIENCE LEVEL',
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(letterSpacing: 1.5),
-                  ),
-                  const SizedBox(height: 16),
-                  ..._experiences.map((e) => _buildOptionChip(
-                        e,
-                        _selectedExperience == e,
-                        () => setState(() => _selectedExperience = e),
-                      )),
-                  const SizedBox(height: 24),
-                  
-                  Text(
-                    'ACTIVITY LEVEL',
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(letterSpacing: 1.5),
-                  ),
-                  const SizedBox(height: 16),
-                  ..._activities.map((a) => _buildOptionChip(
-                        a,
-                        _selectedActivity == a,
-                        () => setState(() => _selectedActivity = a),
-                      )),
-                  
-                  const SizedBox(height: 48),
-                  PrimaryButton(
-                    text: 'Save Changes',
-                    isLoading: profileState.isSaving,
-                    onPressed: _saveProfile,
-                  ),
-                ],
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _sectionLabel(context, 'BODY METRICS'),
+                    Row(
+                      children: [
+                        _buildMetricField(context, 'HEIGHT', _heightController, 'cm'),
+                        const SizedBox(width: 14),
+                        _buildMetricField(context, 'WEIGHT', _weightController, 'kg'),
+                      ],
+                    ).animate().fadeIn(duration: 350.ms).slideY(begin: 0.08),
+
+                    const SizedBox(height: 28),
+
+                    _sectionLabel(context, 'PRIMARY GOAL'),
+                    ..._goals.map((g) => _buildOptionChip(
+                          g,
+                          _selectedGoal == g,
+                          () => setState(() => _selectedGoal = g),
+                        )),
+                    const SizedBox(height: 18),
+
+                    _sectionLabel(context, 'EXPERIENCE LEVEL'),
+                    ..._experiences.map((e) => _buildOptionChip(
+                          e,
+                          _selectedExperience == e,
+                          () => setState(() => _selectedExperience = e),
+                        )),
+                    const SizedBox(height: 18),
+
+                    _sectionLabel(context, 'ACTIVITY LEVEL'),
+                    ..._activities.map((a) => _buildOptionChip(
+                          a,
+                          _selectedActivity == a,
+                          () => setState(() => _selectedActivity = a),
+                        )),
+
+                    const SizedBox(height: 36),
+                    PrimaryButton(
+                      text: 'Save Changes',
+                      isLoading: profileState.isSaving,
+                      onPressed: _saveProfile,
+                    ),
+                  ],
+                ),
               ),
             ),
-          ));
+          );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, stack) => Center(child: Text('Error: $err')),
+        error: (err, stack) => Center(
+          child: Text('Error: $err', style: theme.textTheme.bodyMedium),
+        ),
       ),
     );
   }
