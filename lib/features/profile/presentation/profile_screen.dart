@@ -280,8 +280,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               GlassContainer(
                 borderRadius: 20,
                 padding: const EdgeInsets.symmetric(horizontal: 4),
-                child: Column(
-                  children: [
+                child: Material(
+                  color: Colors.transparent,
+                  child: Column(
+                    children: [
                     SwitchListTile.adaptive(
                       title: const Text('Distance Units'),
                       subtitle: Text(isKm ? 'Kilometers (km)' : 'Miles (mi)'),
@@ -305,6 +307,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       activeTrackColor: theme.colorScheme.primary,
                     ),
                   ],
+                  ),
                 ),
               ),
 
@@ -314,8 +317,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               GlassContainer(
                 borderRadius: 20,
                 padding: const EdgeInsets.symmetric(horizontal: 4),
-                child: Column(
-                  children: [
+                child: Material(
+                  color: Colors.transparent,
+                  child: Column(
+                    children: [
                     ListTile(
                       leading: Icon(Icons.info_outline_rounded, color: theme.colorScheme.onSurface),
                       title: const Text('About'),
@@ -350,7 +355,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         }
                       },
                     ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ],
