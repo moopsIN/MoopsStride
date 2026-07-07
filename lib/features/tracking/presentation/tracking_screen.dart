@@ -12,6 +12,7 @@ import 'package:stride/features/profile/presentation/profile_screen.dart';
 import 'package:stride/features/progress/providers/progress_provider.dart';
 import 'package:stride/features/progress/presentation/progress_screen.dart';
 import 'package:stride/features/sync/providers/sync_engine.dart';
+import 'package:stride/features/profile/providers/profile_provider.dart';
 
 class TrackingScreen extends ConsumerStatefulWidget {
   const TrackingScreen({super.key});
@@ -504,8 +505,22 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                 height: 48,
                 borderRadius: 24,
                 padding: EdgeInsets.zero,
-                child: Icon(Icons.person_outline_rounded,
-                    color: theme.colorScheme.onSurface, size: 24),
+                child: ClipOval(
+                  child: ref.watch(profileProvider).when(
+                    data: (state) {
+                      final gender = state.gender;
+                      if (gender == 'Male') {
+                        return Image.asset('assets/images/male_avatar.png', fit: BoxFit.cover);
+                      } else if (gender == 'Female') {
+                        return Image.asset('assets/images/female_avatar.png', fit: BoxFit.cover);
+                      } else {
+                        return Image.asset('assets/images/other_avatar.png', fit: BoxFit.cover);
+                      }
+                    },
+                    loading: () => Icon(Icons.person_outline_rounded, color: theme.colorScheme.onSurface, size: 24),
+                    error: (err, stack) => Icon(Icons.person_outline_rounded, color: theme.colorScheme.onSurface, size: 24),
+                  ),
+                ),
               ),
             ),
           ],

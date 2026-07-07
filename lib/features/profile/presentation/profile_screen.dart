@@ -126,7 +126,22 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           width: 1.5,
                         ),
                       ),
-                      child: Icon(Icons.person_rounded, size: 28, color: theme.colorScheme.primary),
+                      child: ClipOval(
+                        child: profileState.when(
+                          data: (state) {
+                            final gender = state.gender;
+                            if (gender == 'Male') {
+                              return Image.asset('assets/images/male_avatar.png', fit: BoxFit.cover);
+                            } else if (gender == 'Female') {
+                              return Image.asset('assets/images/female_avatar.png', fit: BoxFit.cover);
+                            } else {
+                              return Image.asset('assets/images/other_avatar.png', fit: BoxFit.cover);
+                            }
+                          },
+                          loading: () => Icon(Icons.person_rounded, size: 28, color: theme.colorScheme.primary),
+                          error: (err, stack) => Icon(Icons.person_rounded, size: 28, color: theme.colorScheme.primary),
+                        ),
+                      ),
                     ),
                   ],
                 ),
