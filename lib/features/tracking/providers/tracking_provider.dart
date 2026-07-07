@@ -163,8 +163,22 @@ class TrackingNotifier extends Notifier<TrackingState> {
           : (0.1 * speedMMin) + 3.5;
       final mets = vo2 / 3.5;
       
-      final weight = ref.read(profileProvider).value?.weight ?? 70.0;
-      final caloriesPerMin = (mets * 3.5 * weight) / 200.0;
+      final profile = ref.read(profileProvider).value;
+      final weight = profile?.weight ?? 70.0;
+      final height = profile?.height ?? 170.0;
+      final age = profile?.age ?? 25;
+      final gender = profile?.gender ?? 'Male';
+
+      // Calculate BMR using Mifflin-St Jeor equation for higher accuracy
+      double bmr;
+      if (gender.toLowerCase() == 'female') {
+        bmr = (10 * weight) + (6.25 * height) - (5 * age) - 161;
+      } else {
+        bmr = (10 * weight) + (6.25 * height) - (5 * age) + 5;
+      }
+
+      // Convert BMR to per-minute rate and multiply by METs
+      final caloriesPerMin = (bmr / 1440.0) * mets;
       tickCalories = caloriesPerMin * (tickDurationSeconds / 60.0);
     }
 
