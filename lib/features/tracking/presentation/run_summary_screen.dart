@@ -344,7 +344,7 @@ class RunSummaryScreen extends ConsumerWidget {
       children: [
         ElevatedButton(
           style: ElevatedButton.styleFrom(
-            padding: const EdgeInsets.all(17),
+            padding: const EdgeInsets.all(12),
             backgroundColor: theme.colorScheme.surface,
             foregroundColor: theme.colorScheme.onSurface.withValues(alpha: 0.6),
             elevation: 0,
