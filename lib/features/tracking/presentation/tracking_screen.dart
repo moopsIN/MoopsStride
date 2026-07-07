@@ -57,9 +57,10 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
     ref.read(trackingProvider.notifier).reset();
   }
 
-  static const double _idleZoom = 16.0;
-  static const double _activeZoom = 18.0;
+  static const double _idleZoom = 18.0;
+  static const double _activeZoom = 19.5;
   bool _hasZoomedForActiveRun = false;
+  bool _isMapReady = false;
 
   @override
   Widget build(BuildContext context) {
@@ -104,12 +105,20 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
         // 1. FlutterMap Layer — style follows the theme.
         IgnorePointer(
           ignoring: trackingState.isLocked,
-          child: FlutterMap(
-            mapController: _mapController,
-            options: MapOptions(
-              initialCenter: trackingState.currentLocation ?? const LatLng(0, 0),
-              initialZoom: _idleZoom,
-            ),
+          child: AnimatedOpacity(
+            duration: const Duration(milliseconds: 800),
+            opacity: _isMapReady ? 1.0 : 0.0,
+            child: FlutterMap(
+              mapController: _mapController,
+              options: MapOptions(
+                initialCenter: trackingState.currentLocation ?? const LatLng(0, 0),
+                initialZoom: _idleZoom,
+                onMapReady: () {
+                  if (mounted) {
+                    setState(() => _isMapReady = true);
+                  }
+                },
+              ),
             children: [
               TileLayer(
                 urlTemplate:
@@ -142,6 +151,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                 ],
               ),
             ],
+          ),
           ),
         ),
 
