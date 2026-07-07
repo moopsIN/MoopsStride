@@ -217,7 +217,22 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                           },
                         ),
                         const SizedBox(width: 14),
-                        _buildMetricField(context, 'WEIGHT', _weightController, isKg ? 'kg' : 'lbs'),
+                        ValueListenableBuilder<TextEditingValue>(
+                          valueListenable: _weightController,
+                          builder: (context, value, child) {
+                            final weight = double.tryParse(value.text) ?? 0.0;
+                            final conversionText = isKg 
+                                ? '${kgToLbs(weight).toStringAsFixed(1)} lbs' 
+                                : '${lbsToKg(weight).toStringAsFixed(1)} kg';
+                            return _buildMetricField(
+                              context, 
+                              'WEIGHT', 
+                              _weightController, 
+                              isKg ? 'kg' : 'lbs',
+                              subtitle: weight > 0 ? conversionText : '--',
+                            );
+                          },
+                        ),
                       ],
                     ).animate().fadeIn(duration: 350.ms).slideY(begin: 0.08),
 
