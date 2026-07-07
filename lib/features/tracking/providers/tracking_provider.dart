@@ -248,12 +248,13 @@ class TrackingNotifier extends Notifier<TrackingState> {
   }
 
   Future<bool> startTracking() async {
-    final locService = ref.read(locationServiceProvider);
-    final hasPerm = await locService.requestPermission();
-    if (!hasPerm) return false;
+    try {
+      final locService = ref.read(locationServiceProvider);
+      final hasPerm = await locService.requestPermission();
+      if (!hasPerm) return false;
 
-    await locService.requestBackgroundPermission();
-    if (Platform.isAndroid) {
+      await locService.requestBackgroundPermission();
+      if (Platform.isAndroid) {
       final notifStatus = await Permission.notification.status;
       if (!notifStatus.isGranted) {
         await Permission.notification.request();
@@ -334,6 +335,10 @@ class TrackingNotifier extends Notifier<TrackingState> {
     });
 
     return true;
+    } catch (e, st) {
+      debugPrint("startTracking error: $e\n$st");
+      return false;
+    }
   }
 
   void pauseTracking() {
