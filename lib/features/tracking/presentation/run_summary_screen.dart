@@ -25,6 +25,7 @@ class RunSummaryScreen extends ConsumerStatefulWidget {
 class _RunSummaryScreenState extends ConsumerState<RunSummaryScreen> {
   final GlobalKey _globalKey = GlobalKey();
   bool _isSharing = false;
+  bool _isCapturing = false;
 
   ActivityModel get activity => widget.activity;
 
@@ -75,23 +76,26 @@ class _RunSummaryScreenState extends ConsumerState<RunSummaryScreen> {
               child: Column(
                 children: [
                   const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      _GlassIconButton(
-                        icon: Icons.close_rounded,
-                        onTap: () => Navigator.of(context).pop(),
-                      ).animate().fadeIn(duration: 400.ms),
-                      const Spacer(),
-                      _isSharing 
-                        ? const Padding(
-                            padding: EdgeInsets.all(12),
-                            child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
-                          )
-                        : _GlassIconButton(
-                            icon: Icons.ios_share_rounded,
-                            onTap: _shareRun,
-                          ).animate().fadeIn(duration: 400.ms),
-                    ],
+                  Opacity(
+                    opacity: _isCapturing ? 0.0 : 1.0,
+                    child: Row(
+                      children: [
+                        _GlassIconButton(
+                          icon: Icons.close_rounded,
+                          onTap: () => Navigator.of(context).pop(),
+                        ).animate().fadeIn(duration: 400.ms),
+                        const Spacer(),
+                        _isSharing 
+                          ? const Padding(
+                              padding: EdgeInsets.all(12),
+                              child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+                            )
+                          : _GlassIconButton(
+                              icon: Icons.ios_share_rounded,
+                              onTap: _shareRun,
+                            ).animate().fadeIn(duration: 400.ms),
+                      ],
+                    ),
                   ),
 
                   const Spacer(),
@@ -107,7 +111,10 @@ class _RunSummaryScreenState extends ConsumerState<RunSummaryScreen> {
 
                   const SizedBox(height: 24),
 
-                  _buildDoneButton(context, ref),
+                  Opacity(
+                    opacity: _isCapturing ? 0.0 : 1.0,
+                    child: _buildDoneButton(context, ref),
+                  ),
                   const SizedBox(height: 4),
                 ],
               ),
@@ -120,15 +127,28 @@ class _RunSummaryScreenState extends ConsumerState<RunSummaryScreen> {
 }
 
   Future<void> _shareRun() async {
-    setState(() => _isSharing = true);
+    if (_isSharing || _isCapturing) return;
+
+    setState(() => _isCapturing = true);
+    
     try {
       await Future.delayed(const Duration(milliseconds: 100));
       final boundary = _globalKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
       if (boundary == null) return;
+      
       final image = await boundary.toImage(pixelRatio: 3.0);
       final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
       final pngBytes = byteData?.buffer.asUint8List();
+      
+      if (mounted) {
+        setState(() {
+          _isCapturing = false;
+          _isSharing = true;
+        });
+      }
+
       if (pngBytes == null) return;
+      
       final tempDir = await getTemporaryDirectory();
       final file = File('${tempDir.path}/stride_run_summary.png');
       await file.writeAsBytes(pngBytes);
@@ -141,7 +161,10 @@ class _RunSummaryScreenState extends ConsumerState<RunSummaryScreen> {
       }
     } finally {
       if (mounted) {
-        setState(() => _isSharing = false);
+        setState(() {
+          _isCapturing = false;
+          _isSharing = false;
+        });
       }
     }
   }
