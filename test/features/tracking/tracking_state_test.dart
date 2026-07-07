@@ -10,6 +10,7 @@ void main() {
       expect(state.durationSeconds, 0);
       expect(state.formattedDuration, '00:00');
       expect(state.formattedSpeed, '0.0');
+      expect(state.caloriesEstimate, 0.0);
     });
 
     test('Distance formatting and km calculation', () {

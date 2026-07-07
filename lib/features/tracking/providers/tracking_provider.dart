@@ -11,6 +11,7 @@ import 'package:uuid/uuid.dart';
 import 'package:stride/core/database/local_db.dart';
 import 'package:stride/features/tracking/models/activity_model.dart';
 import 'package:stride/features/sync/providers/sync_engine.dart';
+import 'package:stride/features/profile/providers/profile_provider.dart';
 
 enum TrackingStatus { notStarted, active, paused, stopped }
 
@@ -26,6 +27,7 @@ class TrackingState {
   final bool isLocked;
   final String? errorMessage;
   final double speedKmH;
+  final double caloriesEstimate;
 
   TrackingState({
     this.status = TrackingStatus.notStarted,
@@ -39,6 +41,7 @@ class TrackingState {
     this.isLocked = false,
     this.errorMessage,
     this.speedKmH = 0.0,
+    this.caloriesEstimate = 0.0,
   });
 
   TrackingState copyWith({
@@ -54,6 +57,7 @@ class TrackingState {
     String? errorMessage,
     bool clearErrorMessage = false,
     double? speedKmH,
+    double? caloriesEstimate,
   }) {
     return TrackingState(
       status: status ?? this.status,
@@ -67,6 +71,7 @@ class TrackingState {
       isLocked: isLocked ?? this.isLocked,
       errorMessage: clearErrorMessage ? null : (errorMessage ?? this.errorMessage),
       speedKmH: speedKmH ?? this.speedKmH,
+      caloriesEstimate: caloriesEstimate ?? this.caloriesEstimate,
     );
   }
 
@@ -126,20 +131,47 @@ class TrackingNotifier extends Notifier<TrackingState> {
     state = state.copyWith(durationSeconds: _currentElapsed().inSeconds);
   }
 
+  int _lastSpeedTickSeconds = 0;
+
   // Speed is recomputed every 10s from elapsed time and recorded distance so
   // far, rather than on every GPS fix — a deliberately coarse average that
   // doesn't need to be precise, just present and roughly right.
   static const double _minDistanceForSpeedMeters = 20.0;
 
   void _tickSpeed() {
-    final elapsedSeconds = _currentElapsed().inSeconds;
+    final currentElapsedSeconds = _currentElapsed().inSeconds;
+    final tickDurationSeconds = currentElapsedSeconds - _lastSpeedTickSeconds;
+    _lastSpeedTickSeconds = currentElapsedSeconds;
+
     final distanceKm = state.distanceMeters / 1000.0;
-    if (state.distanceMeters < _minDistanceForSpeedMeters || elapsedSeconds == 0) {
+    
+    if (state.distanceMeters < _minDistanceForSpeedMeters || currentElapsedSeconds == 0) {
       state = state.copyWith(speedKmH: 0.0);
       return;
     }
-    final hours = elapsedSeconds / 3600.0;
-    state = state.copyWith(speedKmH: distanceKm / hours);
+    
+    final hours = currentElapsedSeconds / 3600.0;
+    final currentSpeedKmH = distanceKm / hours;
+
+    // Calculate calories for this tick using ACSM METs equations
+    double tickCalories = 0.0;
+    if (tickDurationSeconds > 0 && currentSpeedKmH > 0) {
+      final speedMMin = currentSpeedKmH * 16.67; // km/h to m/min
+      // Assuming 0% grade. Walking equation for < 8 km/h, Running equation for >= 8 km/h
+      final vo2 = currentSpeedKmH >= 8.0 
+          ? (0.2 * speedMMin) + 3.5 
+          : (0.1 * speedMMin) + 3.5;
+      final mets = vo2 / 3.5;
+      
+      final weight = ref.read(profileProvider).value?.weight ?? 70.0;
+      final caloriesPerMin = (mets * 3.5 * weight) / 200.0;
+      tickCalories = caloriesPerMin * (tickDurationSeconds / 60.0);
+    }
+
+    state = state.copyWith(
+      speedKmH: currentSpeedKmH,
+      caloriesEstimate: state.caloriesEstimate + tickCalories,
+    );
   }
 
   @override
@@ -227,6 +259,7 @@ class TrackingNotifier extends Notifier<TrackingState> {
     if (!serviceStarted) return false;
 
     _accumulatedDuration = Duration.zero;
+    _lastSpeedTickSeconds = 0;
     _lastResumedAt = DateTime.now();
 
     state = state.copyWith(status: TrackingStatus.active, startTime: DateTime.now());
@@ -331,7 +364,7 @@ class TrackingNotifier extends Notifier<TrackingState> {
       distanceMeters: state.distanceMeters,
       durationSeconds: state.durationSeconds,
       avgPace: state.currentSpeed > 0 ? (60.0 / state.currentSpeed) : 0.0,
-      caloriesEstimate: state.distanceMeters * 0.06,
+      caloriesEstimate: state.caloriesEstimate,
       routePoints: state.routePoints,
       steps: state.currentSteps,
       synced: false,
