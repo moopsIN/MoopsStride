@@ -359,6 +359,59 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             );
           },
         ),
+        const SizedBox(height: 24),
+        AnimatedBuilder(
+          animation: Listenable.merge([_heightController, _weightController]),
+          builder: (context, _) {
+            final heightCm = double.tryParse(_heightController.text) ?? 0.0;
+            var weight = double.tryParse(_weightController.text) ?? 0.0;
+            
+            if (!isKg) {
+              weight = lbsToKg(weight);
+            }
+            
+            double bmi = 0.0;
+            if (heightCm > 0 && weight > 0) {
+              final heightM = heightCm / 100.0;
+              bmi = weight / (heightM * heightM);
+            }
+            
+            String category = '';
+            Color color = theme.colorScheme.primary;
+            if (bmi > 0) {
+              if (bmi < 18.5) {
+                category = 'Underweight';
+                color = Colors.blue;
+              } else if (bmi < 25) {
+                category = 'Normal';
+                color = Colors.green;
+              } else if (bmi < 30) {
+                category = 'Overweight';
+                color = Colors.orange;
+              } else {
+                category = 'Obese';
+                color = Colors.red;
+              }
+            }
+
+            return bmi > 0 ? Container(
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: color.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text('BMI: ', style: theme.textTheme.titleMedium),
+                  Text(bmi.toStringAsFixed(1), style: theme.textTheme.headlineSmall?.copyWith(color: color, fontWeight: FontWeight.bold)),
+                  Text('  •  $category', style: theme.textTheme.titleMedium?.copyWith(color: color)),
+                ],
+              ),
+            ).animate().fadeIn() : const SizedBox.shrink();
+          },
+        ),
       ],
     );
   }
