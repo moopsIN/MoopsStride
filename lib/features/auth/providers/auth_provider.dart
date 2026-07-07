@@ -1,10 +1,17 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 class AuthNotifier extends Notifier<User?> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  // Google Sign-In is temporarily stubbed to resolve analyzer issues
-  // final g_sign_in.GoogleSignIn _googleSignIn = g_sign_in.GoogleSignIn(scopes: ['email']);
+  bool _initialized = false;
+
+  Future<void> _ensureInitialized() async {
+    if (!_initialized) {
+      await GoogleSignIn.instance.initialize();
+      _initialized = true;
+    }
+  }
 
   @override
   User? build() {
@@ -24,7 +31,26 @@ class AuthNotifier extends Notifier<User?> {
   }
 
   Future<void> signInWithGoogle() async {
-    throw UnimplementedError('Google Sign-In is temporarily disabled.');
+    await _ensureInitialized();
+    
+    try {
+      final googleUser = await GoogleSignIn.instance.authenticate();
+      
+      final googleAuth = googleUser.authentication;
+      final authz = await googleUser.authorizationClient.authorizeScopes([
+        'email',
+        'profile',
+      ]);
+      
+      final credential = GoogleAuthProvider.credential(
+        accessToken: authz.accessToken,
+        idToken: googleAuth.idToken,
+      );
+      
+      await _auth.signInWithCredential(credential);
+    } catch (e) {
+      throw Exception('Google sign in failed: $e');
+    }
   }
 
   Future<void> signOut() async {
