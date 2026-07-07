@@ -251,7 +251,7 @@ class RunSummaryScreen extends StatelessWidget {
             const SizedBox(width: 14),
             Expanded(
               child: _buildStatTile(context, Icons.speed_rounded, 'AVG PACE',
-                  _formatPace(activity.avgPace), 380),
+                  _formatPace(activity.avgPace), 380, unit: '/km'),
             ),
           ],
         ),
@@ -260,7 +260,7 @@ class RunSummaryScreen extends StatelessWidget {
           children: [
             Expanded(
               child: _buildStatTile(context, Icons.local_fire_department_rounded,
-                  'CALORIES', activity.caloriesEstimate.toStringAsFixed(0), 460),
+                  'CALORIES', activity.caloriesEstimate.toStringAsFixed(0), 460, unit: 'kcal'),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -274,7 +274,7 @@ class RunSummaryScreen extends StatelessWidget {
   }
 
   Widget _buildStatTile(
-      BuildContext context, IconData icon, String label, String value, int delayMs) {
+      BuildContext context, IconData icon, String label, String value, int delayMs, {String? unit}) {
     final theme = Theme.of(context);
     final accent = theme.colorScheme.primary;
     final muted = theme.colorScheme.onSurface.withValues(alpha: 0.55);
@@ -300,9 +300,25 @@ class RunSummaryScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 10),
-          Text(
-            value,
-            style: theme.textTheme.displayLarge?.copyWith(fontSize: 26, height: 1.0),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Text(
+                value,
+                style: theme.textTheme.displayLarge?.copyWith(fontSize: 26, height: 1.0),
+              ),
+              if (unit != null) ...[
+                const SizedBox(width: 4),
+                Text(
+                  unit,
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: muted,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ],
           ),
         ],
       ),
