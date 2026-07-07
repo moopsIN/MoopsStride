@@ -400,19 +400,47 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               }
             }
 
-            return bmi > 0 ? Container(
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: color.withValues(alpha: 0.3)),
-              ),
+            return bmi > 0 ? GlassContainer(
+              borderRadius: 20,
+              padding: const EdgeInsets.all(16),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('BMI: ', style: theme.textTheme.titleMedium),
-                  Text(bmi.toStringAsFixed(1), style: theme.textTheme.headlineSmall?.copyWith(color: color, fontWeight: FontWeight.bold)),
-                  Text('  •  $category', style: theme.textTheme.titleMedium?.copyWith(color: color)),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'BODY MASS INDEX', 
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        bmi.toStringAsFixed(1), 
+                        style: theme.textTheme.displaySmall?.copyWith(
+                          color: theme.colorScheme.primary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: color.withValues(alpha: 0.3)),
+                    ),
+                    child: Text(
+                      category.toUpperCase(),
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: color,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ).animate().fadeIn() : const SizedBox.shrink();
