@@ -21,3 +21,20 @@ class PreferencesNotifier extends Notifier<bool> {
 final isKmProvider = NotifierProvider<PreferencesNotifier, bool>(() {
   return PreferencesNotifier();
 });
+
+class KgNotifier extends Notifier<bool> {
+  @override
+  bool build() {
+    final prefs = ref.read(sharedPreferencesProvider);
+    return prefs.getBool('isKg') ?? true;
+  }
+
+  void setKg(bool isKg) {
+    state = isKg;
+    ref.read(sharedPreferencesProvider).setBool('isKg', isKg);
+  }
+}
+
+final isKgProvider = NotifierProvider<KgNotifier, bool>(() {
+  return KgNotifier();
+});

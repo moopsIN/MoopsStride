@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:stride/core/widgets/primary_button.dart';
+import 'package:stride/core/providers/preferences_provider.dart';
 import 'package:stride/features/onboarding/providers/onboarding_provider.dart';
+import 'package:stride/core/utils/formatters.dart';
 import 'package:stride/theme/glass_container.dart';
 import 'package:stride/features/tracking/presentation/tracking_screen.dart';
 
@@ -45,7 +47,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   void _finishOnboarding() async {
     final height = double.tryParse(_heightController.text) ?? 170.0;
-    final weight = double.tryParse(_weightController.text) ?? 70.0;
+    var weight = double.tryParse(_weightController.text) ?? 70.0;
+    final isKg = ref.read(isKgProvider);
+    if (!isKg) {
+      weight = lbsToKg(weight);
+    }
+    
     final age = int.tryParse(_ageController.text) ?? 25;
 
     ref.read(onboardingProvider.notifier).setHeightWeight(height, weight);
@@ -248,34 +255,85 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   Widget _buildHeightWeightStep() {
+    final isKm = ref.watch(isKmProvider);
+    final isKg = ref.watch(isKgProvider);
+    final theme = Theme.of(context);
+
     return _StepContainer(
       step: 4,
       total: _stepCount,
       title: 'Tell us a bit about yourself',
       children: [
         Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            Expanded(child: _buildMetricField(_heightController, 'Height', 'cm')),
-            const SizedBox(width: 14),
-            Expanded(child: _buildMetricField(_weightController, 'Weight', 'kg')),
+            Column(
+              children: [
+                Text('Distance Units', style: theme.textTheme.labelSmall),
+                const SizedBox(height: 8),
+                SegmentedButton<bool>(
+                  segments: const [
+                    ButtonSegment(value: true, label: Text('km')),
+                    ButtonSegment(value: false, label: Text('mi')),
+                  ],
+                  selected: {isKm},
+                  onSelectionChanged: (set) => ref.read(isKmProvider.notifier).setKm(set.first),
+                  showSelectedIcon: false,
+                ),
+              ],
+            ),
+            Column(
+              children: [
+                Text('Weight Units', style: theme.textTheme.labelSmall),
+                const SizedBox(height: 8),
+                SegmentedButton<bool>(
+                  segments: const [
+                    ButtonSegment(value: true, label: Text('kg')),
+                    ButtonSegment(value: false, label: Text('lbs')),
+                  ],
+                  selected: {isKg},
+                  onSelectionChanged: (set) => ref.read(isKgProvider.notifier).setKg(set.first),
+                  showSelectedIcon: false,
+                ),
+              ],
+            ),
+          ],
+        ),
+        const SizedBox(height: 24),
+        Row(
+          children: [
+            Expanded(
+              child: ValueListenableBuilder<TextEditingValue>(
+                valueListenable: _heightController,
+                builder: (context, value, child) {
+                  final cm = double.tryParse(value.text) ?? 0.0;
+                  return _buildMetricField(
+                    _heightController, 
+                    'Height', 
+                    'cm',
+                    subtitle: formatHeightToFtIn(cm)
+                  );
+                },
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(child: _buildMetricField(_weightController, 'Weight', isKg ? 'kg' : 'lbs')),
           ],
         ),
       ],
     );
   }
 
-  Widget _buildMetricField(TextEditingController controller, String label, String unit, {bool isInt = false}) {
+  Widget _buildMetricField(TextEditingController controller, String label, String unit, {bool isInt = false, String? subtitle}) {
     final theme = Theme.of(context);
     return GlassContainer(
       borderRadius: 18,
-      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Column(
         children: [
           Text(
             label.toUpperCase(),
             style: theme.textTheme.labelSmall?.copyWith(
-              letterSpacing: 1.5,
-              fontWeight: FontWeight.w600,
               color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
             ),
           ),
@@ -292,6 +350,15 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               ),
             ),
           ),
+          if (subtitle != null) ...[
+            Text(
+              subtitle,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.primary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ]
         ],
       ),
     );

@@ -9,6 +9,7 @@ import 'package:stride/features/profile/presentation/edit_profile_screen.dart';
 import 'package:stride/features/profile/presentation/about_screen.dart';
 import 'package:stride/features/profile/providers/profile_provider.dart';
 import 'package:stride/core/providers/preferences_provider.dart';
+import 'package:stride/core/utils/formatters.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -69,6 +70,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         (themeMode == ThemeMode.system &&
             MediaQuery.of(context).platformBrightness == Brightness.dark);
     final isKm = ref.watch(isKmProvider);
+    final isKg = ref.watch(isKgProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -144,10 +146,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             context, Icons.cake_rounded, 'Age', '${state.age} yrs'),
                         _divider(context),
                         _buildDetailRow(
-                            context, Icons.height_rounded, 'Height', '${state.height} cm'),
+                            context, Icons.height_rounded, 'Height', '${state.height} cm (${formatHeightToFtIn(state.height)})'),
                         _divider(context),
                         _buildDetailRow(
-                            context, Icons.monitor_weight_rounded, 'Weight', '${state.weight} kg'),
+                            context, Icons.monitor_weight_rounded, 'Weight', isKg ? '${state.weight} kg' : '${kgToLbs(state.weight).toStringAsFixed(1)} lbs'),
                         const SizedBox(height: 4),
                         _divider(context),
                         Padding(
@@ -190,6 +192,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       subtitle: Text(isKm ? 'Kilometers (km)' : 'Miles (mi)'),
                       value: isKm,
                       onChanged: (val) => ref.read(isKmProvider.notifier).setKm(val),
+                      activeTrackColor: theme.colorScheme.primary,
+                    ),
+                    _divider(context),
+                    SwitchListTile.adaptive(
+                      title: const Text('Weight Units'),
+                      subtitle: Text(isKg ? 'Kilograms (kg)' : 'Pounds (lbs)'),
+                      value: isKg,
+                      onChanged: (val) => ref.read(isKgProvider.notifier).setKg(val),
                       activeTrackColor: theme.colorScheme.primary,
                     ),
                     _divider(context),

@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:stride/core/widgets/primary_button.dart';
 import 'package:stride/features/profile/providers/profile_provider.dart';
+import 'package:stride/core/providers/preferences_provider.dart';
+import 'package:stride/core/utils/formatters.dart';
 import 'package:stride/theme/glass_container.dart';
 
 class EditProfileScreen extends ConsumerStatefulWidget {
@@ -37,7 +39,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       if (state != null) {
         setState(() {
           _heightController.text = state.height.toString();
-          _weightController.text = state.weight.toString();
+          
+          final isKg = ref.read(isKgProvider);
+          final displayWeight = isKg ? state.weight : kgToLbs(state.weight);
+          _weightController.text = displayWeight.toStringAsFixed(1);
+          
           _ageController.text = state.age.toString();
           if (_goals.contains(state.goal)) _selectedGoal = state.goal;
           if (_experiences.contains(state.experienceLevel)) _selectedExperience = state.experienceLevel;
@@ -60,7 +66,13 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     final height = double.tryParse(_heightController.text) ?? 170.0;
-    final weight = double.tryParse(_weightController.text) ?? 70.0;
+    var weight = double.tryParse(_weightController.text) ?? 70.0;
+    
+    final isKg = ref.read(isKgProvider);
+    if (!isKg) {
+      weight = lbsToKg(weight);
+    }
+    
     final age = int.tryParse(_ageController.text) ?? 25;
 
     final success = await ref.read(profileProvider.notifier).updateProfile(
@@ -140,19 +152,17 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   }
 
   Widget _buildMetricField(
-      BuildContext context, String label, TextEditingController controller, String unit, {bool isInt = false}) {
+      BuildContext context, String label, TextEditingController controller, String unit, {bool isInt = false, String? subtitle}) {
     final theme = Theme.of(context);
     return Expanded(
       child: GlassContainer(
         borderRadius: 18,
-        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Column(
           children: [
             Text(
               label,
               style: theme.textTheme.labelSmall?.copyWith(
-                letterSpacing: 1.5,
-                fontWeight: FontWeight.w600,
                 color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
               ),
             ),
@@ -169,6 +179,15 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                 ),
               ),
             ),
+            if (subtitle != null) ...[
+              Text(
+                subtitle,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.primary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ]
           ],
         ),
       ),
@@ -179,6 +198,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final state = ref.watch(profileProvider);
+    final isKg = ref.watch(isKgProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -199,10 +219,17 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                   children: [
                     _sectionLabel(context, 'BODY METRICS'),
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildMetricField(context, 'HEIGHT', _heightController, 'cm'),
+                        ValueListenableBuilder<TextEditingValue>(
+                          valueListenable: _heightController,
+                          builder: (context, value, child) {
+                            final cm = double.tryParse(value.text) ?? 0.0;
+                            return _buildMetricField(context, 'HEIGHT', _heightController, 'cm', subtitle: formatHeightToFtIn(cm));
+                          },
+                        ),
                         const SizedBox(width: 14),
-                        _buildMetricField(context, 'WEIGHT', _weightController, 'kg'),
+                        _buildMetricField(context, 'WEIGHT', _weightController, isKg ? 'kg' : 'lbs'),
                         const SizedBox(width: 14),
                         _buildMetricField(context, 'AGE', _ageController, 'yrs', isInt: true),
                       ],
