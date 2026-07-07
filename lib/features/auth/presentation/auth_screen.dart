@@ -62,12 +62,12 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     }
   }
 
-  Future<void> _handleEmailAuth() async {
+  Future<void> _handleEmailAuth(StateSetter setSheetState) async {
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
     if (email.isEmpty || password.isEmpty) return;
 
-    setState(() => _isLoading = true);
+    setSheetState(() => _isLoading = true);
     
     try {
       if (_isLogin) {
@@ -76,6 +76,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
         await ref.read(authProvider.notifier).signUpWithEmail(email, password);
       }
       if (mounted) {
+        if (Navigator.of(context).canPop()) Navigator.of(context).pop(); // Close sheet
         await _routeAfterLogin();
       }
     } catch (e) {
@@ -84,7 +85,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       }
     } finally {
       if (mounted) {
-        setState(() => _isLoading = false);
+        setSheetState(() => _isLoading = false);
       }
     }
   }
@@ -107,6 +108,74 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     }
   }
 
+  void _showEmailAuthSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setSheetState) {
+            return Padding(
+              padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+              child: Container(
+                padding: const EdgeInsets.only(left: 24, right: 24, top: 32, bottom: 24),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface,
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                ),
+                child: SafeArea(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        _isLogin ? 'Sign In with Email' : 'Sign Up with Email',
+                        style: Theme.of(context).textTheme.titleLarge,
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 24),
+                      TextField(
+                        controller: _emailController,
+                        decoration: InputDecoration(
+                          labelText: 'Email',
+                          prefixIcon: const Icon(Icons.email_outlined),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        keyboardType: TextInputType.emailAddress,
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: _passwordController,
+                        decoration: InputDecoration(
+                          labelText: 'Password',
+                          prefixIcon: const Icon(Icons.lock_outline),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        obscureText: true,
+                      ),
+                      const SizedBox(height: 24),
+                      PrimaryButton(
+                        text: _isLogin ? 'Sign In' : 'Sign Up',
+                        isLoading: _isLoading,
+                        onPressed: () => _handleEmailAuth(setSheetState),
+                      ),
+                      const SizedBox(height: 8),
+                      TextButton(
+                        onPressed: () => setSheetState(() => _isLogin = !_isLogin),
+                        child: Text(_isLogin ? "Don't have an account? Sign Up" : 'Already have an account? Sign In'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -124,66 +193,45 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               ).animate().scale(duration: 500.ms).fadeIn(),
               const SizedBox(height: 24),
               Text(
-                'Welcome to Stride by Moops',
-                style: Theme.of(context).textTheme.displayLarge?.copyWith(fontSize: 28),
+                'Stride by Moops',
+                style: Theme.of(context).textTheme.displayLarge?.copyWith(fontSize: 32),
                 textAlign: TextAlign.center,
               ).animate().fadeIn(delay: 200.ms),
               const SizedBox(height: 8),
               Text(
-                'Sign in to sync your runs or continue as a guest offline.',
-                style: Theme.of(context).textTheme.bodyMedium,
+                'The offline-first running tracker.\nNo account required.',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                ),
                 textAlign: TextAlign.center,
               ).animate().fadeIn(delay: 300.ms),
               const SizedBox(height: 48),
               
-              // Email / Password Form
-              TextField(
-                controller: _emailController,
-                decoration: InputDecoration(
-                  labelText: 'Email',
-                  prefixIcon: const Icon(Icons.email_outlined),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                keyboardType: TextInputType.emailAddress,
-              ).animate().slideX(begin: 0.1, delay: 400.ms).fadeIn(delay: 400.ms),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _passwordController,
-                decoration: InputDecoration(
-                  labelText: 'Password',
-                  prefixIcon: const Icon(Icons.lock_outline),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                obscureText: true,
-              ).animate().slideX(begin: 0.1, delay: 500.ms).fadeIn(delay: 500.ms),
-              const SizedBox(height: 24),
-              
               PrimaryButton(
-                text: _isLogin ? 'Sign In' : 'Sign Up',
+                text: 'Start Tracking Now (Offline)',
                 isLoading: _isLoading,
-                onPressed: _handleEmailAuth,
-              ).animate().slideY(begin: 0.2, delay: 600.ms).fadeIn(delay: 600.ms),
+                onPressed: _handleGuestLogin,
+              ).animate().slideY(begin: 0.1, delay: 400.ms).fadeIn(delay: 400.ms),
               
-              const SizedBox(height: 8),
-              TextButton(
-                onPressed: () => setState(() => _isLogin = !_isLogin),
-                child: Text(_isLogin ? "Don't have an account? Sign Up" : 'Already have an account? Sign In'),
-              ).animate().fadeIn(delay: 650.ms),
-              
-              const SizedBox(height: 24),
+              const SizedBox(height: 32),
               Row(
                 children: [
                   Expanded(child: Divider(color: Theme.of(context).colorScheme.surface)),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16),
-                    child: Text('OR'),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Text(
+                      'Or, sign in to enable cloud backups',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
                   Expanded(child: Divider(color: Theme.of(context).colorScheme.surface)),
                 ],
-              ).animate().fadeIn(delay: 700.ms),
-              const SizedBox(height: 24),
+              ).animate().fadeIn(delay: 500.ms),
+              const SizedBox(height: 32),
               
-              // Social Mocks
               OutlinedButton.icon(
                 onPressed: _handleGoogleLogin,
                 icon: const Icon(Icons.g_mobiledata, size: 28),
@@ -192,24 +240,25 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
-              ).animate().slideY(begin: 0.2, delay: 800.ms).fadeIn(delay: 800.ms),
+              ).animate().slideY(begin: 0.1, delay: 600.ms).fadeIn(delay: 600.ms),
+              
               const SizedBox(height: 16),
               
-              // Guest CTA
               TextButton(
-                onPressed: _handleGuestLogin,
-                child: const Text('Continue as Guest'),
-              ).animate().fadeIn(delay: 1000.ms),
+                onPressed: _showEmailAuthSheet,
+                child: const Text('Continue with Email'),
+              ).animate().fadeIn(delay: 700.ms),
+              
               const SizedBox(height: 48),
               
-              // Bottom Logo
               Center(
                 child: Image.asset(
                   Theme.of(context).brightness == Brightness.dark
                       ? 'assets/images/moops-logo-dark.png'
                       : 'assets/images/moops-logo-light.png',
-                  height: 72,
-                ).animate().fadeIn(delay: 1200.ms),
+                  height: 48,
+                  opacity: const AlwaysStoppedAnimation(0.3),
+                ).animate().fadeIn(delay: 900.ms),
               ),
               const SizedBox(height: 24),
             ],
