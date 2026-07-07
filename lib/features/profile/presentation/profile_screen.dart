@@ -8,6 +8,7 @@ import 'package:stride/features/auth/presentation/auth_screen.dart';
 import 'package:stride/features/profile/presentation/edit_profile_screen.dart';
 import 'package:stride/features/profile/presentation/about_screen.dart';
 import 'package:stride/features/profile/providers/profile_provider.dart';
+import 'package:stride/core/providers/preferences_provider.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -17,7 +18,6 @@ class ProfileScreen extends ConsumerStatefulWidget {
 }
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
-  bool _isKm = true;
 
   Widget _buildDetailRow(BuildContext context, IconData icon, String label, String value) {
     final theme = Theme.of(context);
@@ -65,9 +65,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final user = ref.watch(authProvider);
     final profileState = ref.watch(profileProvider);
     final isGuest = user == null;
-    final isDarkMode = themeMode == ThemeMode.dark ||
+    final isDarkMode = ref.watch(themeModeProvider) == ThemeMode.dark ||
         (themeMode == ThemeMode.system &&
             MediaQuery.of(context).platformBrightness == Brightness.dark);
+    final isKm = ref.watch(isKmProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -180,9 +181,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   children: [
                     SwitchListTile.adaptive(
                       title: const Text('Distance Units'),
-                      subtitle: Text(_isKm ? 'Kilometers (km)' : 'Miles (mi)'),
-                      value: _isKm,
-                      onChanged: (val) => setState(() => _isKm = val),
+                      subtitle: Text(isKm ? 'Kilometers (km)' : 'Miles (mi)'),
+                      value: isKm,
+                      onChanged: (val) => ref.read(isKmProvider.notifier).setKm(val),
                       activeTrackColor: theme.colorScheme.primary,
                     ),
                     _divider(context),

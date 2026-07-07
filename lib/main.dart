@@ -8,15 +8,23 @@ import 'package:stride/theme/app_theme.dart';
 import 'package:stride/theme/theme_provider.dart';
 import 'package:stride/features/splash/splash_screen.dart';
 
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:stride/core/providers/preferences_provider.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+  final prefs = await SharedPreferences.getInstance();
+
   runApp(
-    const ProviderScope(
-      child: MyApp(),
+    ProviderScope(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+      ],
+      child: const MyApp(),
     ),
   );
 }

@@ -4,14 +4,16 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:stride/core/config/secrets.dart';
 import 'package:stride/features/tracking/models/activity_model.dart';
 import 'package:stride/theme/glass_container.dart';
+import 'package:stride/core/providers/preferences_provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class RunSummaryScreen extends StatelessWidget {
+class RunSummaryScreen extends ConsumerWidget {
   final ActivityModel activity;
 
   const RunSummaryScreen({super.key, required this.activity});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final bg = theme.scaffoldBackgroundColor;
     final hasRoute = activity.routePoints.isNotEmpty;
@@ -65,14 +67,14 @@ class RunSummaryScreen extends StatelessWidget {
 
                   const Spacer(),
 
-                  _buildHeader(context)
+                  _buildHeader(context, ref)
                       .animate()
                       .slideY(begin: 0.25, curve: Curves.easeOut)
                       .fadeIn(delay: 150.ms, duration: 450.ms),
 
                   const SizedBox(height: 22),
 
-                  _buildStatsGrid(context),
+                  _buildStatsGrid(context, ref),
 
                   const SizedBox(height: 24),
 
@@ -183,11 +185,16 @@ class RunSummaryScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final accent = theme.colorScheme.primary;
     final muted = theme.colorScheme.onSurface.withValues(alpha: 0.55);
-    final distanceKm = (activity.distanceMeters / 1000).toStringAsFixed(2);
+    final isKm = ref.watch(isKmProvider);
+    final distance = isKm 
+        ? (activity.distanceMeters / 1000)
+        : ((activity.distanceMeters / 1000) * 0.621371);
+    final distanceKm = distance.toStringAsFixed(2);
+    final distanceUnit = isKm ? 'KM' : 'MI';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -225,7 +232,7 @@ class RunSummaryScreen extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: Text(
-                'KM',
+                distanceUnit,
                 style: theme.textTheme.titleMedium?.copyWith(
                   color: accent,
                   fontWeight: FontWeight.bold,
@@ -239,7 +246,12 @@ class RunSummaryScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStatsGrid(BuildContext context) {
+  Widget _buildStatsGrid(BuildContext context, WidgetRef ref) {
+    final isKm = ref.watch(isKmProvider);
+    final speedValue = isKm ? activity.avgSpeedKmH : (activity.avgSpeedKmH * 0.621371);
+    final formattedSpeed = speedValue == 0 ? "0.0" : speedValue.toStringAsFixed(1);
+    final speedUnit = isKm ? 'km/h' : 'mph';
+
     return Column(
       children: [
         Row(
@@ -251,7 +263,7 @@ class RunSummaryScreen extends StatelessWidget {
             const SizedBox(width: 14),
             Expanded(
               child: _buildStatTile(context, Icons.speed_rounded, 'AVG SPEED',
-                  _formatSpeed(activity.avgSpeedKmH), 380, unit: 'km/h'),
+                  formattedSpeed, 380, unit: speedUnit),
             ),
           ],
         ),
@@ -358,11 +370,6 @@ class RunSummaryScreen extends StatelessWidget {
       return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
     }
     return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
-  }
-
-  String _formatSpeed(double speedKmH) {
-    if (speedKmH == 0) return "0.0";
-    return speedKmH.toStringAsFixed(1);
   }
 
   String _formatDate(DateTime dt) {

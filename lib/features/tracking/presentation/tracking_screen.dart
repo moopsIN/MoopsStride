@@ -7,6 +7,7 @@ import 'package:stride/features/tracking/providers/tracking_provider.dart';
 import 'package:stride/theme/glass_container.dart';
 import 'package:stride/core/config/secrets.dart';
 import 'package:stride/features/tracking/presentation/run_summary_screen.dart';
+import 'package:stride/core/providers/preferences_provider.dart';
 import 'package:stride/features/profile/presentation/profile_screen.dart';
 import 'package:stride/features/progress/providers/progress_provider.dart';
 import 'package:stride/features/progress/presentation/progress_screen.dart';
@@ -180,7 +181,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
             alignment: const Alignment(0, -0.02),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20.0),
-              child: _buildStatsPanel(context, trackingState)
+              child: _buildStatsPanel(context, trackingState, ref)
                   .animate()
                   .slideY(begin: 0.2, curve: Curves.easeOut)
                   .fadeIn(duration: 400.ms),
@@ -368,7 +369,14 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
         );
   }
 
-  Widget _buildStatsPanel(BuildContext context, TrackingState state) {
+  Widget _buildStatsPanel(BuildContext context, TrackingState state, WidgetRef ref) {
+    final isKm = ref.watch(isKmProvider);
+    final distLabel = isKm ? 'KM' : 'MI';
+    final distValue = isKm ? state.distanceKm : (state.distanceKm * 0.621371);
+    final speedLabel = isKm ? 'km/h' : 'mph';
+    final speedValue = isKm ? state.currentSpeed : (state.currentSpeed * 0.621371);
+    final formattedSpeed = speedValue == 0 ? "0.0" : speedValue.toStringAsFixed(1);
+
     return GlassContainer(
       borderRadius: 22,
       padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 6),
@@ -377,9 +385,9 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
         children: [
           _buildStatItem(context, 'TIME', state.formattedDuration),
           _statDivider(context),
-          _buildStatItem(context, 'KM', state.distanceKm.toStringAsFixed(2), highlight: true),
+          _buildStatItem(context, distLabel, distValue.toStringAsFixed(2), highlight: true),
           _statDivider(context),
-          _buildStatItem(context, 'km/h', state.formattedSpeed),
+          _buildStatItem(context, speedLabel, formattedSpeed),
           _statDivider(context),
           _buildStatItem(context, 'STEPS', state.currentSteps.toString()),
         ],
