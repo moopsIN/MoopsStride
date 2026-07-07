@@ -24,7 +24,6 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
-  bool _isLogin = true;
 
   String _getErrorMessage(Object e) {
     if (e is FirebaseAuthException) {
@@ -87,14 +86,26 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     setSheetState(() => _isLoading = true);
     
     try {
-      if (_isLogin) {
-        await ref.read(authProvider.notifier).signInWithEmail(email, password);
-      } else {
-        await ref.read(authProvider.notifier).signUpWithEmail(email, password);
-      }
+      await ref.read(authProvider.notifier).signInWithEmail(email, password);
+      
       if (mounted) {
         if (Navigator.of(context).canPop()) Navigator.of(context).pop(); // Close sheet
         await _routeAfterLogin();
+      }
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'invalid-credential' || e.code == 'user-not-found' || e.code == 'wrong-password') {
+        if (mounted) {
+          setSheetState(() => _isLoading = false);
+          _showAccountNotFoundDialog(email, password, setSheetState);
+        }
+        return;
+      }
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(_getErrorMessage(e)),
+          behavior: SnackBarBehavior.floating,
+        ));
       }
     } catch (e) {
       if (mounted) {
@@ -108,6 +119,66 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
         setSheetState(() => _isLoading = false);
       }
     }
+  }
+
+  void _showAccountNotFoundDialog(String email, String password, StateSetter setSheetState) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Account Not Found'),
+        content: const Text(
+            "We couldn't log you in. If you don't have an account yet, you can create one using this email and password."),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              _emailController.clear();
+              _passwordController.clear();
+            },
+            child: const Text('Use Different Email'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              Navigator.of(ctx).pop(); // close dialog
+              setSheetState(() => _isLoading = true);
+              try {
+                await ref.read(authProvider.notifier).signUpWithEmail(email, password);
+                if (mounted) {
+                  if (Navigator.of(context).canPop()) Navigator.of(context).pop(); // close sheet
+                  await _routeAfterLogin();
+                }
+              } on FirebaseAuthException catch (err) {
+                if (mounted) {
+                  if (err.code == 'email-already-in-use') {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                      content: Text('This email is already registered. Please check your password.'),
+                      behavior: SnackBarBehavior.floating,
+                    ));
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                      content: Text(_getErrorMessage(err)),
+                      behavior: SnackBarBehavior.floating,
+                    ));
+                  }
+                }
+              } catch (err) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: Text(_getErrorMessage(err)),
+                    behavior: SnackBarBehavior.floating,
+                  ));
+                }
+              } finally {
+                if (mounted) {
+                  setSheetState(() => _isLoading = false);
+                }
+              }
+            },
+            child: const Text('Create Account'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _handleGoogleLogin() async {
@@ -153,7 +224,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Text(
-                        _isLogin ? 'Sign In with Email' : 'Sign Up with Email',
+                        'Continue with Email',
                         style: Theme.of(context).textTheme.titleLarge,
                         textAlign: TextAlign.center,
                       ),
@@ -179,14 +250,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                       ),
                       const SizedBox(height: 24),
                       PrimaryButton(
-                        text: _isLogin ? 'Sign In' : 'Sign Up',
+                        text: 'Continue',
                         isLoading: _isLoading,
                         onPressed: () => _handleEmailAuth(setSheetState),
-                      ),
-                      const SizedBox(height: 8),
-                      TextButton(
-                        onPressed: () => setSheetState(() => _isLogin = !_isLogin),
-                        child: Text(_isLogin ? "Don't have an account? Sign Up" : 'Already have an account? Sign In'),
                       ),
                     ],
                   ),
