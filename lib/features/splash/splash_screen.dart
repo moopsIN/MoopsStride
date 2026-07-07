@@ -7,6 +7,8 @@ import 'package:stride/features/auth/providers/auth_provider.dart';
 import 'package:stride/features/tracking/presentation/tracking_screen.dart';
 import 'package:stride/features/onboarding/presentation/onboarding_screen.dart';
 import 'package:stride/core/database/local_db.dart';
+import 'package:stride/features/sync/presentation/sync_prompt_screen.dart';
+import 'package:stride/features/sync/providers/sync_engine.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -36,10 +38,17 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       if (hasCompletedOnboarding) {
         nextScreen = const TrackingScreen();
       } else if (user != null) {
-        nextScreen = const OnboardingScreen();
+        final hasCloudData = await ref.read(syncEngineProvider).checkCloudDataExists(user.uid);
+        if (hasCloudData) {
+          nextScreen = const SyncPromptScreen();
+        } else {
+          nextScreen = const OnboardingScreen();
+        }
       } else {
         nextScreen = const AuthScreen();
       }
+      
+      if (!mounted) return;
       
       Navigator.of(context).pushReplacement(
           PageRouteBuilder(

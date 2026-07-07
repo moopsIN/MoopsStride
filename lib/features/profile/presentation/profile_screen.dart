@@ -10,6 +10,9 @@ import 'package:stride/features/profile/presentation/about_screen.dart';
 import 'package:stride/features/profile/providers/profile_provider.dart';
 import 'package:stride/core/providers/preferences_provider.dart';
 import 'package:stride/core/utils/formatters.dart';
+import 'package:stride/core/database/local_db.dart';
+import 'package:stride/features/sync/providers/sync_engine.dart';
+import 'package:stride/features/progress/providers/progress_provider.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -56,7 +59,59 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   Widget _divider(BuildContext context) {
-    return Divider(height: 1, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.08));
+    return Divider(
+      color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.1),
+      height: 1,
+      thickness: 1,
+    );
+  }
+
+  Future<void> _handleSignOut() async {
+    final db = await LocalDatabase.instance.database;
+    final unsynced = await db.query('activities', where: 'synced = ?', whereArgs: [0]);
+
+    if (unsynced.isNotEmpty) {
+      final success = await ref.read(syncEngineProvider).syncUnsyncedActivities();
+      if (!success && mounted) {
+        final shouldForce = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Unsynced Data'),
+            content: const Text('You have runs that haven\'t been synced to the cloud yet. Logging out will wipe this data locally.\n\nAre you sure you want to logout?'),
+            actions: [
+              TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
+              TextButton(
+                onPressed: () {
+                  Navigator.of(ctx).pop(false);
+                  _handleSignOut(); // try again
+                },
+                child: const Text('Try Again'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(true),
+                child: const Text('Logout Anyway', style: TextStyle(color: Colors.red)),
+              ),
+            ],
+          ),
+        );
+
+        if (shouldForce != true) return;
+      }
+    }
+
+    await LocalDatabase.instance.clearDatabase();
+    
+    // Invalidate state to clear in-memory data
+    ref.invalidate(progressProvider);
+    ref.invalidate(profileProvider);
+
+    await ref.read(authProvider.notifier).signOut();
+    
+    if (mounted) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const AuthScreen()),
+      );
+    }
   }
 
   @override
@@ -291,12 +346,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             MaterialPageRoute(builder: (_) => const AuthScreen()),
                           );
                         } else {
-                          await ref.read(authProvider.notifier).signOut();
-                          if (context.mounted) {
-                            Navigator.of(context).pushReplacement(
-                              MaterialPageRoute(builder: (_) => const AuthScreen()),
-                            );
-                          }
+                          await _handleSignOut();
                         }
                       },
                     ),

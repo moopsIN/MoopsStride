@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stride/core/database/local_db.dart';
 import 'package:stride/features/auth/providers/auth_provider.dart';
+import 'package:sqflite/sqflite.dart';
 
 class SyncEngine {
   final FirebaseAuth _auth;
@@ -16,10 +17,10 @@ class SyncEngine {
   })  : _auth = auth ?? FirebaseAuth.instance,
         _firestore = firestore ?? FirebaseFirestore.instance;
 
-  Future<void> syncUnsyncedActivities() async {
-    if (_isSyncing) return;
+  Future<bool> syncUnsyncedActivities() async {
+    if (_isSyncing) return false;
     final user = _auth.currentUser;
-    if (user == null) return; // Must be logged in to sync
+    if (user == null) return false; // Must be logged in to sync
 
     _isSyncing = true;
     try {
@@ -31,8 +32,7 @@ class SyncEngine {
       );
 
       if (unsynced.isEmpty) {
-        _isSyncing = false;
-        return;
+        return true;
       }
 
       final batch = _firestore.batch();
@@ -70,11 +70,59 @@ class SyncEngine {
       }
       await batchUpdate.commit();
 
+      return true;
     } catch (e) {
       // Sync failed (offline, permission denied, etc). Will retry later.
       debugPrint('Sync failed: $e');
+      return false;
     } finally {
       _isSyncing = false;
+    }
+  }
+
+  Future<bool> checkCloudDataExists(String uid) async {
+    try {
+      final snapshot = await _firestore.collection('users').doc(uid).collection('activities').limit(1).get();
+      return snapshot.docs.isNotEmpty;
+    } catch (e) {
+      debugPrint('Cloud check failed: $e');
+      return false;
+    }
+  }
+
+  Future<void> downSync(String uid) async {
+    try {
+      final snapshot = await _firestore.collection('users').doc(uid).collection('activities').get();
+      if (snapshot.docs.isEmpty) return;
+
+      final db = await LocalDatabase.instance.database;
+      final batch = db.batch();
+
+      for (final doc in snapshot.docs) {
+        final data = doc.data();
+        data['synced'] = 1; // It's coming from cloud, so it's already synced
+        batch.insert(
+          'activities',
+          data,
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
+      }
+      await batch.commit();
+    } catch (e) {
+      debugPrint('Down-sync failed: $e');
+    }
+  }
+
+  Future<void> wipeCloudData(String uid) async {
+    try {
+      final snapshot = await _firestore.collection('users').doc(uid).collection('activities').get();
+      final batch = _firestore.batch();
+      for (final doc in snapshot.docs) {
+        batch.delete(doc.reference);
+      }
+      await batch.commit();
+    } catch (e) {
+      debugPrint('Wipe cloud data failed: $e');
     }
   }
 }

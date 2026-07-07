@@ -4,6 +4,8 @@ import 'package:stride/core/widgets/primary_button.dart';
 import 'package:stride/features/onboarding/presentation/onboarding_screen.dart';
 import 'package:stride/core/database/local_db.dart';
 import 'package:stride/features/tracking/presentation/tracking_screen.dart';
+import 'package:stride/features/sync/presentation/sync_prompt_screen.dart';
+import 'package:stride/features/sync/providers/sync_engine.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stride/features/auth/providers/auth_provider.dart';
@@ -28,9 +30,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   Future<void> _routeAfterLogin() async {
     final db = await LocalDatabase.instance.database;
     final profiles = await db.query('user_profile');
-    if (!mounted) return;
     
     if (profiles.isNotEmpty) {
+      if (!mounted) return;
       if (Navigator.of(context).canPop()) {
         Navigator.of(context).pop();
       } else {
@@ -39,9 +41,24 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
         );
       }
     } else {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const OnboardingScreen()),
-      );
+      final user = ref.read(authProvider);
+      bool hasCloudData = false;
+      
+      if (user != null) {
+        hasCloudData = await ref.read(syncEngineProvider).checkCloudDataExists(user.uid);
+      }
+      
+      if (!mounted) return;
+      
+      if (hasCloudData) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const SyncPromptScreen()),
+        );
+      } else {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const OnboardingScreen()),
+        );
+      }
     }
   }
 
