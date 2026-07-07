@@ -87,13 +87,37 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             children: [
               // Identity card
               GlassContainer(
-                borderRadius: 24,
-                padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
-                child: Column(
+                borderRadius: 20,
+                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+                child: Row(
                   children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            isGuest ? 'Guest User' : (user.email ?? 'User'),
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            isGuest ? 'Tracking locally on this device' : 'Synced to your account',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: theme.colorScheme.onSurface.withValues(alpha: 0.55),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 16),
                     Container(
-                      width: 84,
-                      height: 84,
+                      width: 56,
+                      height: 56,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: theme.colorScheme.primary.withValues(alpha: 0.12),
@@ -102,20 +126,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           width: 1.5,
                         ),
                       ),
-                      child: Icon(Icons.person_rounded, size: 42, color: theme.colorScheme.primary),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      isGuest ? 'Guest User' : (user.email ?? 'User'),
-                      style: theme.textTheme.titleLarge,
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      isGuest ? 'Tracking locally on this device' : 'Synced to your account',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurface.withValues(alpha: 0.55),
-                      ),
+                      child: Icon(Icons.person_rounded, size: 28, color: theme.colorScheme.primary),
                     ),
                   ],
                 ),
