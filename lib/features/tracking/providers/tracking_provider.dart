@@ -67,10 +67,14 @@ class TrackingState {
   }
 
   double get distanceKm => distanceMeters / 1000.0;
-  
-  // Pace in minutes per kilometer
+
+  // Below this distance the average pace is dominated by GPS noise and swings
+  // wildly (e.g. 250:00 min/km), so we treat it as not-yet-meaningful.
+  static const double _minDistanceForPaceMeters = 20.0;
+
+  // Pace in minutes per kilometer (running average over the activity).
   double get currentPace {
-    if (distanceKm == 0) return 0.0;
+    if (distanceMeters < _minDistanceForPaceMeters) return 0.0;
     final minutes = durationSeconds / 60.0;
     return minutes / distanceKm;
   }
@@ -99,6 +103,16 @@ class TrackingNotifier extends Notifier<TrackingState> {
   StreamSubscription<StepCount>? _globalStepSubscription;
   Timer? _timer;
   int? _runInitialSteps;
+
+  // --- GPS filtering, tuned for walking & running ---
+  // Drop fixes whose reported horizontal accuracy is worse than this (meters),
+  // or negative (invalid). Poor fixes — common at cold start or near buildings
+  // — are the main source of phantom distance and erratic pace.
+  static const double _maxAccuracyMeters = 30.0;
+  // Ignore movement below this between two accepted points (meters), so
+  // standing still or small GPS drift doesn't accumulate fake distance. This
+  // backs up the native displacement filter in case the platforms disagree.
+  static const double _minMoveMeters = 3.0;
 
   // Duration is derived from wall-clock time rather than counted by the
   // Timer tick, since the OS can suspend Dart timers while the app is
@@ -216,17 +230,33 @@ class TrackingNotifier extends Notifier<TrackingState> {
     _positionSubscription = locService.getPositionStream().listen((LocationFix position) {
       if (state.status != TrackingStatus.active) return;
 
+      // Reject unreliable fixes (negative = invalid on iOS; large accuracy =
+      // low confidence). These are what made distance/pace jump around.
+      final accuracy = position.accuracy;
+      if (accuracy != null && (accuracy < 0 || accuracy > _maxAccuracyMeters)) {
+        return;
+      }
+
       final newPoint = LatLng(position.latitude, position.longitude);
 
-      double addedDistance = 0;
-      if (state.routePoints.isNotEmpty) {
-        addedDistance = locService.calculateDistance(state.routePoints.last, newPoint);
+      // Seed the route with the first good fix; no distance yet.
+      if (state.routePoints.isEmpty) {
+        state = state.copyWith(
+          currentLocation: newPoint,
+          routePoints: [newPoint],
+        );
+        return;
       }
+
+      final moved = locService.calculateDistance(state.routePoints.last, newPoint);
+      // Below the noise floor: keep the route/distance stable instead of
+      // accumulating drift while effectively standing still.
+      if (moved < _minMoveMeters) return;
 
       state = state.copyWith(
         currentLocation: newPoint,
         routePoints: [...state.routePoints, newPoint],
-        distanceMeters: state.distanceMeters + addedDistance,
+        distanceMeters: state.distanceMeters + moved,
       );
     }, onError: (e) {
       debugPrint("Position stream error: $e");

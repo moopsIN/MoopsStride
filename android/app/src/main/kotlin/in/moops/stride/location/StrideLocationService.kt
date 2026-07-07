@@ -70,8 +70,15 @@ class StrideLocationService : Service() {
             fusedLocationClient.removeLocationUpdates(it)
         }
 
-        val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 1000)
-            .setMinUpdateDistanceMeters(0f)
+        // Tuned for walking & running. High accuracy is needed for a usable
+        // route, but a ~2s desired interval (allowing down to 1s when the
+        // user is moving fast) plus a 5m displacement filter stops the GPS
+        // from waking every second for sub-5m jitter while standing still —
+        // that jitter was the source of phantom distance and erratic pace,
+        // and constant 1Hz high-accuracy fixes are the main battery drain.
+        val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 2000L)
+            .setMinUpdateIntervalMillis(1000L)
+            .setMinUpdateDistanceMeters(5f)
             .build()
 
         locationCallback = object : LocationCallback() {

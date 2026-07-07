@@ -21,7 +21,10 @@ public class StrideLocationPlugin: NSObject, FlutterPlugin, CLLocationManagerDel
         locationManager = CLLocationManager()
         locationManager.delegate = self
         locationManager.desiredAccuracy = kCLLocationAccuracyBest
-        locationManager.distanceFilter = 0
+        // Ignore sub-5m movement (GPS jitter while standing still), matching
+        // the Android displacement filter — saves battery and avoids phantom
+        // distance. .fitness activity type lets iOS optimize for walk/run.
+        locationManager.distanceFilter = 5
         locationManager.activityType = .fitness
         locationManager.pausesLocationUpdatesAutomatically = false
         if #available(iOS 9.0, *) {
