@@ -306,21 +306,64 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           valueListenable: _heightController,
           builder: (context, value, child) {
             final cm = double.tryParse(value.text) ?? 0.0;
-            return _buildMetricField(
-              _heightController, 
-              'Height', 
-              'cm',
-              subtitle: formatHeightToFtIn(cm)
+            return Row(
+              children: [
+                Expanded(
+                  flex: 6,
+                  child: _buildMetricField(_heightController, 'Height', 'cm'),
+                ),
+                Expanded(
+                  flex: 4,
+                  child: Center(
+                    child: Text(
+                      formatHeightToFtIn(cm),
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        color: theme.colorScheme.primary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             );
           },
         ),
         const SizedBox(height: 16),
-        _buildMetricField(_weightController, 'Weight', isKg ? 'kg' : 'lbs'),
+        ValueListenableBuilder<TextEditingValue>(
+          valueListenable: _weightController,
+          builder: (context, value, child) {
+            final weight = double.tryParse(value.text) ?? 0.0;
+            final conversionText = isKg 
+                ? '${kgToLbs(weight).toStringAsFixed(1)} lbs' 
+                : '${lbsToKg(weight).toStringAsFixed(1)} kg';
+            
+            return Row(
+              children: [
+                Expanded(
+                  flex: 6,
+                  child: _buildMetricField(_weightController, 'Weight', isKg ? 'kg' : 'lbs'),
+                ),
+                Expanded(
+                  flex: 4,
+                  child: Center(
+                    child: Text(
+                      weight > 0 ? conversionText : '--',
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        color: theme.colorScheme.primary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
       ],
     );
   }
 
-  Widget _buildMetricField(TextEditingController controller, String label, String unit, {bool isInt = false, String? subtitle}) {
+  Widget _buildMetricField(TextEditingController controller, String label, String unit, {bool isInt = false}) {
     final theme = Theme.of(context);
     return GlassContainer(
       borderRadius: 18,
@@ -346,15 +389,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               ),
             ),
           ),
-          if (subtitle != null) ...[
-            Text(
-              subtitle,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.primary,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ]
         ],
       ),
     );
