@@ -24,8 +24,8 @@ class TrackingScreen extends ConsumerStatefulWidget {
 class _TrackingScreenState extends ConsumerState<TrackingScreen> {
   final MapController _mapController = MapController();
 
-  static const Color _goGreen = Color(0xFF3FBE6E);
-  static const Color _pauseAmber = Color(0xFFE6B455);
+  static const Color _goGreen = Color(0xFF55A870); // Muted green
+  static const Color _pauseAmber = Color(0xFFD0A558); // Muted amber
   static const Color _stopRed = Color(0xFFE5484D);
 
   @override
