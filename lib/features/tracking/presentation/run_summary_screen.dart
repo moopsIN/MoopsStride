@@ -43,7 +43,7 @@ class RunSummaryScreen extends ConsumerWidget {
                     begin: Alignment.bottomCenter,
                     end: Alignment.topCenter,
                     colors: [bg, bg, bg.withValues(alpha: 0.0)],
-                    stops: const [0.0, 0.44, 0.76],
+                    stops: const [0.0, 0.34, 0.66],
                   ),
                 ),
               ),
