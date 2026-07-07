@@ -112,40 +112,28 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     );
   }
 
-  Widget _buildOptionChip(String label, bool isSelected, VoidCallback onTap) {
+  Widget _buildDropdownItem(String? value, List<String> items, Function(String?) onChanged) {
     final theme = Theme.of(context);
-    final onSurface = theme.colorScheme.onSurface;
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10.0),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(18),
-        child: GlassContainer(
-          borderRadius: 18,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          backgroundColor: isSelected
-              ? theme.colorScheme.primary.withValues(alpha: 0.14)
-              : onSurface.withValues(alpha: 0.05),
-          borderColor: isSelected
-              ? theme.colorScheme.primary
-              : onSurface.withValues(alpha: 0.1),
-          child: Row(
-            children: [
-              Icon(
-                isSelected ? Icons.radio_button_checked_rounded : Icons.radio_button_unchecked_rounded,
-                color: isSelected ? theme.colorScheme.primary : onSurface.withValues(alpha: 0.35),
-              ),
-              const SizedBox(width: 14),
-              Text(
-                label,
-                style: theme.textTheme.bodyLarge?.copyWith(
-                  color: isSelected ? onSurface : onSurface.withValues(alpha: 0.75),
-                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.normal,
-                ),
-              ),
-            ],
+    return GlassContainer(
+      borderRadius: 18,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: value,
+          isExpanded: true,
+          dropdownColor: theme.colorScheme.surface,
+          icon: Icon(Icons.keyboard_arrow_down_rounded, color: theme.colorScheme.primary),
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: theme.colorScheme.onSurface,
           ),
+          items: items.map((String val) {
+            return DropdownMenuItem<String>(
+              value: val,
+              child: Text(val),
+            );
+          }).toList(),
+          onChanged: onChanged,
         ),
       ),
     );
@@ -286,27 +274,27 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                     const SizedBox(height: 28),
 
                     _sectionLabel(context, 'PRIMARY GOAL'),
-                    ..._goals.map((g) => _buildOptionChip(
-                          g,
-                          _selectedGoal == g,
-                          () => setState(() => _selectedGoal = g),
-                        )),
+                    _buildDropdownItem(
+                      _selectedGoal,
+                      _goals,
+                      (val) => setState(() => _selectedGoal = val),
+                    ),
                     const SizedBox(height: 18),
 
                     _sectionLabel(context, 'EXPERIENCE LEVEL'),
-                    ..._experiences.map((e) => _buildOptionChip(
-                          e,
-                          _selectedExperience == e,
-                          () => setState(() => _selectedExperience = e),
-                        )),
+                    _buildDropdownItem(
+                      _selectedExperience,
+                      _experiences,
+                      (val) => setState(() => _selectedExperience = val),
+                    ),
                     const SizedBox(height: 18),
 
                     _sectionLabel(context, 'ACTIVITY LEVEL'),
-                    ..._activities.map((a) => _buildOptionChip(
-                          a,
-                          _selectedActivity == a,
-                          () => setState(() => _selectedActivity = a),
-                        )),
+                    _buildDropdownItem(
+                      _selectedActivity,
+                      _activities,
+                      (val) => setState(() => _selectedActivity = val),
+                    ),
 
                     const SizedBox(height: 36),
                     PrimaryButton(
