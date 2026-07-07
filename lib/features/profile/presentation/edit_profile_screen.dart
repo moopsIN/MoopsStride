@@ -17,14 +17,17 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
   final _heightController = TextEditingController();
   final _weightController = TextEditingController();
+  final _ageController = TextEditingController();
 
   String? _selectedGoal;
   String? _selectedExperience;
   String? _selectedActivity;
+  String? _selectedGender;
 
   final _goals = ['Endurance', 'Weight Loss', 'Fun'];
   final _experiences = ['Beginner', 'Intermediate', 'Advanced'];
   final _activities = ['Sedentary', 'Light', 'Active'];
+  final _genders = ['Male', 'Female', 'Other', 'Not specified'];
 
   @override
   void initState() {
@@ -35,9 +38,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         setState(() {
           _heightController.text = state.height.toString();
           _weightController.text = state.weight.toString();
+          _ageController.text = state.age.toString();
           if (_goals.contains(state.goal)) _selectedGoal = state.goal;
           if (_experiences.contains(state.experienceLevel)) _selectedExperience = state.experienceLevel;
           if (_activities.contains(state.activityLevel)) _selectedActivity = state.activityLevel;
+          if (_genders.contains(state.gender)) _selectedGender = state.gender;
         });
       }
     });
@@ -47,6 +52,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   void dispose() {
     _heightController.dispose();
     _weightController.dispose();
+    _ageController.dispose();
     super.dispose();
   }
 
@@ -55,10 +61,13 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
     final height = double.tryParse(_heightController.text) ?? 170.0;
     final weight = double.tryParse(_weightController.text) ?? 70.0;
+    final age = int.tryParse(_ageController.text) ?? 25;
 
     final success = await ref.read(profileProvider.notifier).updateProfile(
       goal: _selectedGoal ?? '',
       experienceLevel: _selectedExperience ?? '',
+      gender: _selectedGender ?? '',
+      age: age,
       height: height,
       weight: weight,
       activityLevel: _selectedActivity ?? '',
@@ -131,7 +140,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   }
 
   Widget _buildMetricField(
-      BuildContext context, String label, TextEditingController controller, String unit) {
+      BuildContext context, String label, TextEditingController controller, String unit, {bool isInt = false}) {
     final theme = Theme.of(context);
     return Expanded(
       child: GlassContainer(
@@ -149,7 +158,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
             ),
             TextFormField(
               controller: controller,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: TextInputType.numberWithOptions(decimal: !isInt),
               textAlign: TextAlign.center,
               style: theme.textTheme.displayLarge?.copyWith(fontSize: 26),
               decoration: InputDecoration(
@@ -194,9 +203,38 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                         _buildMetricField(context, 'HEIGHT', _heightController, 'cm'),
                         const SizedBox(width: 14),
                         _buildMetricField(context, 'WEIGHT', _weightController, 'kg'),
+                        const SizedBox(width: 14),
+                        _buildMetricField(context, 'AGE', _ageController, 'yrs', isInt: true),
                       ],
                     ).animate().fadeIn(duration: 350.ms).slideY(begin: 0.08),
 
+                    const SizedBox(height: 28),
+
+                    _sectionLabel(context, 'GENDER'),
+                    GlassContainer(
+                      borderRadius: 18,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: _selectedGender,
+                          isExpanded: true,
+                          dropdownColor: theme.colorScheme.surface,
+                          icon: Icon(Icons.keyboard_arrow_down_rounded, color: theme.colorScheme.primary),
+                          style: theme.textTheme.bodyLarge,
+                          items: _genders.map((String value) {
+                            return DropdownMenuItem<String>(
+                              value: value,
+                              child: Text(value),
+                            );
+                          }).toList(),
+                          onChanged: (newValue) {
+                            setState(() {
+                              _selectedGender = newValue;
+                            });
+                          },
+                        ),
+                      ),
+                    ),
                     const SizedBox(height: 28),
 
                     _sectionLabel(context, 'PRIMARY GOAL'),

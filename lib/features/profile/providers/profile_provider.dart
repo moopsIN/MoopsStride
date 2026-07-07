@@ -4,6 +4,8 @@ import 'package:stride/core/database/local_db.dart';
 class ProfileState {
   final String goal;
   final String experienceLevel;
+  final String gender;
+  final int age;
   final double height;
   final double weight;
   final String activityLevel;
@@ -14,6 +16,8 @@ class ProfileState {
   ProfileState({
     this.goal = '',
     this.experienceLevel = '',
+    this.gender = '',
+    this.age = 25,
     this.height = 170.0,
     this.weight = 70.0,
     this.activityLevel = '',
@@ -25,6 +29,8 @@ class ProfileState {
   ProfileState copyWith({
     String? goal,
     String? experienceLevel,
+    String? gender,
+    int? age,
     double? height,
     double? weight,
     String? activityLevel,
@@ -35,6 +41,8 @@ class ProfileState {
     return ProfileState(
       goal: goal ?? this.goal,
       experienceLevel: experienceLevel ?? this.experienceLevel,
+      gender: gender ?? this.gender,
+      age: age ?? this.age,
       height: height ?? this.height,
       weight: weight ?? this.weight,
       activityLevel: activityLevel ?? this.activityLevel,
@@ -57,6 +65,8 @@ class ProfileNotifier extends AsyncNotifier<ProfileState> {
       return ProfileState(
         goal: data['goal'] as String? ?? '',
         experienceLevel: data['experience_level'] as String? ?? '',
+        gender: data['gender'] as String? ?? '',
+        age: data['age'] as int? ?? 25,
         height: (data['height'] as num?)?.toDouble() ?? 170.0,
         weight: (data['weight'] as num?)?.toDouble() ?? 70.0,
         activityLevel: data['activity_level'] as String? ?? '',
@@ -74,6 +84,8 @@ class ProfileNotifier extends AsyncNotifier<ProfileState> {
   Future<bool> updateProfile({
     required String goal,
     required String experienceLevel,
+    required String gender,
+    required int age,
     required double height,
     required double weight,
     required String activityLevel,
@@ -87,6 +99,8 @@ class ProfileNotifier extends AsyncNotifier<ProfileState> {
       await LocalDatabase.instance.updateUserProfile({
         'goal': goal,
         'experience_level': experienceLevel,
+        'gender': gender,
+        'age': age,
         'height': height,
         'weight': weight,
         'activity_level': activityLevel,
@@ -95,6 +109,8 @@ class ProfileNotifier extends AsyncNotifier<ProfileState> {
       state = AsyncData(currentState.copyWith(
         goal: goal,
         experienceLevel: experienceLevel,
+        gender: gender,
+        age: age,
         height: height,
         weight: weight,
         activityLevel: activityLevel,

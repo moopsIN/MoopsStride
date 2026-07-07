@@ -19,8 +19,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   final _heightController = TextEditingController();
   final _weightController = TextEditingController();
+  final _ageController = TextEditingController(text: '25');
 
-  static const _stepCount = 4;
+  static const _stepCount = 5;
 
   void _nextPage() {
     if (_currentPage < _stepCount - 1) {
@@ -45,8 +46,16 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   void _finishOnboarding() async {
     final height = double.tryParse(_heightController.text) ?? 170.0;
     final weight = double.tryParse(_weightController.text) ?? 70.0;
+    final age = int.tryParse(_ageController.text) ?? 25;
 
     ref.read(onboardingProvider.notifier).setHeightWeight(height, weight);
+    
+    // We update the gender in state on tap, but age from the controller
+    final gender = ref.read(onboardingProvider).gender;
+    ref.read(onboardingProvider.notifier).setGenderAge(
+      gender.isEmpty ? 'Not specified' : gender, 
+      age
+    );
 
     final success = await ref.read(onboardingProvider.notifier).saveProfile();
 
@@ -114,6 +123,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 children: [
                   _buildGoalStep(),
                   _buildExperienceStep(),
+                  _buildGenderAgeStep(),
                   _buildHeightWeightStep(),
                   _buildActivityStep(),
                 ],
@@ -173,9 +183,73 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     );
   }
 
-  Widget _buildHeightWeightStep() {
+  Widget _buildGenderAgeStep() {
     return _StepContainer(
       step: 3,
+      total: _stepCount,
+      title: 'What is your gender & age?',
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            _buildGenderIconChip('Male', Icons.male),
+            _buildGenderIconChip('Female', Icons.female),
+            _buildGenderIconChip('Other', Icons.transgender),
+          ],
+        ),
+        const SizedBox(height: 24),
+        Row(
+          children: [
+            Expanded(child: _buildMetricField(_ageController, 'Age', 'yrs', isInt: true)),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildGenderIconChip(String label, IconData icon) {
+    final isSelected = ref.read(onboardingProvider).gender == label;
+    final theme = Theme.of(context);
+    final onSurface = theme.colorScheme.onSurface;
+    
+    return InkWell(
+      onTap: () {
+        ref.read(onboardingProvider.notifier).setGenderAge(label, int.tryParse(_ageController.text) ?? 25);
+      },
+      borderRadius: BorderRadius.circular(20),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        width: 90,
+        height: 100,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          color: isSelected ? theme.colorScheme.primary.withValues(alpha: 0.15) : onSurface.withValues(alpha: 0.05),
+          border: Border.all(
+            color: isSelected ? theme.colorScheme.primary : onSurface.withValues(alpha: 0.1),
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 36, color: isSelected ? theme.colorScheme.primary : onSurface.withValues(alpha: 0.5)),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: isSelected ? onSurface : onSurface.withValues(alpha: 0.6),
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeightWeightStep() {
+    return _StepContainer(
+      step: 4,
       total: _stepCount,
       title: 'Tell us a bit about yourself',
       children: [
@@ -190,7 +264,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     );
   }
 
-  Widget _buildMetricField(TextEditingController controller, String label, String unit) {
+  Widget _buildMetricField(TextEditingController controller, String label, String unit, {bool isInt = false}) {
     final theme = Theme.of(context);
     return GlassContainer(
       borderRadius: 18,
@@ -207,7 +281,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           ),
           TextField(
             controller: controller,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            keyboardType: TextInputType.numberWithOptions(decimal: !isInt),
             textAlign: TextAlign.center,
             style: theme.textTheme.displayLarge?.copyWith(fontSize: 26),
             decoration: InputDecoration(
@@ -225,7 +299,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   Widget _buildActivityStep() {
     return _StepContainer(
-      step: 4,
+      step: 5,
       total: _stepCount,
       title: 'How active are you normally?',
       children: [

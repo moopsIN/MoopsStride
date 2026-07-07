@@ -138,6 +138,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             context, Icons.bolt_rounded, 'Activity', state.activityLevel),
                         _divider(context),
                         _buildDetailRow(
+                            context, Icons.person_outline_rounded, 'Gender', state.gender),
+                        _divider(context),
+                        _buildDetailRow(
+                            context, Icons.cake_rounded, 'Age', '${state.age} yrs'),
+                        _divider(context),
+                        _buildDetailRow(
                             context, Icons.height_rounded, 'Height', '${state.height} cm'),
                         _divider(context),
                         _buildDetailRow(

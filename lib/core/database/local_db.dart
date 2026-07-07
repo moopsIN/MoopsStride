@@ -19,12 +19,15 @@ class LocalDatabase {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, filePath);
 
-    return await openDatabase(path, version: 2, onCreate: _createDB, onUpgrade: _upgradeDB);
+    return await openDatabase(path, version: 3, onCreate: _createDB, onUpgrade: _upgradeDB);
   }
 
   Future _upgradeDB(Database db, int oldVersion, int newVersion) async {
     if (oldVersion < 2) {
       await db.execute('ALTER TABLE activities ADD COLUMN steps INTEGER NOT NULL DEFAULT 0');
+    }
+    if (oldVersion < 3) {
+      await db.execute('ALTER TABLE user_profile ADD COLUMN age INTEGER');
     }
   }
 
@@ -61,6 +64,7 @@ CREATE TABLE user_profile (
   goal TEXT,
   experience_level TEXT,
   gender TEXT,
+  age INTEGER,
   height REAL,
   weight REAL,
   activity_level TEXT,
