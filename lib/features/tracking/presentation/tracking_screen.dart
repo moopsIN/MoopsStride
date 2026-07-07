@@ -526,37 +526,37 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
           ],
         ).animate().slideY(begin: -0.2).fadeIn(duration: 400.ms),
 
-        const SizedBox(height: 20),
+        const SizedBox(height: 24),
 
-        GlassContainer(
-          borderRadius: 20,
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-          child: Row(
-            children: [
-              Icon(Icons.local_fire_department_rounded,
-                  color: theme.colorScheme.primary, size: 30),
-              const SizedBox(width: 14),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('${progressState.currentStreak} Day Streak',
-                      style: theme.textTheme.titleLarge?.copyWith(fontSize: 18)),
-                  Text('Keep the momentum going',
-                      style: theme.textTheme.bodyMedium?.copyWith(color: muted, fontSize: 13)),
-                ],
-              ),
-              const Spacer(),
-              IconButton(
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const ProgressScreen()),
-                  ).then((_) {
-                    ref.read(progressProvider.notifier).refresh();
-                  });
-                },
-                icon: Icon(Icons.bar_chart_rounded, color: muted),
-              ),
-            ],
+        GestureDetector(
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const ProgressScreen()),
+            ).then((_) {
+              ref.read(progressProvider.notifier).refresh();
+            });
+          },
+          child: GlassContainer(
+            borderRadius: 20,
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+            child: Row(
+              children: [
+                Icon(Icons.local_fire_department_rounded,
+                    color: theme.colorScheme.primary, size: 30),
+                const SizedBox(width: 14),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('${progressState.currentStreak} Day Streak',
+                        style: theme.textTheme.titleLarge?.copyWith(fontSize: 18)),
+                    Text('Keep the momentum going',
+                        style: theme.textTheme.bodyMedium?.copyWith(color: muted, fontSize: 13)),
+                  ],
+                ),
+                const Spacer(),
+                Icon(Icons.chevron_right_rounded, color: muted, size: 28),
+              ],
+            ),
           ),
         ).animate().slideX(begin: 0.1, delay: 200.ms).fadeIn(delay: 200.ms),
       ],
