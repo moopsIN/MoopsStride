@@ -26,6 +26,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   static const _stepCount = 5;
 
   void _nextPage() {
+    FocusScope.of(context).unfocus();
     if (_currentPage < _stepCount - 1) {
       _pageController.nextPage(
         duration: const Duration(milliseconds: 400),
@@ -37,6 +38,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   void _previousPage() {
+    FocusScope.of(context).unfocus();
     if (_currentPage > 0) {
       _pageController.previousPage(
         duration: const Duration(milliseconds: 350),
