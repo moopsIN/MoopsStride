@@ -20,8 +20,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final _heightController = TextEditingController();
   final _weightController = TextEditingController();
 
+  static const _stepCount = 4;
+
   void _nextPage() {
-    if (_currentPage < 3) {
+    if (_currentPage < _stepCount - 1) {
       _pageController.nextPage(
         duration: const Duration(milliseconds: 400),
         curve: Curves.easeInOut,
@@ -31,14 +33,23 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     }
   }
 
+  void _previousPage() {
+    if (_currentPage > 0) {
+      _pageController.previousPage(
+        duration: const Duration(milliseconds: 350),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
+
   void _finishOnboarding() async {
     final height = double.tryParse(_heightController.text) ?? 170.0;
     final weight = double.tryParse(_weightController.text) ?? 70.0;
-    
+
     ref.read(onboardingProvider.notifier).setHeightWeight(height, weight);
-    
+
     final success = await ref.read(onboardingProvider.notifier).saveProfile();
-    
+
     if (success && mounted) {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => const TrackingScreen()),
@@ -48,34 +59,53 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final state = ref.watch(onboardingProvider);
-    
+
     return Scaffold(
       body: SafeArea(
         child: Column(
           children: [
-            // Progress dots
+            // Header: back button + progress
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 24.0),
+              padding: const EdgeInsets.fromLTRB(12, 8, 24, 8),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(4, (index) {
-                  return AnimatedContainer(
-                    duration: const Duration(milliseconds: 300),
-                    margin: const EdgeInsets.symmetric(horizontal: 4),
-                    width: _currentPage == index ? 24 : 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: _currentPage == index 
-                          ? Theme.of(context).colorScheme.primary 
-                          : Theme.of(context).colorScheme.surface,
-                      borderRadius: BorderRadius.circular(4),
+                children: [
+                  SizedBox(
+                    width: 44,
+                    child: _currentPage > 0
+                        ? IconButton(
+                            onPressed: _previousPage,
+                            icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18),
+                          ).animate().fadeIn(duration: 250.ms)
+                        : null,
+                  ),
+                  Expanded(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(_stepCount, (index) {
+                        final isActive = _currentPage == index;
+                        final isDone = index < _currentPage;
+                        return AnimatedContainer(
+                          duration: const Duration(milliseconds: 300),
+                          margin: const EdgeInsets.symmetric(horizontal: 4),
+                          width: isActive ? 28 : 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            color: isActive || isDone
+                                ? theme.colorScheme.primary
+                                : theme.colorScheme.onSurface.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        );
+                      }),
                     ),
-                  );
-                }),
+                  ),
+                  const SizedBox(width: 44),
+                ],
               ),
             ),
-            
+
             Expanded(
               child: PageView(
                 controller: _pageController,
@@ -89,12 +119,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 ],
               ),
             ),
-            
+
             // Footer Navigation
             Padding(
-              padding: const EdgeInsets.all(24.0),
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
               child: PrimaryButton(
-                text: _currentPage == 3 ? 'Get Started' : 'Next',
+                text: _currentPage == _stepCount - 1 ? 'Get Started' : 'Next',
                 isLoading: state.isSaving,
                 onPressed: _nextPage,
               ),
@@ -107,6 +137,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   Widget _buildGoalStep() {
     return _StepContainer(
+      step: 1,
+      total: _stepCount,
       title: 'What is your primary goal?',
       children: [
         _buildOptionChip('Build Endurance', () {
@@ -124,6 +156,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   Widget _buildExperienceStep() {
     return _StepContainer(
+      step: 2,
+      total: _stepCount,
       title: 'What is your experience level?',
       children: [
         _buildOptionChip('Beginner', () {
@@ -141,31 +175,58 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   Widget _buildHeightWeightStep() {
     return _StepContainer(
+      step: 3,
+      total: _stepCount,
       title: 'Tell us a bit about yourself',
       children: [
-        TextField(
-          controller: _heightController,
-          keyboardType: TextInputType.number,
-          decoration: InputDecoration(
-            labelText: 'Height (cm)',
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-        ),
-        const SizedBox(height: 16),
-        TextField(
-          controller: _weightController,
-          keyboardType: TextInputType.number,
-          decoration: InputDecoration(
-            labelText: 'Weight (kg)',
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-          ),
+        Row(
+          children: [
+            Expanded(child: _buildMetricField(_heightController, 'Height', 'cm')),
+            const SizedBox(width: 14),
+            Expanded(child: _buildMetricField(_weightController, 'Weight', 'kg')),
+          ],
         ),
       ],
     );
   }
 
+  Widget _buildMetricField(TextEditingController controller, String label, String unit) {
+    final theme = Theme.of(context);
+    return GlassContainer(
+      borderRadius: 18,
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+      child: Column(
+        children: [
+          Text(
+            label.toUpperCase(),
+            style: theme.textTheme.labelSmall?.copyWith(
+              letterSpacing: 1.5,
+              fontWeight: FontWeight.w600,
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+            ),
+          ),
+          TextField(
+            controller: controller,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            textAlign: TextAlign.center,
+            style: theme.textTheme.displayLarge?.copyWith(fontSize: 26),
+            decoration: InputDecoration(
+              border: InputBorder.none,
+              suffixText: unit,
+              suffixStyle: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildActivityStep() {
     return _StepContainer(
+      step: 4,
+      total: _stepCount,
       title: 'How active are you normally?',
       children: [
         _buildOptionChip('Sedentary', () {
@@ -182,6 +243,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   Widget _buildOptionChip(String label, VoidCallback onTap, bool isSelected) {
+    final theme = Theme.of(context);
+    final onSurface = theme.colorScheme.onSurface;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 12.0),
       child: InkWell(
@@ -189,27 +253,32 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           onTap();
           setState(() {}); // trigger rebuild for color change since we read provider directly in the loop above
         },
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
         child: GlassContainer(
+          borderRadius: 18,
           padding: const EdgeInsets.all(20),
-          backgroundColor: isSelected 
-              ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.2)
-              : const Color(0x1AFFFFFF),
+          backgroundColor: isSelected
+              ? theme.colorScheme.primary.withValues(alpha: 0.14)
+              : onSurface.withValues(alpha: 0.05),
           borderColor: isSelected
-              ? Theme.of(context).colorScheme.primary
-              : const Color(0x33FFFFFF),
+              ? theme.colorScheme.primary
+              : onSurface.withValues(alpha: 0.1),
           child: Row(
             children: [
               Expanded(
                 child: Text(
                   label,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: isSelected ? Theme.of(context).colorScheme.primary : null,
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontSize: 17,
+                    color: isSelected ? theme.colorScheme.primary : onSurface,
+                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
                   ),
                 ),
               ),
               if (isSelected)
-                Icon(Icons.check_circle, color: Theme.of(context).colorScheme.primary),
+                Icon(Icons.check_circle_rounded, color: theme.colorScheme.primary)
+              else
+                Icon(Icons.circle_outlined, color: onSurface.withValues(alpha: 0.25)),
             ],
           ),
         ),
@@ -219,24 +288,41 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 }
 
 class _StepContainer extends StatelessWidget {
+  final int step;
+  final int total;
   final String title;
   final List<Widget> children;
 
-  const _StepContainer({required this.title, required this.children});
+  const _StepContainer({
+    required this.step,
+    required this.total,
+    required this.title,
+    required this.children,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 24.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SizedBox(height: 32),
+          const SizedBox(height: 20),
+          Text(
+            'STEP $step OF $total',
+            style: theme.textTheme.labelSmall?.copyWith(
+              letterSpacing: 2,
+              fontWeight: FontWeight.w700,
+              color: theme.colorScheme.primary,
+            ),
+          ).animate().fadeIn(duration: 350.ms),
+          const SizedBox(height: 10),
           Text(
             title,
-            style: Theme.of(context).textTheme.displayLarge?.copyWith(fontSize: 32),
+            style: theme.textTheme.displayLarge?.copyWith(fontSize: 30),
           ).animate().fadeIn(duration: 400.ms).slideX(begin: 0.1, end: 0),
-          const SizedBox(height: 48),
+          const SizedBox(height: 40),
           ...children.animate(interval: 100.ms).fadeIn(duration: 400.ms).slideX(begin: 0.1, end: 0),
         ],
       ),
