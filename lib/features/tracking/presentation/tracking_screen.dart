@@ -379,7 +379,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
           _statDivider(context),
           _buildStatItem(context, 'KM', state.distanceKm.toStringAsFixed(2), highlight: true),
           _statDivider(context),
-          _buildStatItem(context, 'PACE', state.formattedPace),
+          _buildStatItem(context, 'km/h', state.formattedSpeed),
           _statDivider(context),
           _buildStatItem(context, 'STEPS', state.currentSteps.toString()),
         ],

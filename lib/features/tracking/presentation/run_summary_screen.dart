@@ -250,8 +250,8 @@ class RunSummaryScreen extends StatelessWidget {
             ),
             const SizedBox(width: 14),
             Expanded(
-              child: _buildStatTile(context, Icons.speed_rounded, 'AVG PACE',
-                  _formatPace(activity.avgPace), 380, unit: '/km'),
+              child: _buildStatTile(context, Icons.speed_rounded, 'AVG SPEED',
+                  _formatSpeed(activity.avgSpeedKmH), 380, unit: 'km/h'),
             ),
           ],
         ),
@@ -360,11 +360,9 @@ class RunSummaryScreen extends StatelessWidget {
     return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
 
-  String _formatPace(double paceMinPerKm) {
-    if (paceMinPerKm == 0) return "--:--";
-    final minutes = paceMinPerKm.truncate();
-    final seconds = ((paceMinPerKm - minutes) * 60).round();
-    return '$minutes:${seconds.toString().padLeft(2, '0')}';
+  String _formatSpeed(double speedKmH) {
+    if (speedKmH == 0) return "0.0";
+    return speedKmH.toStringAsFixed(1);
   }
 
   String _formatDate(DateTime dt) {

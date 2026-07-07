@@ -14,6 +14,12 @@ class ActivityModel {
   final int steps;
   final bool synced;
 
+  double get avgSpeedKmH {
+    if (durationSeconds == 0) return 0.0;
+    final hours = durationSeconds / 3600.0;
+    return (distanceMeters / 1000.0) / hours;
+  }
+
   ActivityModel({
     required this.id,
     required this.type,

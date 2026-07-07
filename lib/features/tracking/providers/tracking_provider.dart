@@ -25,7 +25,7 @@ class TrackingState {
   final int dailySteps;
   final bool isLocked;
   final String? errorMessage;
-  final double paceMinPerKm;
+  final double speedKmH;
 
   TrackingState({
     this.status = TrackingStatus.notStarted,
@@ -38,7 +38,7 @@ class TrackingState {
     this.dailySteps = 0,
     this.isLocked = false,
     this.errorMessage,
-    this.paceMinPerKm = 0.0,
+    this.speedKmH = 0.0,
   });
 
   TrackingState copyWith({
@@ -53,7 +53,7 @@ class TrackingState {
     bool? isLocked,
     String? errorMessage,
     bool clearErrorMessage = false,
-    double? paceMinPerKm,
+    double? speedKmH,
   }) {
     return TrackingState(
       status: status ?? this.status,
@@ -66,16 +66,16 @@ class TrackingState {
       dailySteps: dailySteps ?? this.dailySteps,
       isLocked: isLocked ?? this.isLocked,
       errorMessage: clearErrorMessage ? null : (errorMessage ?? this.errorMessage),
-      paceMinPerKm: paceMinPerKm ?? this.paceMinPerKm,
+      speedKmH: speedKmH ?? this.speedKmH,
     );
   }
 
   double get distanceKm => distanceMeters / 1000.0;
 
-  // Pace in minutes per kilometer, recomputed every 10s from elapsed time
-  // and recorded distance (see TrackingNotifier._tickPace) rather than on
+  // Speed in km/h, recomputed every 10s from elapsed time
+  // and recorded distance (see TrackingNotifier._tickSpeed) rather than on
   // every GPS fix or duration tick — coarse on purpose, avoids jitter.
-  double get currentPace => paceMinPerKm;
+  double get currentSpeed => speedKmH;
 
   String get formattedDuration {
     final hours = durationSeconds ~/ 3600;
@@ -87,12 +87,9 @@ class TrackingState {
     return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
   
-  String get formattedPace {
-    if (currentPace == 0) return "--:--";
-    final p = currentPace;
-    final minutes = p.truncate();
-    final seconds = ((p - minutes) * 60).round();
-    return '$minutes:${seconds.toString().padLeft(2, '0')}';
+  String get formattedSpeed {
+    if (currentSpeed == 0) return "0.0";
+    return currentSpeed.toStringAsFixed(1);
   }
 }
 
@@ -100,7 +97,7 @@ class TrackingNotifier extends Notifier<TrackingState> {
   StreamSubscription<LocationFix>? _positionSubscription;
   StreamSubscription<StepCount>? _globalStepSubscription;
   Timer? _timer;
-  Timer? _paceTimer;
+  Timer? _speedTimer;
   int? _runInitialSteps;
 
   // --- GPS filtering, tuned for walking & running ---
@@ -129,20 +126,20 @@ class TrackingNotifier extends Notifier<TrackingState> {
     state = state.copyWith(durationSeconds: _currentElapsed().inSeconds);
   }
 
-  // Pace is recomputed every 10s from elapsed time and recorded distance so
+  // Speed is recomputed every 10s from elapsed time and recorded distance so
   // far, rather than on every GPS fix — a deliberately coarse average that
   // doesn't need to be precise, just present and roughly right.
-  static const double _minDistanceForPaceMeters = 20.0;
+  static const double _minDistanceForSpeedMeters = 20.0;
 
-  void _tickPace() {
+  void _tickSpeed() {
     final elapsedSeconds = _currentElapsed().inSeconds;
     final distanceKm = state.distanceMeters / 1000.0;
-    if (state.distanceMeters < _minDistanceForPaceMeters || distanceKm == 0) {
-      state = state.copyWith(paceMinPerKm: 0.0);
+    if (state.distanceMeters < _minDistanceForSpeedMeters || elapsedSeconds == 0) {
+      state = state.copyWith(speedKmH: 0.0);
       return;
     }
-    final minutes = elapsedSeconds / 60.0;
-    state = state.copyWith(paceMinPerKm: minutes / distanceKm);
+    final hours = elapsedSeconds / 3600.0;
+    state = state.copyWith(speedKmH: distanceKm / hours);
   }
 
   @override
@@ -240,9 +237,9 @@ class TrackingNotifier extends Notifier<TrackingState> {
       }
     });
 
-    _paceTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
+    _speedTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
       if (state.status == TrackingStatus.active) {
-        _tickPace();
+        _tickSpeed();
       }
     });
 
@@ -311,10 +308,10 @@ class TrackingNotifier extends Notifier<TrackingState> {
 
   Future<ActivityModel?> stopTracking() async {
     _tickDuration();
-    _tickPace();
+    _tickSpeed();
     state = state.copyWith(status: TrackingStatus.stopped);
     _timer?.cancel();
-    _paceTimer?.cancel();
+    _speedTimer?.cancel();
     _positionSubscription?.cancel();
     
     await ref.read(locationServiceProvider).stopService();
@@ -333,7 +330,7 @@ class TrackingNotifier extends Notifier<TrackingState> {
       endTime: endTime,
       distanceMeters: state.distanceMeters,
       durationSeconds: state.durationSeconds,
-      avgPace: state.currentPace,
+      avgPace: state.currentSpeed > 0 ? (60.0 / state.currentSpeed) : 0.0,
       caloriesEstimate: state.distanceMeters * 0.06,
       routePoints: state.routePoints,
       steps: state.currentSteps,
@@ -350,7 +347,7 @@ class TrackingNotifier extends Notifier<TrackingState> {
 
   void reset() {
     _timer?.cancel();
-    _paceTimer?.cancel();
+    _speedTimer?.cancel();
     _positionSubscription?.cancel();
     _accumulatedDuration = Duration.zero;
     _lastResumedAt = null;

@@ -9,7 +9,7 @@ void main() {
       expect(state.distanceMeters, 0.0);
       expect(state.durationSeconds, 0);
       expect(state.formattedDuration, '00:00');
-      expect(state.formattedPace, '--:--');
+      expect(state.formattedSpeed, '0.0');
     });
 
     test('Distance formatting and km calculation', () {
@@ -29,26 +29,22 @@ void main() {
       expect(state3.formattedDuration, '01:01:05');
     });
 
-    test('Pace calculation handles standard pacing', () {
-      // 5km in 25 minutes = 5:00/km
+    test('Speed formatting handles standard speeds', () {
       final state = TrackingState(
-        distanceMeters: 5000, 
-        durationSeconds: 25 * 60,
+        speedKmH: 12.0,
       );
       
-      expect(state.currentPace, 5.0);
-      expect(state.formattedPace, '5:00');
+      expect(state.currentSpeed, 12.0);
+      expect(state.formattedSpeed, '12.0');
     });
 
-    test('Pace calculation handles complex pacing', () {
-      // 5km in 27 minutes 30 seconds = 5:30/km
+    test('Speed formatting handles decimal speeds', () {
       final state = TrackingState(
-        distanceMeters: 5000, 
-        durationSeconds: (27 * 60) + 30,
+        speedKmH: 10.5,
       );
       
-      expect(state.currentPace, 5.5);
-      expect(state.formattedPace, '5:30');
+      expect(state.currentSpeed, 10.5);
+      expect(state.formattedSpeed, '10.5');
     });
   });
 }
