@@ -229,21 +229,6 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
           ),
         ),
 
-        // 5. Branding
-        Align(
-          alignment: Alignment.bottomCenter,
-          child: Padding(
-            padding: const EdgeInsets.only(bottom: 28.0),
-            child: Text(
-              'STRIDE BY MOOPS',
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
-                letterSpacing: 3,
-                fontWeight: FontWeight.w600,
-              ),
-            ).animate().fadeIn(delay: 500.ms),
-          ),
-        ),
       ],
     );
 
