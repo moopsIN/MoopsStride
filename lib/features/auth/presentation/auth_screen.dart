@@ -10,6 +10,9 @@ import 'package:stride/features/sync/providers/sync_engine.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stride/features/auth/providers/auth_provider.dart';
 
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/services.dart';
+
 class AuthScreen extends ConsumerStatefulWidget {
   const AuthScreen({super.key});
 
@@ -22,6 +25,20 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   final _passwordController = TextEditingController();
   bool _isLoading = false;
   bool _isLogin = true;
+
+  String _getErrorMessage(Object e) {
+    if (e is FirebaseAuthException) {
+      return e.message ?? 'Authentication failed.';
+    }
+    if (e is PlatformException) {
+      return e.message ?? 'An unexpected platform error occurred.';
+    }
+    final msg = e.toString();
+    if (msg.startsWith('Exception: ')) {
+      return msg.substring(11);
+    }
+    return msg;
+  }
 
   void _handleGuestLogin() {
     _routeAfterLogin();
@@ -81,7 +98,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(_getErrorMessage(e)),
+          behavior: SnackBarBehavior.floating,
+        ));
       }
     } finally {
       if (mounted) {
@@ -99,7 +119,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(_getErrorMessage(e)),
+          behavior: SnackBarBehavior.floating,
+        ));
       }
     } finally {
       if (mounted) {
