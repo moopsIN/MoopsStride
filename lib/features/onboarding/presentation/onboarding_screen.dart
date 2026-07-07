@@ -425,20 +425,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       ),
                     ],
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: color.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: color.withValues(alpha: 0.3)),
-                    ),
-                    child: Text(
-                      category.toUpperCase(),
-                      style: theme.textTheme.labelMedium?.copyWith(
-                        color: color,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 1.2,
-                      ),
+                  Text(
+                    category.toUpperCase(),
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: color,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.2,
                     ),
                   ),
                 ],
