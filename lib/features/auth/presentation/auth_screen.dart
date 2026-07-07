@@ -275,17 +275,19 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SizedBox(height: 96), // Increased top padding
-              Icon(
-                Icons.directions_run_rounded,
-                size: 64,
-                color: Theme.of(context).colorScheme.primary,
-              ).animate().scale(duration: 500.ms).fadeIn(),
-              const SizedBox(height: 24),
               Text(
-                'Stride by Moops',
-                style: Theme.of(context).textTheme.displayLarge?.copyWith(fontSize: 32),
+                'Stride',
+                style: Theme.of(context).textTheme.displayLarge?.copyWith(fontSize: 72, height: 1.0, letterSpacing: -1.5),
                 textAlign: TextAlign.center,
-              ).animate().fadeIn(delay: 200.ms),
+              ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.1),
+              Text(
+                'by Moops',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                  letterSpacing: 2,
+                ),
+                textAlign: TextAlign.center,
+              ).animate().fadeIn(delay: 300.ms),
               const SizedBox(height: 8),
               Text(
                 'The offline-first running tracker.\nNo account required.',
