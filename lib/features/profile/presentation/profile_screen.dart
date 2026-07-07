@@ -163,17 +163,31 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             context, Icons.monitor_weight_rounded, 'Weight', isKg ? '${state.weight} kg' : '${kgToLbs(state.weight).toStringAsFixed(1)} lbs'),
                         const SizedBox(height: 4),
                         _divider(context),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 4),
-                          child: TextButton.icon(
-                            onPressed: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(builder: (_) => const EditProfileScreen()),
-                              );
-                            },
-                            style: TextButton.styleFrom(foregroundColor: theme.colorScheme.primary),
-                            icon: const Icon(Icons.edit_rounded, size: 18),
-                            label: const Text('Edit Details'),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: 4, bottom: 4, right: 4),
+                            child: TextButton.icon(
+                              onPressed: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(builder: (_) => const EditProfileScreen()),
+                                );
+                              },
+                              style: TextButton.styleFrom(
+                                foregroundColor: theme.colorScheme.primary,
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                minimumSize: Size.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
+                              icon: const Icon(Icons.edit_rounded, size: 16),
+                              label: Text(
+                                'Edit Details', 
+                                style: theme.textTheme.labelLarge?.copyWith(
+                                  fontWeight: FontWeight.bold, 
+                                  color: theme.colorScheme.primary
+                                ),
+                              ),
+                            ),
                           ),
                         ),
                       ],
