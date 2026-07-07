@@ -412,7 +412,13 @@ class _GlassIconButton extends StatelessWidget {
         height: 44,
         borderRadius: 22,
         padding: EdgeInsets.zero,
-        child: Icon(icon, size: 22, color: Theme.of(context).colorScheme.onSurface),
+        child: Container(
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.black.withValues(alpha: 0.4),
+          ),
+          child: Icon(icon, size: 22, color: Colors.white),
+        ),
       ),
     );
   }
