@@ -344,7 +344,7 @@ class RunSummaryScreen extends ConsumerWidget {
       children: [
         ElevatedButton(
           style: ElevatedButton.styleFrom(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(17),
             backgroundColor: theme.colorScheme.surface,
             foregroundColor: theme.colorScheme.onSurface.withValues(alpha: 0.6),
             elevation: 0,
@@ -357,7 +357,7 @@ class RunSummaryScreen extends ConsumerWidget {
             ref.read(progressProvider.notifier).deleteActivity(activity.id);
             Navigator.of(context).popUntil((route) => route.isFirst);
           },
-          child: const Icon(Icons.delete_outline_rounded),
+          child: const Icon(Icons.delete_outline_rounded, size: 30),
         ),
         const SizedBox(width: 12),
         Expanded(
