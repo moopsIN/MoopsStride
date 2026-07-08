@@ -92,10 +92,26 @@ class SyncEngine {
 
   Future<void> downSync(String uid) async {
     try {
+      final db = await LocalDatabase.instance.database;
+      
+      // Ensure we have a local profile so splash screen doesn't think we need onboarding
+      final profiles = await db.query('user_profile', limit: 1);
+      if (profiles.isEmpty) {
+        await db.insert('user_profile', {
+          'goal': '',
+          'experience_level': '',
+          'gender': '',
+          'age': 25,
+          'height': 170.0,
+          'weight': 70.0,
+          'activity_level': '',
+          'units_preference': 'km',
+        });
+      }
+
       final snapshot = await _firestore.collection('users').doc(uid).collection('activities').get();
       if (snapshot.docs.isEmpty) return;
 
-      final db = await LocalDatabase.instance.database;
       final batch = db.batch();
 
       for (final doc in snapshot.docs) {
