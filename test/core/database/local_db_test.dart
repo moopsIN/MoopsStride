@@ -108,5 +108,32 @@ void main() {
       unsynced = await dbHelper.getUnsyncedActivities();
       expect(unsynced.length, 0);
     });
+
+    test('Delete hides a run; restore brings it back intact', () async {
+      await dbHelper.insertActivity({
+        'id': 'undo_me',
+        'type': 'run',
+        'start_time': 1600000000,
+        'end_time': 1600001800,
+        'distance_meters': 5000.0,
+        'duration_seconds': 1800,
+        'avg_pace': 6.0,
+        'calories_estimate': 400.0,
+        'route_polyline': '[[1.0,2.0]]',
+        'synced': 1,
+      });
+
+      await dbHelper.deleteActivity('undo_me');
+      expect(await dbHelper.getActivities(), isEmpty);
+
+      expect(await dbHelper.restoreActivity('undo_me'), true);
+      final rows = await dbHelper.getActivities();
+      expect(rows.single['route_polyline'], '[[1.0,2.0]]');
+      expect(rows.single['synced'], 0); // re-sync so the cloud matches
+
+      await dbHelper.deleteActivity('undo_me');
+      await dbHelper.purgeTombstones();
+      expect(await dbHelper.restoreActivity('undo_me'), false);
+    });
   });
 }

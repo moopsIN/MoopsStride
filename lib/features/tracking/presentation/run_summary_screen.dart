@@ -501,31 +501,7 @@ class _RunSummaryScreenState extends ConsumerState<RunSummaryScreen> {
                 side: BorderSide(color: theme.colorScheme.onSurface.withValues(alpha: 0.1)),
               ),
             ),
-            onPressed: () async {
-              final confirmed = await showDialog<bool>(
-                context: context,
-                builder: (ctx) => AlertDialog(
-                  title: const Text('Delete Run?'),
-                  content: const Text('Are you sure you want to delete this run? This action cannot be undone.'),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.of(ctx).pop(false),
-                      child: const Text('CANCEL'),
-                    ),
-                    TextButton(
-                      style: TextButton.styleFrom(foregroundColor: theme.colorScheme.error),
-                      onPressed: () => Navigator.of(ctx).pop(true),
-                      child: const Text('DELETE'),
-                    ),
-                  ],
-                ),
-              );
-
-              if (confirmed == true && context.mounted) {
-                ref.read(progressProvider.notifier).deleteActivity(activity.id);
-                Navigator.of(context).popUntil((route) => route.isFirst);
-              }
-            },
+            onPressed: () => _deleteWithUndo(context),
             child: const Icon(Icons.delete_rounded, size: 30),
           ),
         ),
@@ -552,6 +528,41 @@ class _RunSummaryScreenState extends ConsumerState<RunSummaryScreen> {
         ),
       ],
     ).animate().slideY(begin: 0.4, delay: 640.ms, curve: Curves.easeOutBack).fadeIn(delay: 640.ms);
+  }
+
+  /// Deletes straight away and offers Undo, instead of a confirm dialog.
+  /// The delete only syncs once the snackbar closes without Undo.
+  Future<void> _deleteWithUndo(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final progress = ref.read(progressProvider.notifier);
+    final id = activity.id;
+
+    await progress.deleteActivity(id);
+    if (!context.mounted) return;
+    Navigator.of(context).popUntil((route) => route.isFirst);
+
+    messenger.clearSnackBars();
+    messenger
+        .showSnackBar(SnackBar(
+          content: const Text('Run deleted'),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 5),
+          action: SnackBarAction(
+            label: 'UNDO',
+            onPressed: () async {
+              if (!await progress.undoDelete(id)) {
+                messenger.showSnackBar(const SnackBar(
+                  content: Text("Couldn't restore that run."),
+                  behavior: SnackBarBehavior.floating,
+                ));
+              }
+            },
+          ),
+        ))
+        .closed
+        .then((reason) {
+      if (reason != SnackBarClosedReason.action) progress.commitDeletes();
+    });
   }
 
   String _formatDate(DateTime dt) {

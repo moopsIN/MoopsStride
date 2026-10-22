@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stride/core/database/local_db.dart';
 import 'package:stride/features/sync/providers/sync_engine.dart';
+import 'package:stride/features/auth/providers/auth_provider.dart';
 import 'package:stride/features/tracking/models/activity_model.dart';
 
 class ProgressState {
@@ -78,11 +79,27 @@ class ProgressNotifier extends Notifier<ProgressState> {
     _loadActivities();
   }
 
+  /// Hides the run immediately; call [commitDeletes] once undo is no longer
+  /// offered.
   Future<void> deleteActivity(String id) async {
     await LocalDatabase.instance.deleteActivity(id);
-    _loadActivities();
-    // Propagate the tombstone so the run doesn't come back from the cloud.
-    ref.read(syncEngineProvider).syncUnsyncedActivities();
+    await _loadActivities();
+  }
+
+  Future<bool> undoDelete(String id) async {
+    final restored = await LocalDatabase.instance.restoreActivity(id);
+    await _loadActivities();
+    return restored;
+  }
+
+  /// Propagates deletes so runs don't come back from the cloud; guests have
+  /// nothing to propagate, so their tombstones are simply removed.
+  Future<void> commitDeletes() async {
+    if (ref.read(authProvider) == null) {
+      await LocalDatabase.instance.purgeTombstones();
+    } else {
+      await ref.read(syncEngineProvider).syncUnsyncedActivities();
+    }
   }
 
   int _calculateStreak(List<ActivityModel> acts) {

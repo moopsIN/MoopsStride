@@ -104,8 +104,9 @@ CREATE TABLE user_profile (
     );
   }
 
-  /// Soft-deletes: the row becomes an unsynced tombstone (route stripped) so
-  /// the delete reaches the cloud. The sync engine purges it once pushed.
+  /// Soft-deletes: the row becomes an unsynced tombstone so the delete
+  /// reaches the cloud (as a bare tombstone, without the route). The sync
+  /// engine purges it once pushed. Until then [restoreActivity] can undo it.
   Future<void> deleteActivity(String id) async {
     final db = await instance.database;
     await db.update(
@@ -113,12 +114,35 @@ CREATE TABLE user_profile (
       {
         'deleted': 1,
         'synced': 0,
-        'route_polyline': null,
         'updated_at': DateTime.now().millisecondsSinceEpoch,
       },
       where: 'id = ?',
       whereArgs: [id],
     );
+  }
+
+  /// Undoes [deleteActivity]. Returns false if the tombstone was already
+  /// pushed and purged.
+  Future<bool> restoreActivity(String id) async {
+    final db = await instance.database;
+    final count = await db.update(
+      'activities',
+      {
+        'deleted': 0,
+        'synced': 0,
+        'updated_at': DateTime.now().millisecondsSinceEpoch,
+      },
+      where: 'id = ? AND deleted = 1',
+      whereArgs: [id],
+    );
+    return count > 0;
+  }
+
+  /// Without an account there's nowhere to propagate deletes, so tombstones
+  /// (and the routes they still hold) can go immediately.
+  Future<void> purgeTombstones() async {
+    final db = await instance.database;
+    await db.delete('activities', where: 'deleted = 1');
   }
 
   Future<List<Map<String, dynamic>>> getActivities() async {
