@@ -12,7 +12,9 @@
     <application
         android:label="Stride by Moops"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:allowBackup="false"
+        android:fullBackupContent="false">
         
         <!-- Custom location service for background tracking -->
         <service

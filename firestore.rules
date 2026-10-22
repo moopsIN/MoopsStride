@@ -1,0 +1,17 @@
+rules_version = '2';
+
+// Each user can only read and write their own profile and runs.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+
+      match /activities/{activityId} {
+        allow read, delete: if request.auth != null && request.auth.uid == uid;
+        // Docs carry their own id; keep it consistent with the path.
+        allow create, update: if request.auth != null && request.auth.uid == uid
+          && request.resource.data.id == activityId;
+      }
+    }
+  }
+}
