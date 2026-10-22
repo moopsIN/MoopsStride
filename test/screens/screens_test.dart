@@ -1,14 +1,31 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Split;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:stride/features/splash/splash_screen.dart';
 import 'package:stride/features/tracking/presentation/tracking_screen.dart';
+import 'package:stride/features/tracking/presentation/run_summary_screen.dart';
+import 'package:stride/features/tracking/models/activity_model.dart';
+import 'package:stride/features/tracking/models/split.dart';
 import 'package:stride/features/tracking/providers/tracking_provider.dart';
 
 import '../helpers/harness.dart';
 
 /// Every screen must render in light and dark at a small phone width without
 /// layout overflow (overflows surface as test exceptions).
+final sampleRun = ActivityModel(
+  id: 'sample',
+  type: 'run',
+  startTime: DateTime(2026, 10, 22, 7, 40),
+  endTime: DateTime(2026, 10, 22, 8, 12),
+  distanceMeters: 5230,
+  durationSeconds: 1925,
+  avgPace: 6.1,
+  caloriesEstimate: 342,
+  steps: 6104,
+  routePoints: const [LatLng(22.7196, 75.8577), LatLng(22.7230, 75.8610), LatLng(22.7260, 75.8580)],
+  splits: const [Split(1000, 371), Split(1000, 359), Split(1000, 380), Split(1000, 366), Split(1000, 372), Split(230, 77)],
+);
+
 void main() {
   setUpAll(setUpScreenTests);
 
@@ -44,11 +61,19 @@ void main() {
             currentSteps: status == TrackingStatus.notStarted ? 0 : 4210,
           ),
         );
-        await tester.pump(const Duration(seconds: 1));
+        await settleFrames(tester);
         await screenshot(tester, 'home_${status.name}_$mode');
         expect(tester.takeException(), isNull);
         await disposeScreen(tester);
       });
     }
+
+    testWidgets('run summary ($mode)', (tester) async {
+      await pumpScreen(tester, RunSummaryScreen(activity: sampleRun), dark: dark, size: const Size(360, 740));
+      await settleFrames(tester);
+      await screenshot(tester, 'summary_$mode');
+      expect(tester.takeException(), isNull);
+      await disposeScreen(tester);
+    });
   }
 }

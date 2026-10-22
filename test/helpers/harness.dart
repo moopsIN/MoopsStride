@@ -141,3 +141,11 @@ Future<void> disposeScreen(WidgetTester tester) async {
   await tester.pumpWidget(const SizedBox());
   await tester.pump(const Duration(seconds: 30));
 }
+
+/// Steps frames so entrance animations (which start on the first frame and
+/// then tick) actually run; one long pump would only advance a single frame.
+Future<void> settleFrames(WidgetTester tester, {int frames = 20}) async {
+  for (var i = 0; i < frames; i++) {
+    await tester.pump(const Duration(milliseconds: 100));
+  }
+}

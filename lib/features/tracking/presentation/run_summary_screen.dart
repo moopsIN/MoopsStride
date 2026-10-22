@@ -1,19 +1,24 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:flutter_animate/flutter_animate.dart';
-import 'dart:ui' as ui;
 import 'dart:io';
+import 'dart:ui' as ui;
+
+import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:stride/core/config/secrets.dart';
-import 'package:stride/features/tracking/models/activity_model.dart';
-import 'package:stride/theme/brutal_card.dart';
 import 'package:stride/core/providers/preferences_provider.dart';
 import 'package:stride/core/utils/formatters.dart';
+import 'package:stride/core/widgets/moop.dart';
 import 'package:stride/features/progress/providers/progress_provider.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:stride/features/tracking/models/activity_model.dart';
+import 'package:stride/theme/app_theme.dart';
+import 'package:stride/theme/brutal_card.dart';
 
+/// A finished run as a shareable card: framed route map, headline distance,
+/// pastel stat tiles and splits.
 class RunSummaryScreen extends ConsumerStatefulWidget {
   final ActivityModel activity;
 
@@ -24,178 +29,119 @@ class RunSummaryScreen extends ConsumerStatefulWidget {
 }
 
 class _RunSummaryScreenState extends ConsumerState<RunSummaryScreen> {
-  final GlobalKey _globalKey = GlobalKey();
+  final GlobalKey _shareKey = GlobalKey();
   bool _isSharing = false;
+  /// True while the share image is rendered, so buttons stay out of it.
   bool _isCapturing = false;
 
   ActivityModel get activity => widget.activity;
 
   @override
   Widget build(BuildContext context) {
-    final activity = widget.activity;
-    final theme = Theme.of(context);
-    final bg = theme.scaffoldBackgroundColor;
-    final hasRoute = activity.routePoints.isNotEmpty;
-
-    LatLngBounds? bounds;
-    if (activity.routePoints.length > 1) {
-      bounds = LatLngBounds.fromPoints(activity.routePoints);
-    }
-
+    final c = context.stride;
     return Scaffold(
-      body: RepaintBoundary(
-        key: _globalKey,
-        child: Stack(
+      body: SafeArea(
+        child: Column(
           children: [
-          // 1. Bright map (or a themed placeholder if no route was recorded)
-          Positioned.fill(
-            child: hasRoute ? _buildMap(context, bounds) : _buildNoRoute(context),
-          ),
-
-          // 2. Theme-matched overlay: transparent over the top so the map stays
-          //    bright, solidifying into the background where the stats sit. Uses
-          //    the scaffold background so it's correct in both light and dark.
-          Positioned.fill(
-            child: IgnorePointer(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.bottomCenter,
-                    end: Alignment.topCenter,
-                    colors: [bg, bg, bg.withValues(alpha: 0.0)],
-                    stops: const [0.0, 0.34, 0.66],
-                  ),
-                ),
-              ),
-            ),
-          ),
-
-          // 3. Content
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Column(
-                children: [
-                  const SizedBox(height: 4),
-                  Opacity(
-                    opacity: _isCapturing ? 0.0 : 1.0,
-                    child: Row(
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(20, 12, 16, 12),
+                child: RepaintBoundary(
+                  key: _shareKey,
+                  child: Container(
+                    // Solid ground so the shared image isn't transparent.
+                    color: c.background,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        _GlassIconButton(
-                          icon: Icons.close_rounded,
-                          onTap: () => Navigator.of(context).pop(),
-                        ).animate().fadeIn(duration: 400.ms),
-                        const Spacer(),
-                        _isSharing 
-                          ? const Padding(
-                              padding: EdgeInsets.all(12),
-                              child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
-                            )
-                          : _GlassIconButton(
-                              icon: Icons.ios_share_rounded,
-                              onTap: _shareRun,
-                            ).animate().fadeIn(duration: 400.ms),
+                        _buildMapCard(context),
+                        const SizedBox(height: 18),
+                        _buildHeadline(context)
+                            .animate()
+                            .fadeIn(duration: 350.ms)
+                            .slideY(begin: 0.15, curve: Curves.easeOut),
+                        const SizedBox(height: 16),
+                        _buildStatsGrid(context),
+                        if (activity.splits.isNotEmpty) ...[
+                          const SizedBox(height: 14),
+                          _buildSplits(context),
+                        ],
+                        if (_isCapturing) ...[
+                          const SizedBox(height: 14),
+                          Text('tracked with stride · by moops',
+                              textAlign: TextAlign.center,
+                              style: Theme.of(context).textTheme.labelSmall),
+                        ],
                       ],
                     ),
                   ),
-
-                  const Spacer(),
-
-                  _buildHeader(context, ref)
-                      .animate()
-                      .slideY(begin: 0.25, curve: Curves.easeOut)
-                      .fadeIn(delay: 150.ms, duration: 450.ms),
-
-                  const SizedBox(height: 22),
-
-                  _buildStatsGrid(context, ref),
-
-                  if (activity.splits.isNotEmpty) ...[
-                    const SizedBox(height: 14),
-                    _buildSplits(context),
-                  ],
-
-                  const SizedBox(height: 24),
-
-                  Opacity(
-                    opacity: _isCapturing ? 0.0 : 1.0,
-                    child: _buildDoneButton(context, ref),
-                  ),
-                  const SizedBox(height: 4),
-                ],
+                ),
               ),
             ),
-          ),
-        ],
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 4, 16, 12),
+              child: _buildActions(context),
+            ),
+          ],
+        ),
       ),
-    ),
-  );
-}
-
-  Future<void> _shareRun() async {
-    if (_isSharing || _isCapturing) return;
-
-    setState(() => _isCapturing = true);
-    
-    try {
-      await Future.delayed(const Duration(milliseconds: 100));
-      final boundary = _globalKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
-      if (boundary == null) return;
-      
-      final image = await boundary.toImage(pixelRatio: 3.0);
-      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-      final pngBytes = byteData?.buffer.asUint8List();
-      
-      if (mounted) {
-        setState(() {
-          _isCapturing = false;
-          _isSharing = true;
-        });
-      }
-
-      if (pngBytes == null) return;
-      
-      final tempDir = await getTemporaryDirectory();
-      final file = File('${tempDir.path}/stride_run_summary.png');
-      await file.writeAsBytes(pngBytes);
-      
-      // ignore: deprecated_member_use
-      await Share.shareXFiles([XFile(file.path)], text: 'Check out my run on Moops Stride!');
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to share run.')));
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isCapturing = false;
-          _isSharing = false;
-        });
-      }
-    }
+    );
   }
 
-  Widget _buildMap(BuildContext context, LatLngBounds? bounds) {
-    final theme = Theme.of(context);
-    final accent = theme.colorScheme.primary;
+  // ------------------------------------------------------------------- map
 
+  Widget _buildMapCard(BuildContext context) {
+    final c = context.stride;
+    final points = activity.routePoints;
+    return BrutalCard(
+      height: 250,
+      padding: EdgeInsets.zero,
+      color: c.surfaceAlt,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(Brutal.radius - Brutal.outline),
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: points.isEmpty ? _buildNoRoute(context) : _buildMap(context),
+            ),
+            if (!_isCapturing)
+              Positioned(
+                top: 10,
+                left: 10,
+                right: 10,
+                child: Row(
+                  children: [
+                    _CircleButton(icon: Icons.close_rounded, onTap: () => Navigator.of(context).pop()),
+                    const Spacer(),
+                    _isSharing
+                        ? const Padding(
+                            padding: EdgeInsets.all(12),
+                            child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.5)),
+                          )
+                        : _CircleButton(icon: Icons.ios_share_rounded, onTap: _shareRun),
+                  ],
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMap(BuildContext context) {
+    final c = context.stride;
+    final points = activity.routePoints;
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return FlutterMap(
       options: MapOptions(
-        initialCameraFit: bounds != null
+        initialCameraFit: points.length > 1
             ? CameraFit.bounds(
-                bounds: bounds,
-                padding: const EdgeInsets.only(
-                  top: 120,
-                  left: 60,
-                  right: 60,
-                  bottom: 360,
-                ),
+                bounds: LatLngBounds.fromPoints(points),
+                padding: const EdgeInsets.fromLTRB(40, 64, 40, 32),
               )
             : null,
-        initialCenter: activity.routePoints.first,
-        initialZoom: 15.0,
-        minZoom: 10.0,
-        maxZoom: 18.0,
+        initialCenter: points.first,
+        initialZoom: 15,
         interactionOptions: const InteractionOptions(
           flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
         ),
@@ -203,176 +149,118 @@ class _RunSummaryScreenState extends ConsumerState<RunSummaryScreen> {
       children: [
         TileLayer(
           urlTemplate:
-              'https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=${Secrets.mapTilerKey}',
+              'https://api.maptiler.com/maps/${dark ? 'dataviz-dark' : 'dataviz'}/{z}/{x}/{y}.png?key=${Secrets.mapTilerKey}',
           userAgentPackageName: 'com.moops.stride',
         ),
-        PolylineLayer(
-          polylines: [
-            // Soft dark halo so the route reads clearly on the bright map.
-            Polyline(
-              points: activity.routePoints,
-              color: Colors.black.withValues(alpha: 0.18),
-              strokeWidth: 10,
-              strokeCap: StrokeCap.round,
-              strokeJoin: StrokeJoin.round,
-            ),
-            Polyline(
-              points: activity.routePoints,
-              color: accent,
-              strokeWidth: 5,
-              strokeCap: StrokeCap.round,
-              strokeJoin: StrokeJoin.round,
-            ),
-          ],
-        ),
-        MarkerLayer(
-          markers: [
-            Marker(
-              point: activity.routePoints.first,
-              width: 22,
-              height: 22,
-              child: const _RouteDot(color: Color(0xFF2ECC71)),
-            ),
-            Marker(
-              point: activity.routePoints.last,
-              width: 22,
-              height: 22,
-              child: _RouteDot(color: accent),
-            ),
-          ],
-        ),
-        const RichAttributionWidget(
-          attributions: [
-            TextSourceAttribution('© OpenStreetMap contributors'),
-          ],
-        ),
+        PolylineLayer(polylines: [
+          Polyline(points: points, color: c.outline, strokeWidth: 9, strokeCap: StrokeCap.round, strokeJoin: StrokeJoin.round),
+          Polyline(points: points, color: c.go, strokeWidth: 5, strokeCap: StrokeCap.round, strokeJoin: StrokeJoin.round),
+        ]),
+        MarkerLayer(markers: [
+          Marker(point: points.first, width: 22, height: 22, child: _RouteDot(color: c.go)),
+          Marker(point: points.last, width: 22, height: 22, child: _RouteDot(color: c.coral)),
+        ]),
+        const RichAttributionWidget(attributions: [TextSourceAttribution('© OpenStreetMap contributors')]),
       ],
-    ).animate().fadeIn(duration: 700.ms);
+    );
   }
 
   Widget _buildNoRoute(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      color: theme.colorScheme.surface,
-      alignment: Alignment.topCenter,
-      padding: const EdgeInsets.only(top: 120),
+    return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.map_outlined,
-              size: 48, color: theme.colorScheme.onSurface.withValues(alpha: 0.3)),
-          const SizedBox(height: 12),
-          Text(
-            'No route recorded',
-            style: theme.textTheme.bodyMedium,
-          ),
+          const Moop(size: 64, mood: MoopMood.sleepy, animate: false),
+          const SizedBox(height: 8),
+          Text('no route recorded', style: Theme.of(context).textTheme.bodyMedium),
         ],
       ),
     );
   }
 
-  Widget _buildHeader(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    final accent = theme.colorScheme.primary;
-    final muted = theme.colorScheme.onSurface.withValues(alpha: 0.55);
-    final isKm = ref.watch(isKmProvider);
-    final distance = isKm 
-        ? (activity.distanceMeters / 1000)
-        : ((activity.distanceMeters / 1000) * 0.621371);
-    final distanceKm = distance.toStringAsFixed(2);
-    final distanceUnit = isKm ? 'KM' : 'MI';
+  // -------------------------------------------------------------- headline
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildHeadline(BuildContext context) {
+    final c = context.stride;
+    final text = Theme.of(context).textTheme;
+    final isKm = ref.watch(isKmProvider);
+    final distance = activity.distanceMeters / (isKm ? 1000 : kmPerMile * 1000);
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        Row(
-          children: [
-            Text(
-              activity.type.toUpperCase(),
-              style: theme.textTheme.labelMedium?.copyWith(
-                color: accent,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 3,
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${activity.type.toUpperCase()} · ${_formatDate(activity.startTime)}',
+                style: text.labelSmall,
               ),
-            ),
-            Text(
-              '  ·  ${_formatDate(activity.startTime)}',
-              style: theme.textTheme.labelMedium?.copyWith(color: muted, letterSpacing: 0.5),
-            ),
-          ],
+              const SizedBox(height: 6),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  Flexible(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        distance.toStringAsFixed(2),
+                        style: text.displayLarge?.copyWith(fontSize: 64, height: 1),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  BrutalPill(text: isKm ? 'KM' : 'MI', color: c.butter),
+                ],
+              ),
+            ],
+          ),
         ),
-        const SizedBox(height: 10),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.baseline,
-          textBaseline: TextBaseline.alphabetic,
-          children: [
-            Text(
-              distanceKm,
-              style: theme.textTheme.displayLarge?.copyWith(
-                fontSize: 62,
-                height: 1.0,
-                letterSpacing: -1,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Text(
-                distanceUnit,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  color: accent,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 2,
-                ),
-              ),
-            ),
-          ],
-        ),
+        const Moop(size: 76, mood: MoopMood.excited),
       ],
     );
   }
 
-  Widget _buildStatsGrid(BuildContext context, WidgetRef ref) {
-    final isKm = ref.watch(isKmProvider);
+  // ----------------------------------------------------------------- stats
 
+  Widget _buildStatsGrid(BuildContext context) {
+    final c = context.stride;
+    final isKm = ref.watch(isKmProvider);
+    Widget row(Widget a, Widget b) => Row(
+          children: [Expanded(child: a), const SizedBox(width: 6), Expanded(child: b)],
+        );
     return Column(
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: _buildStatTile(context, Icons.schedule_rounded, 'TIME',
-                  formatDuration(activity.durationSeconds), 300),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: _buildStatTile(context, Icons.speed_rounded, 'AVG PACE',
-                  formatPace(activity.avgSpeedKmH, isKm: isKm), 380, unit: isKm ? '/km' : '/mi'),
-            ),
-          ],
+        row(
+          _StatTile(color: c.butter, icon: Icons.schedule_rounded, label: 'TIME', value: formatDuration(activity.durationSeconds)),
+          _StatTile(
+            color: c.blush,
+            icon: Icons.speed_rounded,
+            label: isKm ? 'AVG PACE /KM' : 'AVG PACE /MI',
+            value: formatPace(activity.avgSpeedKmH, isKm: isKm),
+          ),
         ),
-        const SizedBox(height: 14),
-        Row(
-          children: [
-            Expanded(
-              child: _buildStatTile(context, Icons.local_fire_department_rounded,
-                  'CALORIES', activity.caloriesEstimate.toStringAsFixed(0), 460, unit: 'kcal'),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: _buildStatTile(context, Icons.directions_walk_rounded, 'STEPS',
-                  activity.steps.toString(), 540),
-            ),
-          ],
+        const SizedBox(height: 6),
+        row(
+          _StatTile(
+            color: c.sky,
+            icon: Icons.local_fire_department_rounded,
+            label: 'CALORIES',
+            value: activity.caloriesEstimate.toStringAsFixed(0),
+          ),
+          _StatTile(color: c.sage, icon: Icons.directions_walk_rounded, label: 'STEPS', value: '${activity.steps}'),
         ),
-      ],
+      ].animate(interval: 60.ms).fadeIn(duration: 300.ms).slideY(begin: 0.2, curve: Curves.easeOut),
     );
   }
 
   /// Splits keep the unit they were recorded in, whatever the current setting.
   Widget _buildSplits(BuildContext context) {
-    final theme = Theme.of(context);
-    final accent = theme.colorScheme.primary;
-    final muted = theme.colorScheme.onSurface.withValues(alpha: 0.55);
+    final c = context.stride;
+    final text = Theme.of(context).textTheme;
     final unit = activity.splitUnitMeters;
     final unitLabel = unit < 1500 ? 'KM' : 'MI';
     final splits = activity.splits;
@@ -386,148 +274,132 @@ class _RunSummaryScreenState extends ConsumerState<RunSummaryScreen> {
       }
     }
 
-    return SizedBox(
-      height: 62,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: splits.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 10),
-        itemBuilder: (context, i) {
-          final split = splits[i];
-          final isFull = split.distanceMeters >= unit;
-          final isFastest = i == fastest && splits.length > 1;
-          final label = isFull
-              ? '$unitLabel ${i + 1}'
-              : '${(split.distanceMeters / unit).toStringAsFixed(2)} $unitLabel';
-          final pace = split.paceSecondsPer(unit).round();
-          return BrutalCard(
-            borderRadius: 16,
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  isFastest ? '$label  ★' : label,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: isFastest ? accent : muted,
-                    letterSpacing: 1.2,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${pace ~/ 60}\'${(pace % 60).toString().padLeft(2, '0')}"',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: isFastest ? accent : null,
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
-    ).animate().fadeIn(delay: 600.ms);
-  }
-
-  Widget _buildStatTile(
-      BuildContext context, IconData icon, String label, String value, int delayMs, {String? unit}) {
-    final theme = Theme.of(context);
-    final accent = theme.colorScheme.primary;
-    final muted = theme.colorScheme.onSurface.withValues(alpha: 0.55);
-
-    return BrutalCard(
-      borderRadius: 20,
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, size: 15, color: accent),
-              const SizedBox(width: 7),
-              Text(
-                label,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: muted,
-                  letterSpacing: 1.5,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Text(
-                value,
-                style: theme.textTheme.displayLarge?.copyWith(fontSize: 26, height: 1.0),
-              ),
-              if (unit != null) ...[
-                const SizedBox(width: 4),
-                Text(
-                  unit,
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    color: muted,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ],
-      ),
-    ).animate().slideY(begin: 0.2, curve: Curves.easeOut).fadeIn(delay: delayMs.ms);
-  }
-
-  Widget _buildDoneButton(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        Text('SPLITS', style: text.labelSmall),
+        const SizedBox(height: 8),
         SizedBox(
-          width: 62,
-          height: 62,
-          child: ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              padding: EdgeInsets.zero,
-              backgroundColor: theme.colorScheme.surface,
-              foregroundColor: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(18),
-                side: BorderSide(color: theme.colorScheme.onSurface.withValues(alpha: 0.1)),
-              ),
-            ),
-            onPressed: () => _deleteWithUndo(context),
-            child: const Icon(Icons.delete_rounded, size: 30),
+          height: 72,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: splits.length,
+            separatorBuilder: (_, _) => const SizedBox(width: 4),
+            itemBuilder: (context, i) {
+              final split = splits[i];
+              final isFull = split.distanceMeters >= unit;
+              final isFastest = i == fastest && splits.length > 1;
+              final label = isFull
+                  ? '$unitLabel ${i + 1}'
+                  : '${(split.distanceMeters / unit).toStringAsFixed(2)} $unitLabel';
+              final pace = split.paceSecondsPer(unit).round();
+              return BrutalCard(
+                color: isFastest ? c.butter : c.surface,
+                shadow: 3,
+                borderRadius: Brutal.radiusSmall,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(label, style: text.labelSmall?.copyWith(color: c.onPastel)),
+                        if (isFastest) ...[
+                          const SizedBox(width: 4),
+                          Icon(Icons.star_rounded, size: 13, color: c.onPastel),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${pace ~/ 60}\'${(pace % 60).toString().padLeft(2, '0')}"',
+                      style: text.headlineSmall?.copyWith(color: c.onPastel),
+                    ),
+                  ],
+                ),
+              );
+            },
           ),
         ),
-        const SizedBox(width: 12),
+      ],
+    );
+  }
+
+  // --------------------------------------------------------------- actions
+
+  Widget _buildActions(BuildContext context) {
+    final c = context.stride;
+    return Row(
+      children: [
+        BrutalCard(
+          width: 58,
+          height: 58,
+          borderRadius: Brutal.radiusSmall,
+          color: c.surface,
+          onTap: () => _deleteWithUndo(context),
+          child: Icon(Icons.delete_outline_rounded, color: c.ink, size: 26),
+        ),
+        const SizedBox(width: 8),
         Expanded(
-          child: ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 20),
-              backgroundColor: theme.colorScheme.primary,
-              elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-            ),
-            onPressed: () => Navigator.of(context).popUntil((route) => route.isFirst),
-            child: Text(
-              'DONE',
-              style: theme.textTheme.labelLarge?.copyWith(
-                color: theme.scaffoldBackgroundColor,
-                fontSize: 15,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 2.5,
+          child: BrutalCard(
+            height: 58,
+            borderRadius: Brutal.radiusSmall,
+            color: c.brand,
+            onTap: () => Navigator.of(context).popUntil((route) => route.isFirst),
+            child: Center(
+              child: Text(
+                'done',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: c.onBrand),
               ),
             ),
           ),
         ),
       ],
-    ).animate().slideY(begin: 0.4, delay: 640.ms, curve: Curves.easeOutBack).fadeIn(delay: 640.ms);
+    );
+  }
+
+  Future<void> _shareRun() async {
+    if (_isSharing || _isCapturing) return;
+    setState(() => _isCapturing = true);
+
+    try {
+      // Let the frame without buttons (and with the footer) paint first.
+      await Future.delayed(const Duration(milliseconds: 100));
+      final boundary = _shareKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+      if (boundary == null) return;
+
+      final image = await boundary.toImage(pixelRatio: 3.0);
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      final pngBytes = byteData?.buffer.asUint8List();
+
+      if (mounted) {
+        setState(() {
+          _isCapturing = false;
+          _isSharing = true;
+        });
+      }
+      if (pngBytes == null) return;
+
+      final tempDir = await getTemporaryDirectory();
+      final file = File('${tempDir.path}/stride_run_summary.png');
+      await file.writeAsBytes(pngBytes);
+
+      // ignore: deprecated_member_use
+      await Share.shareXFiles([XFile(file.path)], text: 'Check out my run on Stride by Moops!');
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to share run.')));
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isCapturing = false;
+          _isSharing = false;
+        });
+      }
+    }
   }
 
   /// Deletes straight away and offers Undo, instead of a confirm dialog.
@@ -545,16 +417,12 @@ class _RunSummaryScreenState extends ConsumerState<RunSummaryScreen> {
     messenger
         .showSnackBar(SnackBar(
           content: const Text('Run deleted'),
-          behavior: SnackBarBehavior.floating,
           duration: const Duration(seconds: 5),
           action: SnackBarAction(
             label: 'UNDO',
             onPressed: () async {
               if (!await progress.undoDelete(id)) {
-                messenger.showSnackBar(const SnackBar(
-                  content: Text("Couldn't restore that run."),
-                  behavior: SnackBarBehavior.floating,
-                ));
+                messenger.showSnackBar(const SnackBar(content: Text("Couldn't restore that run.")));
               }
             },
           ),
@@ -566,18 +434,54 @@ class _RunSummaryScreenState extends ConsumerState<RunSummaryScreen> {
   }
 
   String _formatDate(DateTime dt) {
-    const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-    ];
+    const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
     final hour12 = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
     final ampm = dt.hour < 12 ? 'AM' : 'PM';
     final minute = dt.minute.toString().padLeft(2, '0');
-    return '${months[dt.month - 1]} ${dt.day}, ${dt.year}  ·  $hour12:$minute $ampm';
+    return '${months[dt.month - 1]} ${dt.day}, ${dt.year} · $hour12:$minute $ampm';
   }
 }
 
-/// A start/finish marker: a filled dot with a white ring so it reads on any map tile.
+class _StatTile extends StatelessWidget {
+  final Color color;
+  final IconData icon;
+  final String label;
+  final String value;
+
+  const _StatTile({required this.color, required this.icon, required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.stride;
+    final text = Theme.of(context).textTheme;
+    return BrutalCard(
+      color: color,
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 16, color: c.onPastel),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(label, style: text.labelSmall?.copyWith(color: c.onPastel), overflow: TextOverflow.ellipsis),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(value, style: text.displaySmall?.copyWith(color: c.onPastel)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Start/finish marker: a filled dot with an ink ring, readable on any tile.
 class _RouteDot extends StatelessWidget {
   final Color color;
   const _RouteDot({required this.color});
@@ -588,38 +492,28 @@ class _RouteDot extends StatelessWidget {
       decoration: BoxDecoration(
         color: color,
         shape: BoxShape.circle,
-        border: Border.all(color: Colors.white, width: 3),
-        boxShadow: [
-          BoxShadow(color: color.withValues(alpha: 0.45), blurRadius: 8, spreadRadius: 1),
-        ],
+        border: Border.all(color: context.stride.outline, width: Brutal.outline),
       ),
     );
   }
 }
 
-/// A circular glass button, legible over the bright map in either theme.
-class _GlassIconButton extends StatelessWidget {
+class _CircleButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
-  const _GlassIconButton({required this.icon, required this.onTap});
+  const _CircleButton({required this.icon, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    final c = context.stride;
+    return BrutalCard(
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      shadow: 3,
+      color: c.surface,
       onTap: onTap,
-      child: BrutalCard(
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        padding: EdgeInsets.zero,
-        child: Container(
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Colors.black.withValues(alpha: 0.4),
-          ),
-          child: Icon(icon, size: 22, color: Colors.white),
-        ),
-      ),
+      child: Icon(icon, size: 22, color: c.ink),
     );
   }
 }
