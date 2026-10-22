@@ -53,12 +53,39 @@ void main() {
         .get();
         
     expect(docSnapshot.exists, true);
-    expect(docSnapshot.data()?['synced'], 1);
+    expect(docSnapshot.data()!.containsKey('synced'), false);
     expect(docSnapshot.data()?['distance_meters'], 1000);
 
     // 5. Verify local DB flag is updated
     final db = await LocalDatabase.instance.database;
     final rows = await db.query('activities', where: 'id = ?', whereArgs: ['activity_1']);
     expect(rows.first['synced'], 1);
+  });
+
+  test('SyncEngine splits uploads larger than one Firestore batch', () async {
+    final fakeFirestore = FakeFirebaseFirestore();
+    final mockAuth = MockFirebaseAuth(mockUser: MockUser(uid: 'u'), signedIn: true);
+    final engine = SyncEngine(auth: mockAuth, firestore: fakeFirestore);
+
+    final count = SyncEngine.batchLimit + 50;
+    for (var i = 0; i < count; i++) {
+      await LocalDatabase.instance.insertActivity(ActivityModel(
+        id: 'a$i',
+        type: 'run',
+        startTime: DateTime(2026, 1, 1),
+        endTime: DateTime(2026, 1, 1),
+        distanceMeters: 100,
+        durationSeconds: 60,
+        avgPace: 5.0,
+        caloriesEstimate: 10,
+        routePoints: [],
+      ).toMap());
+    }
+
+    expect(await engine.syncUnsyncedActivities(), true);
+
+    final cloud = await fakeFirestore.collection('users').doc('u').collection('activities').get();
+    expect(cloud.docs.length, count);
+    expect(await LocalDatabase.instance.getUnsyncedActivities(), isEmpty);
   });
 }

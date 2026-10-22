@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:math';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
@@ -6,7 +9,17 @@ import 'package:stride/core/database/local_db.dart';
 import 'package:stride/features/auth/providers/auth_provider.dart';
 import 'package:sqflite/sqflite.dart';
 
+enum _PushResult { ok, failed, timedOut }
+
 class SyncEngine {
+  /// Firestore rejects batches over 500 operations; stay well under it.
+  static const int batchLimit = 400;
+
+  /// On mobile, a Firestore commit only completes once the server acknowledges
+  /// it, so offline it would wait forever. The write stays queued in
+  /// Firestore's local cache either way; we just stop waiting for it.
+  static const Duration commitTimeout = Duration(seconds: 20);
+
   final FirebaseAuth _auth;
   final FirebaseFirestore _firestore;
   bool _isSyncing = false;
@@ -17,6 +30,11 @@ class SyncEngine {
   })  : _auth = auth ?? FirebaseAuth.instance,
         _firestore = firestore ?? FirebaseFirestore.instance;
 
+  CollectionReference<Map<String, dynamic>> _activitiesRef(String uid) =>
+      _firestore.collection('users').doc(uid).collection('activities');
+
+  /// Pushes every locally unsynced activity. Returns true only if all of them
+  /// reached the server.
   Future<bool> syncUnsyncedActivities() async {
     if (_isSyncing) return false;
     final user = _auth.currentUser;
@@ -31,46 +49,34 @@ class SyncEngine {
         whereArgs: [0],
       );
 
-      if (unsynced.isEmpty) {
-        return true;
+      final ref = _activitiesRef(user.uid);
+      var allPushed = true;
+
+      for (var i = 0; i < unsynced.length; i += batchLimit) {
+        final chunk = unsynced.sublist(i, min(i + batchLimit, unsynced.length));
+
+        final result = await _pushRows(ref, chunk);
+        if (result == _PushResult.ok) {
+          await _markSynced(db, chunk);
+          continue;
+        }
+        if (result == _PushResult.timedOut) return false; // Offline; retry later.
+
+        // The batch was rejected. Push rows one by one so a single bad record
+        // (e.g. a route over Firestore's 1 MiB doc limit) can't block the rest.
+        for (final row in chunk) {
+          final single = await _pushRows(ref, [row]);
+          if (single == _PushResult.ok) {
+            await _markSynced(db, [row]);
+          } else {
+            allPushed = false;
+            if (single == _PushResult.timedOut) return false;
+            debugPrint('Sync skipped activity ${row['id']}');
+          }
+        }
       }
 
-      final batch = _firestore.batch();
-      final userActivitiesRef = _firestore
-          .collection('users')
-          .doc(user.uid)
-          .collection('activities');
-
-      for (final row in unsynced) {
-        final id = row['id'] as String;
-        final docRef = userActivitiesRef.doc(id);
-        
-        // Convert to mutable map and prepare for Firestore
-        final data = Map<String, dynamic>.from(row);
-        data['synced'] = 1; // Mark as synced in cloud payload (optional, but good practice)
-        
-        // We could store route_polyline as a string, or parse it back to array if needed.
-        // Keeping it as string is fine for now as it's just raw JSON.
-        
-        batch.set(docRef, data, SetOptions(merge: true));
-      }
-
-      await batch.commit();
-
-      // If successful, update local db
-      final batchUpdate = db.batch();
-      for (final row in unsynced) {
-        final id = row['id'] as String;
-        batchUpdate.update(
-          'activities',
-          {'synced': 1},
-          where: 'id = ?',
-          whereArgs: [id],
-        );
-      }
-      await batchUpdate.commit();
-
-      return true;
+      return allPushed;
     } catch (e) {
       // Sync failed (offline, permission denied, etc). Will retry later.
       debugPrint('Sync failed: $e');
@@ -79,6 +85,37 @@ class SyncEngine {
       _isSyncing = false;
     }
   }
+
+  Future<_PushResult> _pushRows(
+    CollectionReference<Map<String, dynamic>> ref,
+    List<Map<String, dynamic>> rows,
+  ) async {
+    final batch = _firestore.batch();
+    for (final row in rows) {
+      batch.set(ref.doc(row['id'] as String), _toCloud(row), SetOptions(merge: true));
+    }
+    try {
+      await batch.commit().timeout(commitTimeout);
+      return _PushResult.ok;
+    } on TimeoutException {
+      return _PushResult.timedOut;
+    } catch (e) {
+      debugPrint('Sync push failed: $e');
+      return _PushResult.failed;
+    }
+  }
+
+  Future<void> _markSynced(Database db, List<Map<String, dynamic>> rows) async {
+    final batch = db.batch();
+    for (final row in rows) {
+      batch.update('activities', {'synced': 1}, where: 'id = ?', whereArgs: [row['id']]);
+    }
+    await batch.commit(noResult: true);
+  }
+
+  /// The local `synced` flag is device bookkeeping and doesn't belong in the cloud.
+  Map<String, dynamic> _toCloud(Map<String, dynamic> row) =>
+      Map<String, dynamic>.from(row)..remove('synced');
 
   Future<bool> checkCloudDataExists(String uid) async {
     try {
