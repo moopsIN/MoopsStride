@@ -22,6 +22,21 @@ class ProfileScreen extends ConsumerStatefulWidget {
 }
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
+  bool _isSyncing = false;
+
+  Future<void> _handleSyncNow() async {
+    setState(() => _isSyncing = true);
+    final ok = await ref.read(syncEngineProvider).fullSync(force: true);
+    if (!mounted) return;
+    setState(() => _isSyncing = false);
+    ref.invalidate(pendingSyncCountProvider);
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(ok
+          ? 'Everything is synced.'
+          : "Couldn't sync everything. Check your connection and try again."),
+      behavior: SnackBarBehavior.floating,
+    ));
+  }
 
   Widget _buildDetailRow(BuildContext context, IconData icon, String label, String value) {
     final theme = Theme.of(context);
@@ -161,7 +176,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            isGuest ? 'Tracking locally on this device' : 'Synced to your account',
+                            isGuest
+                                ? 'Tracking locally on this device'
+                                : switch (ref.watch(pendingSyncCountProvider).value) {
+                                    null || 0 => 'Synced to your account',
+                                    1 => '1 change waiting to sync',
+                                    final n => '$n changes waiting to sync',
+                                  },
                             style: theme.textTheme.bodyMedium?.copyWith(
                               color: theme.colorScheme.onSurface.withValues(alpha: 0.55),
                             ),
@@ -321,6 +342,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   color: Colors.transparent,
                   child: Column(
                     children: [
+                    if (!isGuest) ...[
+                      ListTile(
+                        leading: Icon(Icons.cloud_sync_rounded, color: theme.colorScheme.onSurface),
+                        title: const Text('Sync Now'),
+                        trailing: _isSyncing
+                            ? const SizedBox(
+                                width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                            : null,
+                        onTap: _isSyncing ? null : _handleSyncNow,
+                      ),
+                      _divider(context),
+                    ],
                     ListTile(
                       leading: Icon(Icons.info_outline_rounded, color: theme.colorScheme.onSurface),
                       title: const Text('About'),

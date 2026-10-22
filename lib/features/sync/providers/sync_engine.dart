@@ -79,11 +79,21 @@ class SyncEngine {
     return result;
   }
 
+  /// Minimum gap between automatic (non-forced) full syncs. A pull reads every
+  /// activity doc, so app resumes shouldn't each trigger one.
+  static const Duration autoSyncInterval = Duration(minutes: 10);
+  DateTime? _lastFullSync;
+
   /// Pushes local changes, then pulls the cloud's. Returns true if both
-  /// completed fully.
-  Future<bool> fullSync() async {
+  /// completed fully. Unless [force], skips if one ran recently.
+  Future<bool> fullSync({bool force = false}) async {
     final user = _auth.currentUser;
     if (user == null) return false;
+    final last = _lastFullSync;
+    if (!force && last != null && DateTime.now().difference(last) < autoSyncInterval) {
+      return syncUnsyncedActivities();
+    }
+    _lastFullSync = DateTime.now();
     final pushed = await syncUnsyncedActivities();
     try {
       await pullFromCloud(user.uid);
@@ -275,6 +285,7 @@ class SyncEngine {
     }
 
     await batch.commit(noResult: true);
+    _lastFullSync = DateTime.now();
     onLocalDataChanged?.call();
   }
 
@@ -363,12 +374,26 @@ final syncEngineProvider = Provider<SyncEngine>((ref) {
     };
 
   // When a user logs in, push any local "guest" runs and merge in their cloud
-  // history.
-  ref.listen<User?>(authProvider, (previous, next) {
-    if (next != null && previous == null) {
-      engine.fullSync();
+  // history. Without a local profile the user hasn't yet chosen between
+  // Sync Now and Start Fresh, so pulling here would pre-empt that choice.
+  ref.listen<User?>(authProvider, (previous, next) async {
+    if (next != null && previous == null &&
+        await LocalDatabase.instance.getUserProfile() != null) {
+      engine.fullSync(force: true);
     }
   });
 
   return engine;
+});
+
+/// Local changes not yet in the cloud. Auto-disposed so each visit re-reads.
+final pendingSyncCountProvider = FutureProvider.autoDispose<int>((ref) async {
+  final db = await LocalDatabase.instance.database;
+  final activities = Sqflite.firstIntValue(
+          await db.rawQuery('SELECT COUNT(*) FROM activities WHERE synced = 0')) ??
+      0;
+  final profile = Sqflite.firstIntValue(
+          await db.rawQuery('SELECT COUNT(*) FROM user_profile WHERE synced = 0')) ??
+      0;
+  return activities + profile;
 });

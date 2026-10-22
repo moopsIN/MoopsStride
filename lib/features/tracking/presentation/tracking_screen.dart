@@ -28,13 +28,26 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
   static const Color _pauseAmber = Color(0xFFD0A558); // Muted amber
   static const Color _stopRed = Color(0xFFE5484D);
 
+  late final AppLifecycleListener _lifecycle;
+
   @override
   void initState() {
     super.initState();
+    // Only reached once onboarded, so it's safe to pull here. Catches up on
+    // runs recorded offline or on other devices, at start and on resume.
+    _lifecycle = AppLifecycleListener(
+      onResume: () => ref.read(syncEngineProvider).fullSync(),
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(progressProvider.notifier).refresh();
-      ref.read(syncEngineProvider);
+      ref.read(syncEngineProvider).fullSync();
     });
+  }
+
+  @override
+  void dispose() {
+    _lifecycle.dispose();
+    super.dispose();
   }
 
   Future<void> _finishRun() async {

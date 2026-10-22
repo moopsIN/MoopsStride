@@ -10,6 +10,7 @@ import 'package:stride/features/splash/splash_screen.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:stride/core/providers/preferences_provider.dart';
+import 'package:stride/features/sync/providers/sync_engine.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -35,6 +36,8 @@ class MyApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(themeModeProvider);
+    // Created eagerly so its login listener exists before anyone signs in.
+    ref.watch(syncEngineProvider);
 
     return MaterialApp(
       title: 'Stride by Moops',
