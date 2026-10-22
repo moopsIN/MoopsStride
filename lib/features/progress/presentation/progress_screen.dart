@@ -7,6 +7,7 @@ import 'package:stride/features/progress/providers/progress_provider.dart';
 import 'package:stride/features/tracking/models/activity_model.dart';
 import 'package:stride/features/tracking/presentation/run_summary_screen.dart';
 import 'package:stride/core/providers/preferences_provider.dart';
+import 'package:stride/core/utils/formatters.dart';
 
 class ProgressScreen extends ConsumerWidget {
   const ProgressScreen({super.key});
@@ -135,6 +136,14 @@ class ProgressScreen extends ConsumerWidget {
                               Text(
                                 '${((activity.distanceMeters / 1000) * distanceMultiplier).toStringAsFixed(2)} $distanceUnit',
                                 style: Theme.of(context).textTheme.displayLarge?.copyWith(fontSize: 20),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '${formatDuration(activity.durationSeconds)}  ·  '
+                                '${formatPace(activity.avgSpeedKmH, isKm: isKm)} /${isKm ? 'km' : 'mi'}',
+                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                                    ),
                               ),
                             ],
                           ),
