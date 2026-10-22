@@ -84,7 +84,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               ),
               TextButton(
                 onPressed: () => Navigator.of(ctx).pop(true),
-                child: const Text('Logout Anyway', style: TextStyle(color: Colors.red)),
+                child: Text('Logout Anyway', style: TextStyle(color: Theme.of(ctx).colorScheme.error, fontWeight: FontWeight.w700)),
               ),
             ],
           ),
@@ -111,7 +111,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Delete Account', style: TextStyle(color: Colors.red)),
+            child: Text('Delete Account', style: TextStyle(color: Theme.of(ctx).colorScheme.error, fontWeight: FontWeight.w700)),
           ),
         ],
       ),

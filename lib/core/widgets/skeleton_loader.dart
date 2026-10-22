@@ -26,7 +26,7 @@ class SkeletonLoader extends StatelessWidget {
       child: const SizedBox.expand(),
     )
         .animate(onPlay: (controller) => controller.repeat())
-        .shimmer(duration: 1500.ms, color: Colors.white24)
+        .shimmer(duration: 1500.ms, color: context.stride.surface)
         .fadeIn(duration: 500.ms);
   }
 }

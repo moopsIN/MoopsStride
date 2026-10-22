@@ -93,7 +93,7 @@ class _SyncPromptScreenState extends ConsumerState<SyncPromptScreen> {
           TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Delete Everything', style: TextStyle(color: Colors.red)),
+            child: Text('Delete Everything', style: TextStyle(color: Theme.of(ctx).colorScheme.error, fontWeight: FontWeight.w700)),
           ),
         ],
       ),
