@@ -257,4 +257,22 @@ void main() {
       expect(await engine.checkCloudData('u'), CloudDataStatus.empty);
     });
   });
+
+  test('wipeCloudData deletes every run past one batch, plus the profile', () async {
+    final fakeFirestore = FakeFirebaseFirestore();
+    final engine = SyncEngine(
+      auth: MockFirebaseAuth(mockUser: MockUser(uid: 'u'), signedIn: true),
+      firestore: fakeFirestore,
+    );
+    final user = fakeFirestore.collection('users').doc('u');
+    await user.set({'profile': {'goal': 'x'}});
+    for (var i = 0; i < SyncEngine.batchLimit + 10; i++) {
+      await user.collection('activities').doc('a$i').set({'id': 'a$i'});
+    }
+
+    await engine.wipeCloudData('u');
+
+    expect((await user.collection('activities').get()).docs, isEmpty);
+    expect((await user.get()).exists, false);
+  });
 }

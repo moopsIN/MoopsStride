@@ -101,7 +101,17 @@ class _SyncPromptScreenState extends ConsumerState<SyncPromptScreen> {
     setState(() => _isWiping = true);
     final user = ref.read(authProvider);
     if (user != null) {
-      await ref.read(syncEngineProvider).wipeCloudData(user.uid);
+      try {
+        await ref.read(syncEngineProvider).wipeCloudData(user.uid);
+      } on SyncException catch (e) {
+        if (!mounted) return;
+        setState(() => _isWiping = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(e.message),
+          behavior: SnackBarBehavior.floating,
+        ));
+        return;
+      }
     }
 
     if (!mounted) return;

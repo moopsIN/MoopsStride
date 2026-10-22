@@ -333,18 +333,26 @@ class SyncEngine {
       ..['deleted'] = 0;
   }
 
-  Future<void> wipeCloudData(String uid) async {
-    try {
-      final snapshot = await _firestore.collection('users').doc(uid).collection('activities').get();
-      final batch = _firestore.batch();
-      for (final doc in snapshot.docs) {
-        batch.delete(doc.reference);
-      }
-      await batch.commit();
-    } catch (e) {
-      debugPrint('Wipe cloud data failed: $e');
-    }
-  }
+  /// Permanently deletes the account's runs and profile from the cloud.
+  /// Throws [SyncException] unless everything was deleted.
+  Future<void> wipeCloudData(String uid) => _exclusive(() async {
+        try {
+          final snapshot = await _activitiesRef(uid).get(_fromServer).timeout(commitTimeout);
+          final docs = snapshot.docs;
+          for (var i = 0; i < docs.length; i += batchLimit) {
+            final batch = _firestore.batch();
+            for (final doc in docs.sublist(i, min(i + batchLimit, docs.length))) {
+              batch.delete(doc.reference);
+            }
+            await batch.commit().timeout(commitTimeout);
+          }
+          await _userRef(uid).delete().timeout(commitTimeout);
+        } catch (e) {
+          debugPrint('Wipe cloud data failed: $e');
+          throw SyncException(
+              "Couldn't delete all of your cloud data. Check your connection and try again.");
+        }
+      });
 }
 
 final syncEngineProvider = Provider<SyncEngine>((ref) {
