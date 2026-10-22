@@ -9,6 +9,7 @@ void main() {
   setUpAll(() {
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;
+    LocalDatabase.pathOverride = inMemoryDatabasePath;
   });
 
   setUp(() async {

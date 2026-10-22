@@ -7,6 +7,7 @@ void main() {
     // Initialize sqflite for desktop/unit test environments
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;
+    LocalDatabase.pathOverride = inMemoryDatabasePath;
   });
 
   group('LocalDatabase CRUD Tests', () {

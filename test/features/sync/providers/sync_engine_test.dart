@@ -10,6 +10,7 @@ void main() {
   setUpAll(() {
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;
+    LocalDatabase.pathOverride = inMemoryDatabasePath;
   });
 
   setUp(() async {
@@ -87,5 +88,36 @@ void main() {
     final cloud = await fakeFirestore.collection('users').doc('u').collection('activities').get();
     expect(cloud.docs.length, count);
     expect(await LocalDatabase.instance.getUnsyncedActivities(), isEmpty);
+  });
+
+  test('Deleting a synced run tombstones it in the cloud and purges it locally', () async {
+    final fakeFirestore = FakeFirebaseFirestore();
+    final mockAuth = MockFirebaseAuth(mockUser: MockUser(uid: 'u'), signedIn: true);
+    final engine = SyncEngine(auth: mockAuth, firestore: fakeFirestore);
+
+    await LocalDatabase.instance.insertActivity(ActivityModel(
+      id: 'gone',
+      type: 'run',
+      startTime: DateTime(2026, 1, 1),
+      endTime: DateTime(2026, 1, 1),
+      distanceMeters: 100,
+      durationSeconds: 60,
+      avgPace: 5.0,
+      caloriesEstimate: 10,
+      routePoints: [],
+    ).toMap());
+    await engine.syncUnsyncedActivities();
+
+    await LocalDatabase.instance.deleteActivity('gone');
+    expect(await LocalDatabase.instance.getActivities(), isEmpty);
+    expect(await engine.syncUnsyncedActivities(), true);
+
+    final doc = await fakeFirestore
+        .collection('users').doc('u').collection('activities').doc('gone').get();
+    expect(doc.data()?['deleted'], 1);
+    expect(doc.data()!.containsKey('route_polyline'), false);
+
+    final db = await LocalDatabase.instance.database;
+    expect(await db.query('activities'), isEmpty);
   });
 }

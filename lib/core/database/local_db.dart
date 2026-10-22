@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
@@ -5,6 +6,11 @@ class LocalDatabase {
   static final LocalDatabase instance = LocalDatabase._init();
 
   static Database? _database;
+
+  /// Tests set this to [inMemoryDatabasePath] so test files don't share rows
+  /// through a single on-disk database.
+  @visibleForTesting
+  static String? pathOverride;
 
   LocalDatabase._init();
 
@@ -16,10 +22,9 @@ class LocalDatabase {
   }
 
   Future<Database> _initDB(String filePath) async {
-    final dbPath = await getDatabasesPath();
-    final path = join(dbPath, filePath);
+    final path = pathOverride ?? join(await getDatabasesPath(), filePath);
 
-    return await openDatabase(path, version: 3, onCreate: _createDB, onUpgrade: _upgradeDB);
+    return await openDatabase(path, version: 4, onCreate: _createDB, onUpgrade: _upgradeDB);
   }
 
   Future _upgradeDB(Database db, int oldVersion, int newVersion) async {
@@ -28,6 +33,11 @@ class LocalDatabase {
     }
     if (oldVersion < 3) {
       await db.execute('ALTER TABLE user_profile ADD COLUMN age INTEGER');
+    }
+    if (oldVersion < 4) {
+      await db.execute('ALTER TABLE activities ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0');
+      await db.execute('ALTER TABLE activities ADD COLUMN deleted INTEGER NOT NULL DEFAULT 0');
+      await db.execute('UPDATE activities SET updated_at = end_time');
     }
   }
 
@@ -44,7 +54,9 @@ CREATE TABLE activities (
   calories_estimate REAL NOT NULL,
   route_polyline TEXT,
   synced INTEGER NOT NULL DEFAULT 0,
-  steps INTEGER NOT NULL DEFAULT 0
+  steps INTEGER NOT NULL DEFAULT 0,
+  updated_at INTEGER NOT NULL DEFAULT 0,
+  deleted INTEGER NOT NULL DEFAULT 0
 )
 ''');
 
@@ -77,19 +89,31 @@ CREATE TABLE user_profile (
     final db = await instance.database;
     await db.insert(
       'activities',
-      activity,
+      {'updated_at': DateTime.now().millisecondsSinceEpoch, ...activity},
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }
 
+  /// Soft-deletes: the row becomes an unsynced tombstone (route stripped) so
+  /// the delete reaches the cloud. The sync engine purges it once pushed.
   Future<void> deleteActivity(String id) async {
     final db = await instance.database;
-    await db.delete('activities', where: 'id = ?', whereArgs: [id]);
+    await db.update(
+      'activities',
+      {
+        'deleted': 1,
+        'synced': 0,
+        'route_polyline': null,
+        'updated_at': DateTime.now().millisecondsSinceEpoch,
+      },
+      where: 'id = ?',
+      whereArgs: [id],
+    );
   }
 
   Future<List<Map<String, dynamic>>> getActivities() async {
     final db = await instance.database;
-    return await db.query('activities', orderBy: 'start_time DESC');
+    return await db.query('activities', where: 'deleted = 0', orderBy: 'start_time DESC');
   }
 
   Future<List<Map<String, dynamic>>> getUnsyncedActivities() async {

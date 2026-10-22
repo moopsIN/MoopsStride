@@ -92,7 +92,14 @@ class SyncEngine {
   ) async {
     final batch = _firestore.batch();
     for (final row in rows) {
-      batch.set(ref.doc(row['id'] as String), _toCloud(row), SetOptions(merge: true));
+      final doc = ref.doc(row['id'] as String);
+      if (row['deleted'] == 1) {
+        // Overwrite (no merge) so the route and stats are erased from the cloud,
+        // leaving only the tombstone other devices need to drop their copy.
+        batch.set(doc, {'id': row['id'], 'deleted': 1, 'updated_at': row['updated_at']});
+      } else {
+        batch.set(doc, _toCloud(row), SetOptions(merge: true));
+      }
     }
     try {
       await batch.commit().timeout(commitTimeout);
@@ -105,10 +112,18 @@ class SyncEngine {
     }
   }
 
+  /// Matches on `updated_at` so a row changed locally while its push was in
+  /// flight stays unsynced. Pushed tombstones have done their job and are purged.
   Future<void> _markSynced(Database db, List<Map<String, dynamic>> rows) async {
     final batch = db.batch();
     for (final row in rows) {
-      batch.update('activities', {'synced': 1}, where: 'id = ?', whereArgs: [row['id']]);
+      const where = 'id = ? AND updated_at = ?';
+      final args = [row['id'], row['updated_at']];
+      if (row['deleted'] == 1) {
+        batch.delete('activities', where: where, whereArgs: args);
+      } else {
+        batch.update('activities', {'synced': 1}, where: where, whereArgs: args);
+      }
     }
     await batch.commit(noResult: true);
   }
