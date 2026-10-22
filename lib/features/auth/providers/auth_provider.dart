@@ -40,31 +40,34 @@ class AuthNotifier extends Notifier<User?> {
     await _auth.sendPasswordResetEmail(email: email);
   }
 
-  Future<void> signInWithGoogle() async {
+  /// Returns false if the user dismissed the Google account picker.
+  Future<bool> signInWithGoogle() async {
     await _ensureInitialized();
-    
+
+    final GoogleSignInAccount googleUser;
     try {
-      final googleUser = await GoogleSignIn.instance.authenticate();
-      
-      final googleAuth = googleUser.authentication;
-      final authz = await googleUser.authorizationClient.authorizeScopes([
-        'email',
-        'profile',
-      ]);
-      
-      final credential = GoogleAuthProvider.credential(
-        accessToken: authz.accessToken,
-        idToken: googleAuth.idToken,
-      );
-      
-      await _auth.signInWithCredential(credential);
-    } catch (e) {
-      throw Exception('Google sign in failed: $e');
+      googleUser = await GoogleSignIn.instance.authenticate();
+    } on GoogleSignInException catch (e) {
+      if (e.code == GoogleSignInExceptionCode.canceled) return false;
+      throw Exception('Google sign in failed: ${e.description ?? e.code.name}');
     }
+
+    // Firebase only needs the ID token; requesting extra scopes here just
+    // added a second consent prompt.
+    final credential = GoogleAuthProvider.credential(
+      idToken: googleUser.authentication.idToken,
+    );
+    await _auth.signInWithCredential(credential);
+    return true;
   }
 
   Future<void> signOut() async {
     await _auth.signOut();
+    // Clear the cached Google account so the next sign-in can pick another.
+    try {
+      await _ensureInitialized();
+      await GoogleSignIn.instance.signOut();
+    } catch (_) {}
   }
 }
 

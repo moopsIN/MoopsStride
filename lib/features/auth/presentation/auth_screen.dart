@@ -33,6 +33,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
         'too-many-requests' => 'Too many attempts. Wait a moment and try again.',
         'network-request-failed' => 'No connection. Check your network and try again.',
         'user-disabled' => 'This account has been disabled.',
+        'account-exists-with-different-credential' =>
+          'This email is already registered with a password. Sign in with email instead.',
         _ => e.message ?? 'Authentication failed.',
       };
     }
@@ -236,8 +238,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   Future<void> _handleGoogleLogin() async {
     setState(() => _isLoading = true);
     try {
-      await ref.read(authProvider.notifier).signInWithGoogle();
-      if (mounted) {
+      final signedIn = await ref.read(authProvider.notifier).signInWithGoogle();
+      if (signedIn && mounted) {
         await _routeAfterLogin();
       }
     } catch (e) {
