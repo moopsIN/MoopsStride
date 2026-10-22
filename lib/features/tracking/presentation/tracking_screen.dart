@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:stride/features/tracking/providers/tracking_provider.dart';
 import 'package:stride/theme/brutal_card.dart';
 import 'package:stride/core/config/secrets.dart';
@@ -15,7 +14,8 @@ import 'package:stride/features/profile/presentation/profile_screen.dart';
 import 'package:stride/features/progress/providers/progress_provider.dart';
 import 'package:stride/features/progress/presentation/progress_screen.dart';
 import 'package:stride/features/sync/providers/sync_engine.dart';
-import 'package:stride/features/profile/providers/profile_provider.dart';
+import 'package:stride/core/widgets/moop.dart';
+import 'package:stride/theme/app_theme.dart';
 
 class TrackingScreen extends ConsumerStatefulWidget {
   const TrackingScreen({super.key});
@@ -26,10 +26,6 @@ class TrackingScreen extends ConsumerStatefulWidget {
 
 class _TrackingScreenState extends ConsumerState<TrackingScreen> {
   final MapController _mapController = MapController();
-
-  static const Color _goGreen = Color(0xFF55A870); // Muted green
-  static const Color _pauseAmber = Color(0xFFD0A558); // Muted amber
-  static const Color _stopRed = Color(0xFFE5484D);
 
   late final AppLifecycleListener _lifecycle;
 
@@ -102,10 +98,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final bg = theme.scaffoldBackgroundColor;
-    final trackingState = ref.watch(trackingProvider);
+    final state = ref.watch(trackingProvider);
 
     ref.listen<TrackingState>(trackingProvider, (previous, next) {
       final message = next.errorMessage;
@@ -115,422 +108,452 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
       }
     });
 
-    // Update map camera if we have a location
-    if (trackingState.currentLocation != null) {
-      if (trackingState.status == TrackingStatus.active) {
+    // Follow the runner while active; recentre once per run so the user can
+    // still pinch-zoom without it snapping back.
+    if (state.currentLocation != null && _isMapReady) {
+      if (state.status == TrackingStatus.active) {
         final targetZoom = _hasZoomedForActiveRun ? _mapController.camera.zoom : _activeZoom;
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          _mapController.move(trackingState.currentLocation!, targetZoom);
+          if (mounted) _mapController.move(state.currentLocation!, targetZoom);
         });
         _hasZoomedForActiveRun = true;
-      } else if (trackingState.status == TrackingStatus.notStarted) {
+      } else if (state.status == TrackingStatus.notStarted) {
         _hasZoomedForActiveRun = false;
       }
     }
 
-    final hasStarted = trackingState.status != TrackingStatus.notStarted;
-    final mapStyle = isDark ? 'dataviz-dark' : 'dataviz';
+    final hasStarted = state.status != TrackingStatus.notStarted;
 
-    final baseUi = Stack(
-      children: [
-        // 1. FlutterMap Layer — style follows the theme.
-        AnimatedOpacity(
-            duration: const Duration(milliseconds: 800),
-            opacity: _isMapReady ? 1.0 : 0.0,
-            child: FlutterMap(
-              mapController: _mapController,
-              options: MapOptions(
-                initialCenter: trackingState.currentLocation ?? const LatLng(0, 0),
-                initialZoom: _idleZoom,
-                onMapReady: () {
-                  if (mounted) {
-                    setState(() => _isMapReady = true);
-                  }
-                },
-              ),
+    return Scaffold(
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 16, 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              TileLayer(
-                urlTemplate:
-                    'https://api.maptiler.com/maps/$mapStyle/{z}/{x}/{y}.png?key=${Secrets.mapTilerKey}',
-                userAgentPackageName: 'com.moops.stride',
+              hasStarted ? _buildRunHeader(context, state) : _buildHomeHeader(context),
+              const SizedBox(height: 16),
+              Expanded(child: _buildMapCard(context, state)),
+              const SizedBox(height: 14),
+              hasStarted ? _buildRunStats(context, state) : _buildHomeBlocks(context),
+              const SizedBox(height: 18),
+              _buildControls(context, state),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------- header
+
+  Widget _buildHomeHeader(BuildContext context) {
+    final c = context.stride;
+    final text = Theme.of(context).textTheme;
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(_greeting(), style: text.headlineLarge),
+              const SizedBox(height: 2),
+              Text('ready when you are.', style: text.bodyMedium),
+            ],
+          ),
+        ),
+        BrutalCard(
+          width: 52,
+          height: 52,
+          borderRadius: 26,
+          color: c.sage,
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const ProfileScreen()),
+          ),
+          child: const Center(child: Moop(size: 36, animate: false)),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRunHeader(BuildContext context, TrackingState state) {
+    final c = context.stride;
+    final text = Theme.of(context).textTheme;
+    final active = state.status == TrackingStatus.active;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              BrutalPill(
+                text: active ? 'RUNNING' : 'PAUSED',
+                color: active ? c.go : c.pause,
+                icon: active ? Icons.circle : Icons.pause_rounded,
               ),
-              PolylineLayer(
-                polylines: [
-                  if (trackingState.routePoints.isNotEmpty) ...[
-                    Polyline(
-                      points: trackingState.routePoints,
-                      color: (isDark ? Colors.black : Colors.white).withValues(alpha: 0.35),
-                      strokeWidth: 10,
-                      strokeCap: StrokeCap.round,
-                      strokeJoin: StrokeJoin.round,
-                    ),
-                    Polyline(
-                      points: trackingState.routePoints,
-                      color: theme.colorScheme.primary,
-                      strokeWidth: 6,
-                      strokeCap: StrokeCap.round,
-                      strokeJoin: StrokeJoin.round,
-                    ),
-                  ],
-                ],
-              ),
-              const RichAttributionWidget(
-                attributions: [
-                  TextSourceAttribution('© OpenStreetMap contributors'),
-                ],
+              const SizedBox(height: 8),
+              Text(
+                state.formattedDuration,
+                style: text.displayLarge?.copyWith(fontSize: 48, fontFeatures: const [FontFeature.tabularFigures()]),
               ),
             ],
           ),
         ),
-
-        // 2. Theme-matched scrim: darkens/lightens toward the theme background
-        //    at the top (header) and bottom (controls) for legibility, while
-        //    keeping the map visible through the middle band.
-        Positioned.fill(
-          child: IgnorePointer(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    bg.withValues(alpha: 0.88),
-                    bg.withValues(alpha: 0.30),
-                    bg.withValues(alpha: 0.30),
-                    bg.withValues(alpha: 0.92),
-                  ],
-                  stops: const [0.0, 0.26, 0.58, 1.0],
-                ),
-              ),
-            ),
-          ),
-        ),
-
-        // Header (always present)
-        Positioned(
-          top: MediaQuery.of(context).padding.top + 16,
-          left: 20,
-          right: 20,
-          child: _buildHomeHeader(context, trackingState),
-        ),
-
-        // 3. Stats (centered, above the controls)
-        if (hasStarted)
-          Align(
-            alignment: const Alignment(0, -0.02),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0),
-              child: _buildStatsPanel(context, trackingState, ref)
-                  .animate()
-                  .slideY(begin: 0.2, curve: Curves.easeOut)
-                  .fadeIn(duration: 400.ms),
-            ),
-          ),
-
-        // 4. Controls (lower third). Running shows only PAUSE, so nothing
-        //    destructive is one tap away; finishing requires pausing first and
-        //    then holding FINISH.
-        Align(
-          alignment: const Alignment(0, 0.45),
-          child: _buildControls(context, trackingState),
-        ),
-      ],
-    );
-
-    return Scaffold(body: baseUi);
-  }
-
-  Widget _buildControls(BuildContext context, TrackingState state) {
-    if (state.status != TrackingStatus.paused) {
-      return _buildMainToggleButton(context, state);
-    }
-
-    final muted = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6);
-    final caption = Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: muted,
-          letterSpacing: 1.2,
-          fontWeight: FontWeight.w600,
-        );
-
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            HoldToConfirmButton(
-              icon: Icons.stop_rounded,
-              color: _stopRed,
-              size: 84,
-              onConfirmed: _finishRun,
-            ),
-            const SizedBox(height: 8),
-            Text('HOLD TO FINISH', style: caption),
-          ],
-        ).animate().fadeIn(duration: 250.ms).slideX(begin: 0.3, curve: Curves.easeOut),
-        const SizedBox(width: 28),
-        Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _buildMainToggleButton(context, state),
-            const SizedBox(height: 8),
-            Text('TAP TO RESUME', style: caption),
-          ],
-        ),
+        Moop(size: 64, running: active, mood: active ? MoopMood.idle : MoopMood.sleepy),
       ],
     );
   }
 
-  Widget _buildMainToggleButton(BuildContext context, TrackingState state) {
-    final theme = Theme.of(context);
-    final isActive = state.status == TrackingStatus.active;
-    final isNotStarted = state.status == TrackingStatus.notStarted;
+  // ------------------------------------------------------------------- map
 
-    final label = isNotStarted ? 'START' : (isActive ? 'PAUSE' : 'RESUME');
-    final color = isActive ? _pauseAmber : _goGreen;
-    final size = isNotStarted ? 184.0 : 132.0;
-
-    return GestureDetector(
-      key: ValueKey(state.status),
-      onTap: () async {
-        final notifier = ref.read(trackingProvider.notifier);
-        if (isNotStarted) {
-          final success = await notifier.startTracking();
-          if (!success && context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text(
-                    'Please enable Location Services and grant permissions to track your run.'),
-              ),
-            );
-          }
-          if (success) HapticFeedback.mediumImpact();
-        } else if (isActive) {
-          HapticFeedback.lightImpact();
-          notifier.pauseTracking();
-        } else {
-          HapticFeedback.lightImpact();
-          notifier.resumeTracking();
-        }
-      },
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: color,
-          border: Border.all(
-            color: theme.scaffoldBackgroundColor.withValues(alpha: 0.6),
-            width: 5,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: color.withValues(alpha: 0.4),
-              blurRadius: 30,
-              spreadRadius: 1,
-            ),
-          ],
-        ),
-        alignment: Alignment.center,
-        child: Text(
-          label,
-          style: theme.textTheme.labelLarge?.copyWith(
-            color: Colors.black.withValues(alpha: 0.8),
-            fontWeight: FontWeight.w800,
-            fontSize: isNotStarted ? 22 : 18,
-            letterSpacing: 2,
-          ),
-        ),
-      ),
-    ).animate(key: ValueKey(state.status)).scale(
-          duration: 260.ms,
-          curve: Curves.easeOutBack,
-          begin: const Offset(0.85, 0.85),
-        );
-  }
-
-  Widget _buildStatsPanel(BuildContext context, TrackingState state, WidgetRef ref) {
-    final isKm = ref.watch(isKmProvider);
-    final distLabel = isKm ? 'KM' : 'MI';
-    final distValue = isKm ? state.distanceKm : (state.distanceKm * 0.621371);
-    final paceLabel = isKm ? 'PACE /KM' : 'PACE /MI';
+  Widget _buildMapCard(BuildContext context, TrackingState state) {
+    final c = context.stride;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final mapStyle = dark ? 'dataviz-dark' : 'dataviz';
+    final here = state.currentLocation;
 
     return BrutalCard(
-      borderRadius: 22,
-      padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 6),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          _buildStatItem(context, 'TIME', state.formattedDuration),
-          _statDivider(context),
-          _buildStatItem(context, distLabel, distValue.toStringAsFixed(2), highlight: true),
-          _statDivider(context),
-          _buildStatItem(context, paceLabel, formatPace(state.currentSpeed, isKm: isKm)),
-          _statDivider(context),
-          _buildStatItem(context, 'STEPS', state.currentSteps.toString()),
-        ],
-      ),
-    );
-  }
-
-  Widget _statDivider(BuildContext context) {
-    return Container(
-      width: 1,
-      height: 38,
-      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
-    );
-  }
-
-  Widget _buildStatItem(BuildContext context, String label, String value,
-      {bool highlight = false}) {
-    final theme = Theme.of(context);
-    return Expanded(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            value,
-            textAlign: TextAlign.center,
-            style: theme.textTheme.displayLarge?.copyWith(
-              fontSize: 20,
-              height: 1.0,
-              color: highlight ? theme.colorScheme.primary : null,
-            ),
-          ),
-          const SizedBox(height: 7),
-          Text(
-            label,
-            style: theme.textTheme.labelSmall?.copyWith(
-              letterSpacing: 1.5,
-              fontWeight: FontWeight.w600,
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.55),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHomeHeader(BuildContext context, TrackingState state) {
-    final theme = Theme.of(context);
-    final progressState = ref.watch(progressProvider);
-    final muted = theme.colorScheme.onSurface.withValues(alpha: 0.6);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          crossAxisAlignment: CrossAxisAlignment.start,
+      padding: EdgeInsets.zero,
+      color: c.surfaceAlt,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(Brutal.radius - Brutal.outline),
+        child: Stack(
           children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            AnimatedOpacity(
+              duration: const Duration(milliseconds: 600),
+              opacity: _isMapReady ? 1 : 0,
+              child: FlutterMap(
+                mapController: _mapController,
+                options: MapOptions(
+                  initialCenter: here ?? const LatLng(0, 0),
+                  initialZoom: _idleZoom,
+                  onMapReady: () {
+                    if (mounted) setState(() => _isMapReady = true);
+                  },
+                ),
                 children: [
-                  Text(
-                    _greeting(),
-                    style: theme.textTheme.displayLarge?.copyWith(fontSize: 28),
+                  TileLayer(
+                    urlTemplate:
+                        'https://api.maptiler.com/maps/$mapStyle/{z}/{x}/{y}.png?key=${Secrets.mapTilerKey}',
+                    userAgentPackageName: 'com.moops.stride',
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    _subtitle(state.status),
-                    style: theme.textTheme.bodyMedium?.copyWith(color: muted),
+                  if (state.routePoints.length > 1)
+                    PolylineLayer(polylines: [
+                      Polyline(
+                        points: state.routePoints,
+                        color: c.outline,
+                        strokeWidth: 9,
+                        strokeCap: StrokeCap.round,
+                        strokeJoin: StrokeJoin.round,
+                      ),
+                      Polyline(
+                        points: state.routePoints,
+                        color: c.go,
+                        strokeWidth: 5,
+                        strokeCap: StrokeCap.round,
+                        strokeJoin: StrokeJoin.round,
+                      ),
+                    ]),
+                  if (here != null)
+                    MarkerLayer(markers: [
+                      Marker(
+                        point: here,
+                        width: 26,
+                        height: 26,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: c.coral,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: c.outline, width: Brutal.outline),
+                          ),
+                        ),
+                      ),
+                    ]),
+                  const RichAttributionWidget(
+                    attributions: [TextSourceAttribution('© OpenStreetMap contributors')],
                   ),
                 ],
               ),
             ),
-            const SizedBox(width: 12),
-            GestureDetector(
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const ProfileScreen()),
-              ),
-              child: BrutalCard(
-                width: 48,
-                height: 48,
-                borderRadius: 24,
-                padding: EdgeInsets.zero,
-                child: ClipOval(
-                  child: ref.watch(profileProvider).when(
-                    data: (state) {
-                      final gender = state.gender;
-                      if (gender == 'Male') {
-                        return Image.asset('assets/images/male_avatar.png', fit: BoxFit.cover);
-                      } else if (gender == 'Female') {
-                        return Image.asset('assets/images/female_avatar.png', fit: BoxFit.cover);
-                      } else {
-                        return Image.asset('assets/images/other_avatar.png', fit: BoxFit.cover);
-                      }
-                    },
-                    loading: () => Icon(Icons.person_outline_rounded, color: theme.colorScheme.onSurface, size: 24),
-                    error: (err, stack) => Icon(Icons.person_outline_rounded, color: theme.colorScheme.onSurface, size: 24),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ).animate().slideY(begin: -0.2).fadeIn(duration: 400.ms),
-
-        const SizedBox(height: 64),
-
-        GestureDetector(
-          onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const ProgressScreen()),
-            ).then((_) {
-              ref.read(progressProvider.notifier).refresh();
-            });
-          },
-          child: BrutalCard(
-            borderRadius: 20,
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-            child: Row(
-              children: [
-                Icon(Icons.local_fire_department_rounded,
-                    color: theme.colorScheme.primary, size: 30),
-                const SizedBox(width: 14),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+            if (here == null)
+              Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text('${progressState.currentStreak} Day Streak',
-                        style: theme.textTheme.titleLarge?.copyWith(fontSize: 18)),
-                    Text(_weekSummary(progressState),
-                        style: theme.textTheme.bodyMedium?.copyWith(color: muted, fontSize: 13)),
+                    const Moop(size: 72, mood: MoopMood.sleepy),
+                    const SizedBox(height: 8),
+                    Text('finding you…', style: Theme.of(context).textTheme.bodyMedium),
                   ],
                 ),
-                const Spacer(),
-                Icon(Icons.chevron_right_rounded, color: muted, size: 28),
-              ],
-            ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------- info blocks
+
+  Widget _buildHomeBlocks(BuildContext context) {
+    final c = context.stride;
+    final progress = ref.watch(progressProvider);
+    void openProgress() => Navigator.of(context)
+        .push(MaterialPageRoute(builder: (_) => const ProgressScreen()))
+        .then((_) => ref.read(progressProvider.notifier).refresh());
+
+    return Row(
+      children: [
+        Expanded(
+          child: _InfoBlock(
+            color: c.butter,
+            icon: Icons.local_fire_department_rounded,
+            value: '${progress.currentStreak}',
+            label: progress.currentStreak == 1 ? 'DAY STREAK' : 'DAYS STREAK',
+            onTap: openProgress,
           ),
-        ).animate().slideX(begin: 0.1, delay: 200.ms).fadeIn(delay: 200.ms),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _InfoBlock(
+            color: c.sky,
+            icon: Icons.calendar_today_rounded,
+            value: _weekDistance(progress),
+            label: _weekRuns(progress),
+            onTap: openProgress,
+          ),
+        ),
       ],
     );
   }
 
-  String _weekSummary(ProgressState progress) {
-    if (progress.weekRuns == 0) return 'No runs yet this week';
+  Widget _buildRunStats(BuildContext context, TrackingState state) {
+    final c = context.stride;
     final isKm = ref.watch(isKmProvider);
-    final distance = progress.weekDistanceMeters / (isKm ? 1000 : kmPerMile * 1000);
-    final runs = progress.weekRuns == 1 ? '1 run' : '${progress.weekRuns} runs';
-    return 'This week: ${distance.toStringAsFixed(1)} ${isKm ? 'km' : 'mi'} · $runs';
+    final distance = state.distanceKm * (isKm ? 1 : 1 / kmPerMile);
+    return SizedBox(
+      height: 140,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            flex: 5,
+            child: _InfoBlock(
+              color: c.sky,
+              value: distance.toStringAsFixed(2),
+              label: isKm ? 'KILOMETRES' : 'MILES',
+              big: true,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            flex: 4,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: _InfoBlock(
+                    color: c.blush,
+                    value: formatPace(state.currentSpeed, isKm: isKm),
+                    label: isKm ? 'PACE /KM' : 'PACE /MI',
+                    compact: true,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Expanded(
+                  child: _InfoBlock(
+                    color: c.sage,
+                    value: '${state.currentSteps}',
+                    label: 'STEPS',
+                    compact: true,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
+
+  // -------------------------------------------------------------- controls
+
+  /// Idle: START. Running: only PAUSE, so nothing destructive is one tap
+  /// away. Paused: hold-to-finish next to RESUME.
+  Widget _buildControls(BuildContext context, TrackingState state) {
+    final c = context.stride;
+    final notifier = ref.read(trackingProvider.notifier);
+
+    switch (state.status) {
+      case TrackingStatus.active:
+        return _BigButton(
+          label: 'pause',
+          icon: Icons.pause_rounded,
+          color: c.pause,
+          onTap: () {
+            HapticFeedback.lightImpact();
+            notifier.pauseTracking();
+          },
+        );
+      case TrackingStatus.paused:
+        return Row(
+          children: [
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                HoldToConfirmButton(
+                  icon: Icons.stop_rounded,
+                  color: c.stop,
+                  iconColor: c.onPastel,
+                  size: 62,
+                  onConfirmed: _finishRun,
+                ),
+                const SizedBox(height: 4),
+                Text('HOLD TO FINISH', style: Theme.of(context).textTheme.labelSmall),
+              ],
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: _BigButton(
+                label: 'resume',
+                icon: Icons.play_arrow_rounded,
+                color: c.go,
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  notifier.resumeTracking();
+                },
+              ),
+            ),
+          ],
+        );
+      default:
+        return _BigButton(
+          label: 'start run',
+          icon: Icons.directions_run_rounded,
+          color: c.go,
+          onTap: () async {
+            final ok = await notifier.startTracking();
+            if (ok) {
+              HapticFeedback.mediumImpact();
+            } else if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                content: Text('Turn on location and allow access to track your run.'),
+              ));
+            }
+          },
+        );
+    }
+  }
+
+  // ---------------------------------------------------------------- helpers
+
+  String _weekDistance(ProgressState progress) {
+    final isKm = ref.watch(isKmProvider);
+    final d = progress.weekDistanceMeters / (isKm ? 1000 : kmPerMile * 1000);
+    return '${d.toStringAsFixed(1)} ${isKm ? 'km' : 'mi'}';
+  }
+
+  String _weekRuns(ProgressState progress) => switch (progress.weekRuns) {
+        0 => 'THIS WEEK',
+        1 => 'THIS WEEK · 1 RUN',
+        final n => 'THIS WEEK · $n RUNS',
+      };
 
   String _greeting() {
     final hour = DateTime.now().hour;
-    if (hour < 12) return 'Good morning';
-    if (hour < 17) return 'Good afternoon';
-    return 'Good evening';
+    if (hour < 12) return 'good morning';
+    if (hour < 17) return 'good afternoon';
+    return 'good evening';
   }
+}
 
-  String _subtitle(TrackingStatus status) {
-    switch (status) {
-      case TrackingStatus.active:
-        return 'Tracking in progress.';
-      case TrackingStatus.paused:
-        return 'Paused — resume anytime.';
-      default:
-        return 'Ready when you are.';
-    }
+/// A pastel stat block: big value, small mono label.
+class _InfoBlock extends StatelessWidget {
+  final Color color;
+  final IconData? icon;
+  final String value;
+  final String label;
+  final bool big;
+  final bool compact;
+  final VoidCallback? onTap;
+
+  const _InfoBlock({
+    required this.color,
+    required this.value,
+    required this.label,
+    this.icon,
+    this.big = false,
+    this.compact = false,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.stride;
+    final text = Theme.of(context).textTheme;
+    final valueSize = big ? 46.0 : (compact ? 22.0 : 30.0);
+    return BrutalCard(
+      color: color,
+      onTap: onTap,
+      // Big and compact blocks fill the space their parent row gives them.
+      height: big || compact ? double.infinity : null,
+      padding: EdgeInsets.symmetric(horizontal: 14, vertical: compact ? 8 : 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: big || compact ? MainAxisAlignment.spaceBetween : MainAxisAlignment.start,
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: 20, color: c.onPastel),
+            const SizedBox(height: 6),
+          ],
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              value,
+              style: text.displayLarge?.copyWith(
+                fontSize: valueSize,
+                color: c.onPastel,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(label, style: text.labelSmall?.copyWith(color: c.onPastel), maxLines: 1, overflow: TextOverflow.ellipsis),
+        ],
+      ),
+    );
+  }
+}
+
+/// The main action: tall, full-width, unmistakable.
+class _BigButton extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _BigButton({required this.label, required this.icon, required this.color, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.stride;
+    return BrutalCard(
+      color: color,
+      height: 72,
+      borderRadius: 36,
+      onTap: onTap,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 30, color: c.onPastel),
+          const SizedBox(width: 10),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(color: c.onPastel),
+          ),
+        ],
+      ),
+    );
   }
 }

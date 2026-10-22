@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:stride/theme/app_theme.dart';
 
 /// A circular button that fires [onConfirmed] only after being held for
 /// [holdDuration]. A ring fills while held and drains if released early, so
@@ -81,8 +82,8 @@ class _HoldToConfirmButtonState extends State<HoldToConfirmButton>
                   value: _progress.value,
                   strokeWidth: 5,
                   strokeCap: StrokeCap.round,
-                  color: widget.color,
-                  backgroundColor: widget.color.withValues(alpha: 0.18),
+                  color: context.stride.outline,
+                  backgroundColor: widget.color.withValues(alpha: 0.35),
                 ),
               ),
             ),
@@ -92,13 +93,8 @@ class _HoldToConfirmButtonState extends State<HoldToConfirmButton>
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: widget.color,
-                boxShadow: [
-                  BoxShadow(
-                    color: widget.color.withValues(alpha: 0.35),
-                    blurRadius: 20,
-                    spreadRadius: 1,
-                  ),
-                ],
+                border: Border.all(color: context.stride.outline, width: Brutal.outline),
+                boxShadow: [BoxShadow(color: context.stride.shadow, offset: const Offset(3, 3))],
               ),
               child: Icon(widget.icon, size: widget.size * 0.4, color: widget.iconColor),
             ),

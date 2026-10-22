@@ -52,10 +52,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
   }
 
   Future<Widget> _resolveNext() async {
-    final hasCompletedOnboarding = await LocalDatabase.instance.getUserProfile() != null;
+    // Read providers before any await; the splash may be gone afterwards.
     final user = ref.read(authProvider);
+    final hasCompletedOnboarding = await LocalDatabase.instance.getUserProfile() != null;
     if (hasCompletedOnboarding) return const TrackingScreen();
-    if (user != null) return SyncPromptScreen.routeFor(ref, user.uid);
+    if (user != null && mounted) return SyncPromptScreen.routeFor(ref, user.uid);
     return const AuthScreen();
   }
 

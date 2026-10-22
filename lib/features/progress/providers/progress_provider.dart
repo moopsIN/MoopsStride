@@ -54,6 +54,8 @@ class ProgressNotifier extends Notifier<ProgressState> {
   Future<void> _loadActivities() async {
     state = state.copyWith(isLoading: true);
     final rawData = await LocalDatabase.instance.getActivities();
+    // Invalidated mid-load (e.g. sign-out): the result belongs to nobody.
+    if (!ref.mounted) return;
     final activities = rawData.map((e) => ActivityModel.fromMap(e)).toList();
     
     // Calculate Streak

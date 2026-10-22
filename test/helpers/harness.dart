@@ -70,6 +70,12 @@ Future<void> setUpScreenTests() async {
   sqfliteFfiInit();
   databaseFactory = databaseFactoryFfi;
   LocalDatabase.pathOverride = inMemoryDatabasePath;
+  // flutter_map's tile cache asks path_provider for a directory.
+  final tmp = Directory.systemTemp.createTempSync('stride_test').path;
+  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
+    const MethodChannel('plugins.flutter.io/path_provider'),
+    (call) async => tmp,
+  );
   await loadAppFonts();
 }
 
@@ -127,4 +133,11 @@ Future<void> screenshot(WidgetTester tester, String name) async {
     final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
     File('$dir/$name.png').writeAsBytesSync(bytes!.buffer.asUint8List());
   });
+}
+
+/// Unmounts the screen and runs fake time past any outstanding timers
+/// (entrance-animation delays, the sync engine's commit timeout).
+Future<void> disposeScreen(WidgetTester tester) async {
+  await tester.pumpWidget(const SizedBox());
+  await tester.pump(const Duration(seconds: 30));
 }
