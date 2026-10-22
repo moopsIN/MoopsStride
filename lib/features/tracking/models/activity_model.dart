@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:latlong2/latlong.dart';
+import 'package:stride/features/tracking/models/split.dart';
 
 class ActivityModel {
   final String id;
@@ -13,6 +14,9 @@ class ActivityModel {
   final List<LatLng> routePoints;
   final int steps;
   final bool synced;
+  final List<Split> splits;
+  /// Length of a full split (1000 m or one mile), fixed when the run was recorded.
+  final double splitUnitMeters;
 
   double get avgSpeedKmH {
     if (durationSeconds == 0) return 0.0;
@@ -32,6 +36,8 @@ class ActivityModel {
     required this.routePoints,
     this.steps = 0,
     this.synced = false,
+    this.splits = const [],
+    this.splitUnitMeters = 1000,
   });
 
   Map<String, dynamic> toMap() {
@@ -47,6 +53,12 @@ class ActivityModel {
       'route_polyline': jsonEncode(routePoints.map((p) => [p.latitude, p.longitude]).toList()),
       'steps': steps,
       'synced': synced ? 1 : 0,
+      'splits': splits.isEmpty
+          ? null
+          : jsonEncode({
+              'unit': splitUnitMeters,
+              'splits': splits.map((x) => [x.distanceMeters, x.durationSeconds]).toList(),
+            }),
     };
   }
 
@@ -66,6 +78,20 @@ class ActivityModel {
       }
     }
 
+    var splits = <Split>[];
+    double splitUnit = 1000;
+    if (map['splits'] is String) {
+      try {
+        final decoded = jsonDecode(map['splits'] as String) as Map<String, dynamic>;
+        splitUnit = (decoded['unit'] as num).toDouble();
+        splits = (decoded['splits'] as List)
+            .map((x) => Split((x[0] as num).toDouble(), (x[1] as num).toInt()))
+            .toList();
+      } catch (e) {
+        // Malformed splits only cost the splits view, not the run.
+      }
+    }
+
     return ActivityModel(
       id: map['id'] as String,
       type: map['type'] as String,
@@ -78,6 +104,8 @@ class ActivityModel {
       routePoints: parsedRoute,
       steps: (map['steps'] as num?)?.toInt() ?? 0,
       synced: map['synced'] == 1,
+      splits: splits,
+      splitUnitMeters: splitUnit,
     );
   }
 }

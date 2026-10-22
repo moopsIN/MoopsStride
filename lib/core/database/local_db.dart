@@ -24,7 +24,7 @@ class LocalDatabase {
   Future<Database> _initDB(String filePath) async {
     final path = pathOverride ?? join(await getDatabasesPath(), filePath);
 
-    return await openDatabase(path, version: 5, onCreate: _createDB, onUpgrade: _upgradeDB);
+    return await openDatabase(path, version: 6, onCreate: _createDB, onUpgrade: _upgradeDB);
   }
 
   Future _upgradeDB(Database db, int oldVersion, int newVersion) async {
@@ -43,6 +43,9 @@ class LocalDatabase {
       await db.execute('ALTER TABLE user_profile ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0');
       await db.execute('ALTER TABLE user_profile ADD COLUMN synced INTEGER NOT NULL DEFAULT 0');
     }
+    if (oldVersion < 6) {
+      await db.execute('ALTER TABLE activities ADD COLUMN splits TEXT');
+    }
   }
 
   Future _createDB(Database db, int version) async {
@@ -60,7 +63,8 @@ CREATE TABLE activities (
   synced INTEGER NOT NULL DEFAULT 0,
   steps INTEGER NOT NULL DEFAULT 0,
   updated_at INTEGER NOT NULL DEFAULT 0,
-  deleted INTEGER NOT NULL DEFAULT 0
+  deleted INTEGER NOT NULL DEFAULT 0,
+  splits TEXT
 )
 ''');
 

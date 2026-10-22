@@ -110,6 +110,11 @@ class _RunSummaryScreenState extends ConsumerState<RunSummaryScreen> {
 
                   _buildStatsGrid(context, ref),
 
+                  if (activity.splits.isNotEmpty) ...[
+                    const SizedBox(height: 14),
+                    _buildSplits(context),
+                  ],
+
                   const SizedBox(height: 24),
 
                   Opacity(
@@ -361,6 +366,69 @@ class _RunSummaryScreenState extends ConsumerState<RunSummaryScreen> {
         ),
       ],
     );
+  }
+
+  /// Splits keep the unit they were recorded in, whatever the current setting.
+  Widget _buildSplits(BuildContext context) {
+    final theme = Theme.of(context);
+    final accent = theme.colorScheme.primary;
+    final muted = theme.colorScheme.onSurface.withValues(alpha: 0.55);
+    final unit = activity.splitUnitMeters;
+    final unitLabel = unit < 1500 ? 'KM' : 'MI';
+    final splits = activity.splits;
+
+    // Only full splits compete for fastest; a short remainder is too noisy.
+    int? fastest;
+    for (var i = 0; i < splits.length; i++) {
+      if (splits[i].distanceMeters < unit) continue;
+      if (fastest == null || splits[i].durationSeconds < splits[fastest].durationSeconds) {
+        fastest = i;
+      }
+    }
+
+    return SizedBox(
+      height: 62,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: splits.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 10),
+        itemBuilder: (context, i) {
+          final split = splits[i];
+          final isFull = split.distanceMeters >= unit;
+          final isFastest = i == fastest && splits.length > 1;
+          final label = isFull
+              ? '$unitLabel ${i + 1}'
+              : '${(split.distanceMeters / unit).toStringAsFixed(2)} $unitLabel';
+          final pace = split.paceSecondsPer(unit).round();
+          return GlassContainer(
+            borderRadius: 16,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  isFastest ? '$label  ★' : label,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: isFastest ? accent : muted,
+                    letterSpacing: 1.2,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${pace ~/ 60}\'${(pace % 60).toString().padLeft(2, '0')}"',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: isFastest ? accent : null,
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    ).animate().fadeIn(delay: 600.ms);
   }
 
   Widget _buildStatTile(

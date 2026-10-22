@@ -38,7 +38,7 @@ class SyncEngine {
   /// Local columns a cloud activity doc may populate.
   static const _activityColumns = {
     'id', 'type', 'start_time', 'end_time', 'distance_meters', 'duration_seconds',
-    'avg_pace', 'calories_estimate', 'route_polyline', 'steps', 'updated_at',
+    'avg_pace', 'calories_estimate', 'route_polyline', 'steps', 'updated_at', 'splits',
   };
 
   /// Reads that must reflect the server; Firestore's offline cache would

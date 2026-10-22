@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:stride/features/tracking/providers/native_location_service.dart';
@@ -10,6 +11,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 import 'package:stride/core/database/local_db.dart';
 import 'package:stride/features/tracking/models/activity_model.dart';
+import 'package:stride/features/tracking/models/split.dart';
+import 'package:stride/core/providers/preferences_provider.dart';
+import 'package:stride/core/utils/formatters.dart';
 import 'package:stride/features/sync/providers/sync_engine.dart';
 import 'package:stride/features/profile/providers/profile_provider.dart';
 
@@ -117,6 +121,10 @@ class TrackingNotifier extends Notifier<TrackingState> {
   // real time is always correct once the app resumes.
   DateTime? _lastResumedAt;
   Duration _accumulatedDuration = Duration.zero;
+
+  // Splits use the unit chosen when the run starts, so a mid-run toggle
+  // can't mix km and mile legs.
+  SplitRecorder _splits = SplitRecorder(1000);
 
   Duration _currentElapsed() {
     if (_lastResumedAt == null) return _accumulatedDuration;
@@ -285,6 +293,7 @@ class TrackingNotifier extends Notifier<TrackingState> {
     });
 
     _runInitialSteps = null;
+    _splits = SplitRecorder(ref.read(isKmProvider) ? 1000 : kmPerMile * 1000);
 
     _positionSubscription = locService.getPositionStream().listen((LocationFix position) {
       if (state.status != TrackingStatus.active) return;
@@ -317,6 +326,11 @@ class TrackingNotifier extends Notifier<TrackingState> {
         routePoints: [...state.routePoints, newPoint],
         distanceMeters: state.distanceMeters + moved,
       );
+
+      // A buzz at each km/mi lets runners keep count without looking.
+      if (_splits.update(state.distanceMeters, _currentElapsed().inSeconds)) {
+        HapticFeedback.heavyImpact();
+      }
     }, onError: (e) {
       debugPrint("Position stream error: $e");
       if (state.status == TrackingStatus.active) {
@@ -386,6 +400,8 @@ class TrackingNotifier extends Notifier<TrackingState> {
       caloriesEstimate: state.caloriesEstimate,
       routePoints: state.routePoints,
       steps: state.currentSteps,
+      splits: _splits.finish(state.distanceMeters, state.durationSeconds),
+      splitUnitMeters: _splits.unitMeters,
       synced: false,
     );
 
