@@ -351,7 +351,17 @@ class TrackingNotifier extends Notifier<TrackingState> {
     state = state.copyWith(status: TrackingStatus.active);
   }
 
-  Future<ActivityModel?> stopTracking() async {
+  /// Below either threshold a run is probably accidental; the UI asks before
+  /// saving it.
+  static const double minSaveDistanceMeters = 50;
+  static const int minSaveDurationSeconds = 30;
+
+  static bool isTooShort(ActivityModel a) =>
+      a.distanceMeters < minSaveDistanceMeters || a.durationSeconds < minSaveDurationSeconds;
+
+  /// Stops tracking and returns the finished run. Nothing is saved until
+  /// [saveActivity] is called.
+  Future<ActivityModel> stopTracking() async {
     _tickDuration();
     _tickSpeed();
     state = state.copyWith(status: TrackingStatus.stopped);
@@ -361,9 +371,6 @@ class TrackingNotifier extends Notifier<TrackingState> {
     
     await ref.read(locationServiceProvider).stopService();
     
-    // If you want to reject short runs in the future, add it here.
-    // For now, always show the summary screen.
-
     final id = const Uuid().v4();
     final endTime = DateTime.now();
     final startTime = state.startTime ?? endTime.subtract(Duration(seconds: state.durationSeconds));
@@ -381,13 +388,13 @@ class TrackingNotifier extends Notifier<TrackingState> {
       steps: state.currentSteps,
       synced: false,
     );
-    
-    await LocalDatabase.instance.insertActivity(activity.toMap());
-    
-    // Trigger sync to cloud
-    ref.read(syncEngineProvider).syncUnsyncedActivities();
-    
+
     return activity;
+  }
+
+  Future<void> saveActivity(ActivityModel activity) async {
+    await LocalDatabase.instance.insertActivity(activity.toMap());
+    ref.read(syncEngineProvider).syncUnsyncedActivities();
   }
 
   void reset() {

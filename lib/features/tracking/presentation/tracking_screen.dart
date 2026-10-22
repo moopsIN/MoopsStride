@@ -53,14 +53,18 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
   }
 
   Future<void> _finishRun() async {
-    final activity = await ref.read(trackingProvider.notifier).stopTracking();
+    final notifier = ref.read(trackingProvider.notifier);
+    final activity = await notifier.stopTracking();
     if (!mounted) return;
 
-    if (activity == null) {
-      // Run was too short to save; just reset back to the idle state.
-      ref.read(trackingProvider.notifier).reset();
+    if (TrackingNotifier.isTooShort(activity) && !await _confirmSaveShortRun()) {
+      notifier.reset();
       return;
     }
+
+    await notifier.saveActivity(activity);
+    ref.read(progressProvider.notifier).refresh();
+    if (!mounted) return;
 
     await Navigator.of(context).push(
       MaterialPageRoute(
@@ -70,6 +74,24 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
 
     if (!mounted) return;
     ref.read(trackingProvider.notifier).reset();
+  }
+
+  /// Returns true to save anyway.
+  Future<bool> _confirmSaveShortRun() async {
+    final save = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Very Short Run'),
+        content: const Text(
+            'This run is under 50 m or 30 seconds. It may have been started by accident.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Discard')),
+          FilledButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Save Anyway')),
+        ],
+      ),
+    );
+    return save == true;
   }
 
   static const double _idleZoom = 18.0;
