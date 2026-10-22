@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -7,6 +8,7 @@ import 'package:stride/features/tracking/providers/tracking_provider.dart';
 import 'package:stride/theme/glass_container.dart';
 import 'package:stride/core/config/secrets.dart';
 import 'package:stride/features/tracking/presentation/run_summary_screen.dart';
+import 'package:stride/features/tracking/presentation/hold_to_confirm_button.dart';
 import 'package:stride/core/providers/preferences_provider.dart';
 import 'package:stride/features/profile/presentation/profile_screen.dart';
 import 'package:stride/features/progress/providers/progress_provider.dart';
@@ -106,19 +108,10 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
     final hasStarted = trackingState.status != TrackingStatus.notStarted;
     final mapStyle = isDark ? 'dataviz-dark' : 'dataviz';
 
-    const greyscaleMatrix = <double>[
-      0.2126, 0.7152, 0.0722, 0, 0,
-      0.2126, 0.7152, 0.0722, 0, 0,
-      0.2126, 0.7152, 0.0722, 0, 0,
-      0, 0, 0, 1, 0,
-    ];
-
     final baseUi = Stack(
       children: [
         // 1. FlutterMap Layer — style follows the theme.
-        IgnorePointer(
-          ignoring: trackingState.isLocked,
-          child: AnimatedOpacity(
+        AnimatedOpacity(
             duration: const Duration(milliseconds: 800),
             opacity: _isMapReady ? 1.0 : 0.0,
             child: FlutterMap(
@@ -164,7 +157,6 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                 ],
               ),
             ],
-          ),
           ),
         ),
 
@@ -212,104 +204,58 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
             ),
           ),
 
-        // 4. Controls (lower third)
+        // 4. Controls (lower third). Running shows only PAUSE, so nothing
+        //    destructive is one tap away; finishing requires pausing first and
+        //    then holding FINISH.
         Align(
-          alignment: const Alignment(0, 0.4),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              if (hasStarted) ...[
-                if (trackingState.isLocked)
-                  const SizedBox(width: 54, height: 54)
-                else
-                  _buildControlButton(
-                    icon: Icons.lock_open_rounded,
-                    color: theme.colorScheme.surface.withValues(alpha: 0.92),
-                    iconColor: theme.colorScheme.onSurface,
-                    borderColor: theme.dividerColor,
-                    size: 54,
-                    iconSize: 22,
-                    onTap: () => ref.read(trackingProvider.notifier).toggleLock(),
-                  ).animate().fadeIn(duration: 300.ms),
-                const SizedBox(width: 24),
-              ],
-
-              _buildMainToggleButton(context, trackingState),
-
-              if (hasStarted) ...[
-                const SizedBox(width: 24),
-                _buildControlButton(
-                  icon: Icons.stop_rounded,
-                  color: _stopRed,
-                  iconColor: Colors.white,
-                  size: 54,
-                  iconSize: 24,
-                  onTap: _finishRun,
-                ).animate().fadeIn(duration: 300.ms),
-              ],
-            ],
-          ),
+          alignment: const Alignment(0, 0.45),
+          child: _buildControls(context, trackingState),
         ),
-
       ],
     );
 
-    return Scaffold(
-      body: Stack(
-        children: [
-          // Base layer, desaturated + non-interactive while locked.
-          ColorFiltered(
-            colorFilter: trackingState.isLocked
-                ? const ColorFilter.matrix(greyscaleMatrix)
-                : const ColorFilter.mode(Colors.transparent, BlendMode.dst),
-            child: IgnorePointer(
-              ignoring: trackingState.isLocked,
-              child: baseUi,
-            ),
-          ),
+    return Scaffold(body: baseUi);
+  }
 
-          // Interactive unlock control, aligned exactly over the base controls.
-          if (trackingState.isLocked)
-            Align(
-              alignment: const Alignment(0, 0.4),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  if (hasStarted) ...[
-                    _buildControlButton(
-                      icon: Icons.lock_rounded,
-                      color: Theme.of(context).colorScheme.primary,
-                      iconColor: Colors.white,
-                      size: 54,
-                      iconSize: 22,
-                      onTap: () => ref.read(trackingProvider.notifier).toggleLock(),
-                    ).animate().fadeIn(duration: 300.ms),
-                    const SizedBox(width: 24),
-                  ],
-                  Opacity(
-                    opacity: 0,
-                    child: IgnorePointer(child: _buildMainToggleButton(context, trackingState)),
-                  ),
-                  if (hasStarted) ...[
-                    const SizedBox(width: 24),
-                    Opacity(
-                      opacity: 0,
-                      child: _buildControlButton(
-                        icon: Icons.stop_rounded,
-                        color: _stopRed,
-                        size: 54,
-                        iconSize: 24,
-                        onTap: () {},
-                      ),
-                    ),
-                  ],
-                ],
-              ),
+  Widget _buildControls(BuildContext context, TrackingState state) {
+    if (state.status != TrackingStatus.paused) {
+      return _buildMainToggleButton(context, state);
+    }
+
+    final muted = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6);
+    final caption = Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: muted,
+          letterSpacing: 1.2,
+          fontWeight: FontWeight.w600,
+        );
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            HoldToConfirmButton(
+              icon: Icons.stop_rounded,
+              color: _stopRed,
+              size: 84,
+              onConfirmed: _finishRun,
             ),
-        ],
-      ),
+            const SizedBox(height: 8),
+            Text('HOLD TO FINISH', style: caption),
+          ],
+        ).animate().fadeIn(duration: 250.ms).slideX(begin: 0.3, curve: Curves.easeOut),
+        const SizedBox(width: 28),
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildMainToggleButton(context, state),
+            const SizedBox(height: 8),
+            Text('TAP TO RESUME', style: caption),
+          ],
+        ),
+      ],
     );
   }
 
@@ -336,9 +282,12 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
               ),
             );
           }
+          if (success) HapticFeedback.mediumImpact();
         } else if (isActive) {
+          HapticFeedback.lightImpact();
           notifier.pauseTracking();
         } else {
+          HapticFeedback.lightImpact();
           notifier.resumeTracking();
         }
       },
@@ -438,39 +387,6 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildControlButton({
-    Key? key,
-    required IconData icon,
-    required Color color,
-    required VoidCallback onTap,
-    double size = 80,
-    double iconSize = 40,
-    Color iconColor = Colors.black87,
-    Color? borderColor,
-  }) {
-    return GestureDetector(
-      key: key,
-      onTap: onTap,
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: color,
-          border: borderColor != null ? Border.all(color: borderColor, width: 1) : null,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.12),
-              blurRadius: 16,
-              spreadRadius: 1,
-            ),
-          ],
-        ),
-        child: Icon(icon, size: iconSize, color: iconColor),
       ),
     );
   }

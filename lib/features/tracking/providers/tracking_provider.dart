@@ -24,7 +24,6 @@ class TrackingState {
   final LatLng? currentLocation;
   final int currentSteps;
   final int dailySteps;
-  final bool isLocked;
   final String? errorMessage;
   final double speedKmH;
   final double caloriesEstimate;
@@ -38,7 +37,6 @@ class TrackingState {
     this.currentLocation,
     this.currentSteps = 0,
     this.dailySteps = 0,
-    this.isLocked = false,
     this.errorMessage,
     this.speedKmH = 0.0,
     this.caloriesEstimate = 0.0,
@@ -53,7 +51,6 @@ class TrackingState {
     LatLng? currentLocation,
     int? currentSteps,
     int? dailySteps,
-    bool? isLocked,
     String? errorMessage,
     bool clearErrorMessage = false,
     double? speedKmH,
@@ -68,7 +65,6 @@ class TrackingState {
       currentLocation: currentLocation ?? this.currentLocation,
       currentSteps: currentSteps ?? this.currentSteps,
       dailySteps: dailySteps ?? this.dailySteps,
-      isLocked: isLocked ?? this.isLocked,
       errorMessage: clearErrorMessage ? null : (errorMessage ?? this.errorMessage),
       speedKmH: speedKmH ?? this.speedKmH,
       caloriesEstimate: caloriesEstimate ?? this.caloriesEstimate,
@@ -235,9 +231,6 @@ class TrackingNotifier extends Notifier<TrackingState> {
     });
   }
 
-  void toggleLock() {
-    state = state.copyWith(isLocked: !state.isLocked);
-  }
 
   Future<void> _initCurrentLocation() async {
     final locService = ref.read(locationServiceProvider);
