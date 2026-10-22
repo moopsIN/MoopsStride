@@ -3,7 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 class AuthNotifier extends Notifier<User?> {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  // Lazy so tests can stub this notifier without a Firebase app.
+  FirebaseAuth get _auth => FirebaseAuth.instance;
   bool _initialized = false;
 
   Future<void> _ensureInitialized() async {
