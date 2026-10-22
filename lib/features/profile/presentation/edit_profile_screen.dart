@@ -5,7 +5,7 @@ import 'package:stride/core/widgets/primary_button.dart';
 import 'package:stride/features/profile/providers/profile_provider.dart';
 import 'package:stride/core/providers/preferences_provider.dart';
 import 'package:stride/core/utils/formatters.dart';
-import 'package:stride/theme/glass_container.dart';
+import 'package:stride/theme/brutal_card.dart';
 
 class EditProfileScreen extends ConsumerStatefulWidget {
   const EditProfileScreen({super.key});
@@ -114,7 +114,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
   Widget _buildDropdownItem(String? value, List<String> items, Function(String?) onChanged) {
     final theme = Theme.of(context);
-    return GlassContainer(
+    return BrutalCard(
       borderRadius: 18,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: DropdownButtonHideUnderline(
@@ -143,7 +143,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       BuildContext context, String label, TextEditingController controller, String unit, {bool isInt = false, String? subtitle}) {
     final theme = Theme.of(context);
     return Expanded(
-      child: GlassContainer(
+      child: BrutalCard(
         borderRadius: 18,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Column(
@@ -244,7 +244,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                         _buildMetricField(context, 'AGE', _ageController, 'yrs', isInt: true),
                         const SizedBox(width: 14),
                         Expanded(
-                          child: GlassContainer(
+                          child: BrutalCard(
                             borderRadius: 18,
                             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                             child: Column(

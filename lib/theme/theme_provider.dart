@@ -1,14 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:stride/core/providers/preferences_provider.dart';
 
+/// Light/dark/system, remembered across launches.
 class ThemeModeNotifier extends Notifier<ThemeMode> {
+  static const _key = 'theme_mode';
+
   @override
   ThemeMode build() {
-    return ThemeMode.system; // default as requested
+    final saved = ref.read(sharedPreferencesProvider).getString(_key);
+    return ThemeMode.values.firstWhere((m) => m.name == saved, orElse: () => ThemeMode.system);
   }
 
   void toggleTheme(bool isDark) {
     state = isDark ? ThemeMode.dark : ThemeMode.light;
+    ref.read(sharedPreferencesProvider).setString(_key, state.name);
   }
 }
 

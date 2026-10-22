@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../theme/glass_container.dart';
+import 'package:stride/theme/brutal_card.dart';
 
 class StatCard extends StatelessWidget {
   final String label;
@@ -17,7 +17,7 @@ class StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GlassContainer(
+    return BrutalCard(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

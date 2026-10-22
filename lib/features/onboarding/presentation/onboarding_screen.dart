@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:stride/theme/app_theme.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:stride/core/widgets/primary_button.dart';
 import 'package:stride/core/providers/preferences_provider.dart';
 import 'package:stride/features/onboarding/providers/onboarding_provider.dart';
 import 'package:stride/core/utils/formatters.dart';
-import 'package:stride/theme/glass_container.dart';
+import 'package:stride/theme/brutal_card.dart';
 import 'package:stride/features/tracking/presentation/tracking_screen.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
@@ -402,7 +403,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               }
             }
 
-            return bmi > 0 ? GlassContainer(
+            return bmi > 0 ? BrutalCard(
               borderRadius: 20,
               padding: const EdgeInsets.all(16),
               child: Row(
@@ -446,7 +447,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   Widget _buildMetricField(TextEditingController controller, String label, String unit, {bool isInt = false}) {
     final theme = Theme.of(context);
-    return GlassContainer(
+    return BrutalCard(
       borderRadius: 18,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Column(
@@ -506,15 +507,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           setState(() {}); // trigger rebuild for color change since we read provider directly in the loop above
         },
         borderRadius: BorderRadius.circular(18),
-        child: GlassContainer(
+        child: BrutalCard(
           borderRadius: 18,
           padding: const EdgeInsets.all(20),
-          backgroundColor: isSelected
-              ? theme.colorScheme.primary.withValues(alpha: 0.14)
-              : onSurface.withValues(alpha: 0.05),
-          borderColor: isSelected
-              ? theme.colorScheme.primary
-              : onSurface.withValues(alpha: 0.1),
+          color: isSelected ? context.stride.butter : null,
           child: Row(
             children: [
               Expanded(

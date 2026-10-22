@@ -5,7 +5,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:stride/features/tracking/providers/tracking_provider.dart';
-import 'package:stride/theme/glass_container.dart';
+import 'package:stride/theme/brutal_card.dart';
 import 'package:stride/core/config/secrets.dart';
 import 'package:stride/features/tracking/presentation/run_summary_screen.dart';
 import 'package:stride/features/tracking/presentation/hold_to_confirm_button.dart';
@@ -356,7 +356,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
     final distValue = isKm ? state.distanceKm : (state.distanceKm * 0.621371);
     final paceLabel = isKm ? 'PACE /KM' : 'PACE /MI';
 
-    return GlassContainer(
+    return BrutalCard(
       borderRadius: 22,
       padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 6),
       child: Row(
@@ -445,7 +445,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const ProfileScreen()),
               ),
-              child: GlassContainer(
+              child: BrutalCard(
                 width: 48,
                 height: 48,
                 borderRadius: 24,
@@ -481,7 +481,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
               ref.read(progressProvider.notifier).refresh();
             });
           },
-          child: GlassContainer(
+          child: BrutalCard(
             borderRadius: 20,
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
             child: Row(

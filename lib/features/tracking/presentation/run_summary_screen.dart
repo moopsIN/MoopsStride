@@ -8,7 +8,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:stride/core/config/secrets.dart';
 import 'package:stride/features/tracking/models/activity_model.dart';
-import 'package:stride/theme/glass_container.dart';
+import 'package:stride/theme/brutal_card.dart';
 import 'package:stride/core/providers/preferences_provider.dart';
 import 'package:stride/core/utils/formatters.dart';
 import 'package:stride/features/progress/providers/progress_provider.dart';
@@ -400,7 +400,7 @@ class _RunSummaryScreenState extends ConsumerState<RunSummaryScreen> {
               ? '$unitLabel ${i + 1}'
               : '${(split.distanceMeters / unit).toStringAsFixed(2)} $unitLabel';
           final pace = split.paceSecondsPer(unit).round();
-          return GlassContainer(
+          return BrutalCard(
             borderRadius: 16,
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             child: Column(
@@ -437,7 +437,7 @@ class _RunSummaryScreenState extends ConsumerState<RunSummaryScreen> {
     final accent = theme.colorScheme.primary;
     final muted = theme.colorScheme.onSurface.withValues(alpha: 0.55);
 
-    return GlassContainer(
+    return BrutalCard(
       borderRadius: 20,
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
       child: Column(
@@ -607,7 +607,7 @@ class _GlassIconButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: GlassContainer(
+      child: BrutalCard(
         width: 44,
         height: 44,
         borderRadius: 22,

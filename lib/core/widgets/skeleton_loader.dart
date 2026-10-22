@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import '../../theme/glass_container.dart';
+import 'package:stride/theme/app_theme.dart';
+import 'package:stride/theme/brutal_card.dart';
 
 class SkeletonLoader extends StatelessWidget {
   final double width;
@@ -16,12 +17,13 @@ class SkeletonLoader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GlassContainer(
+    return BrutalCard(
       width: width,
       height: height,
       borderRadius: borderRadius,
-      backgroundColor: Theme.of(context).colorScheme.surface.withValues(alpha: 0.5),
-      child: Container(),
+      color: context.stride.surfaceAlt,
+      shadow: 0,
+      child: const SizedBox.expand(),
     )
         .animate(onPlay: (controller) => controller.repeat())
         .shimmer(duration: 1500.ms, color: Colors.white24)

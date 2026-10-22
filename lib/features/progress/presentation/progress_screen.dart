@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:stride/theme/glass_container.dart';
+import 'package:stride/theme/brutal_card.dart';
 import 'package:stride/features/progress/providers/progress_provider.dart';
 import 'package:stride/features/tracking/models/activity_model.dart';
 import 'package:stride/features/tracking/presentation/run_summary_screen.dart';
@@ -92,7 +92,7 @@ class ProgressScreen extends ConsumerWidget {
                 const SizedBox(height: 16),
                 SizedBox(
                   height: 200,
-                  child: GlassContainer(
+                  child: BrutalCard(
                     padding: const EdgeInsets.all(16),
                     child: _buildChart(context, state.activities, distanceMultiplier),
                   ),
@@ -120,7 +120,7 @@ class ProgressScreen extends ConsumerWidget {
                         builder: (_) => RunSummaryScreen(activity: activity),
                       ));
                     },
-                    child: GlassContainer(
+                    child: BrutalCard(
                       padding: const EdgeInsets.all(16),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -163,7 +163,7 @@ class ProgressScreen extends ConsumerWidget {
   }
 
   Widget _buildPRCard(BuildContext context, String title, String value) {
-    return GlassContainer(
+    return BrutalCard(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

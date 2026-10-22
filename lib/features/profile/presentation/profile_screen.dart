@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:stride/theme/glass_container.dart';
+import 'package:stride/theme/brutal_card.dart';
 import 'package:stride/theme/theme_provider.dart';
 import 'package:stride/features/auth/providers/auth_provider.dart';
 import 'package:stride/features/auth/presentation/auth_screen.dart';
@@ -272,7 +272,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // Identity card
-              GlassContainer(
+              BrutalCard(
                 borderRadius: 20,
                 padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
                 child: Row(
@@ -344,7 +344,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               _sectionLabel(context, 'PERSONAL DETAILS'),
               profileState.when(
                 data: (state) {
-                  return GlassContainer(
+                  return BrutalCard(
                     borderRadius: 20,
                     padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
                     child: Column(
@@ -414,7 +414,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               const SizedBox(height: 28),
 
               _sectionLabel(context, 'PREFERENCES'),
-              GlassContainer(
+              BrutalCard(
                 borderRadius: 20,
                 padding: const EdgeInsets.symmetric(horizontal: 4),
                 child: Material(
@@ -451,7 +451,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               const SizedBox(height: 28),
 
               _sectionLabel(context, 'ACCOUNT'),
-              GlassContainer(
+              BrutalCard(
                 borderRadius: 20,
                 padding: const EdgeInsets.symmetric(horizontal: 4),
                 child: Material(

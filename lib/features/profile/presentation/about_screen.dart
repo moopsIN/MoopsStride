@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:stride/theme/glass_container.dart';
+import 'package:stride/theme/brutal_card.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class AboutScreen extends StatelessWidget {
@@ -50,7 +50,7 @@ class AboutScreen extends StatelessWidget {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 40),
-              GlassContainer(
+              BrutalCard(
                 borderRadius: 24,
                 padding: const EdgeInsets.all(24),
                 child: Column(
