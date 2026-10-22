@@ -29,7 +29,15 @@ class AuthNotifier extends Notifier<User?> {
   }
 
   Future<void> signUpWithEmail(String email, String password) async {
-    await _auth.createUserWithEmailAndPassword(email: email, password: password);
+    final cred = await _auth.createUserWithEmailAndPassword(email: email, password: password);
+    // Best effort: confirms the address is real without blocking first use.
+    try {
+      await cred.user?.sendEmailVerification();
+    } catch (_) {}
+  }
+
+  Future<void> sendPasswordReset(String email) async {
+    await _auth.sendPasswordResetEmail(email: email);
   }
 
   Future<void> signInWithGoogle() async {

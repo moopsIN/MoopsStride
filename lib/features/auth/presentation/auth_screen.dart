@@ -26,7 +26,15 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
   String _getErrorMessage(Object e) {
     if (e is FirebaseAuthException) {
-      return e.message ?? 'Authentication failed.';
+      return switch (e.code) {
+        'invalid-email' => 'That email address looks invalid.',
+        'weak-password' => 'Choose a stronger password (at least 6 characters).',
+        'email-already-in-use' => 'This email is already registered. Check your password, or reset it.',
+        'too-many-requests' => 'Too many attempts. Wait a moment and try again.',
+        'network-request-failed' => 'No connection. Check your network and try again.',
+        'user-disabled' => 'This account has been disabled.',
+        _ => e.message ?? 'Authentication failed.',
+      };
     }
     if (e is PlatformException) {
       return e.message ?? 'An unexpected platform error occurred.';
@@ -70,7 +78,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
   Future<void> _handleEmailAuth(StateSetter setSheetState) async {
     final email = _emailController.text.trim();
-    final password = _passwordController.text.trim();
+    // Not trimmed: spaces are legitimate password characters.
+    final password = _passwordController.text;
     if (email.isEmpty || password.isEmpty) return;
 
     setSheetState(() => _isLoading = true);
@@ -86,7 +95,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       if (e.code == 'invalid-credential' || e.code == 'user-not-found' || e.code == 'wrong-password') {
         if (mounted) {
           setSheetState(() => _isLoading = false);
-          _showAccountNotFoundDialog(email, password, setSheetState);
+          _showSignInFailedDialog(email, password, setSheetState);
         }
         return;
       }
@@ -111,64 +120,117 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     }
   }
 
-  void _showAccountNotFoundDialog(String email, String password, StateSetter setSheetState) {
+  void _showSnack(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(message),
+      behavior: SnackBarBehavior.floating,
+    ));
+  }
+
+  /// Firebase reports a wrong password and an unknown email the same way
+  /// (enumeration protection), so offer both paths instead of guessing.
+  void _showSignInFailedDialog(String email, String password, StateSetter setSheetState) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Account Not Found'),
-        content: const Text(
-            "We couldn't log you in. If you don't have an account yet, you can create one using this email and password."),
+        title: const Text("Couldn't Sign In"),
+        content: Text(
+            "The email or password is incorrect.\n\nNew to Stride? Create an account for $email."),
         actions: [
           TextButton(
             onPressed: () {
               Navigator.of(ctx).pop();
-              _emailController.clear();
-              _passwordController.clear();
+              _sendPasswordReset(email);
             },
-            child: const Text('Use Different Email'),
+            child: const Text('Forgot Password?'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Try Again'),
           ),
           FilledButton(
-            onPressed: () async {
-              Navigator.of(ctx).pop(); // close dialog
-              setSheetState(() => _isLoading = true);
-              try {
-                await ref.read(authProvider.notifier).signUpWithEmail(email, password);
-                if (mounted) {
-                  if (Navigator.of(context).canPop()) Navigator.of(context).pop(); // close sheet
-                  await _routeAfterLogin();
-                }
-              } on FirebaseAuthException catch (err) {
-                if (mounted) {
-                  if (err.code == 'email-already-in-use') {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                      content: Text('This email is already registered. Please check your password.'),
-                      behavior: SnackBarBehavior.floating,
-                    ));
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                      content: Text(_getErrorMessage(err)),
-                      behavior: SnackBarBehavior.floating,
-                    ));
-                  }
-                }
-              } catch (err) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                    content: Text(_getErrorMessage(err)),
-                    behavior: SnackBarBehavior.floating,
-                  ));
-                }
-              } finally {
-                if (mounted) {
-                  setSheetState(() => _isLoading = false);
-                }
-              }
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              _showCreateAccountDialog(email, password, setSheetState);
             },
             child: const Text('Create Account'),
           ),
         ],
       ),
     );
+  }
+
+  /// Asks for the password again so a typo can't silently become the
+  /// account's password.
+  void _showCreateAccountDialog(String email, String password, StateSetter setSheetState) {
+    final confirmController = TextEditingController();
+    String? error;
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Text('Create Account'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Confirm the password for $email.'),
+              const SizedBox(height: 16),
+              TextField(
+                controller: confirmController,
+                obscureText: true,
+                autofocus: true,
+                decoration: InputDecoration(labelText: 'Confirm password', errorText: error),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Cancel')),
+            FilledButton(
+              onPressed: () {
+                if (confirmController.text != password) {
+                  setDialogState(() => error = "Passwords don't match");
+                  return;
+                }
+                Navigator.of(ctx).pop();
+                _createAccount(email, password, setSheetState);
+              },
+              child: const Text('Create'),
+            ),
+          ],
+        ),
+      ),
+    ).whenComplete(confirmController.dispose);
+  }
+
+  Future<void> _createAccount(String email, String password, StateSetter setSheetState) async {
+    setSheetState(() => _isLoading = true);
+    try {
+      await ref.read(authProvider.notifier).signUpWithEmail(email, password);
+      if (mounted) {
+        if (Navigator.of(context).canPop()) Navigator.of(context).pop(); // close sheet
+        _showSnack('Account created. Check your inbox to verify your email.');
+        await _routeAfterLogin();
+      }
+    } catch (err) {
+      if (mounted) _showSnack(_getErrorMessage(err));
+    } finally {
+      if (mounted) setSheetState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _sendPasswordReset(String email) async {
+    if (email.isEmpty) {
+      _showSnack('Enter your email first, then tap Forgot Password.');
+      return;
+    }
+    try {
+      await ref.read(authProvider.notifier).sendPasswordReset(email);
+      // Same message whether or not the account exists, to avoid leaking it.
+      if (mounted) _showSnack('If an account exists for $email, a reset link is on its way.');
+    } catch (e) {
+      if (mounted) _showSnack(_getErrorMessage(e));
+    }
   }
 
   Future<void> _handleGoogleLogin() async {
@@ -238,7 +300,14 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                         ),
                         obscureText: true,
                       ),
-                      const SizedBox(height: 24),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: () => _sendPasswordReset(_emailController.text.trim()),
+                          child: const Text('Forgot password?'),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
                       PrimaryButton(
                         text: 'Continue',
                         isLoading: _isLoading,
