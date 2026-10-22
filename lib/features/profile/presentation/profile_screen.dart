@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:stride/theme/glass_container.dart';
@@ -13,6 +16,8 @@ import 'package:stride/core/utils/formatters.dart';
 import 'package:stride/core/database/local_db.dart';
 import 'package:stride/features/sync/providers/sync_engine.dart';
 import 'package:stride/features/progress/providers/progress_provider.dart';
+import 'package:stride/features/onboarding/providers/onboarding_provider.dart';
+import 'package:stride/features/tracking/providers/tracking_provider.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -81,18 +86,32 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  Future<void> _handleSignOut() async {
-    final db = await LocalDatabase.instance.database;
-    final unsynced = await db.query('activities', where: 'synced = ?', whereArgs: [0]);
+  /// A run in progress holds a foreground location service and in-memory
+  /// state that would leak into the next account.
+  bool _blockIfRunInProgress() {
+    final status = ref.read(trackingProvider).status;
+    if (status != TrackingStatus.active && status != TrackingStatus.paused) return false;
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      content: Text('Finish your current run first.'),
+      behavior: SnackBarBehavior.floating,
+    ));
+    return true;
+  }
 
-    if (unsynced.isNotEmpty) {
-      final success = await ref.read(syncEngineProvider).syncUnsyncedActivities();
-      if (!success && mounted) {
+  Future<void> _handleSignOut() async {
+    if (_blockIfRunInProgress()) return;
+
+    final success = await ref.read(syncEngineProvider).syncUnsyncedActivities();
+    if (!success && mounted) {
+      ref.invalidate(pendingSyncCountProvider);
+      final pending = await ref.read(pendingSyncCountProvider.future);
+      if (!mounted) return;
+      if (pending > 0) {
         final shouldForce = await showDialog<bool>(
           context: context,
           builder: (ctx) => AlertDialog(
             title: const Text('Unsynced Data'),
-            content: const Text('You have runs that haven\'t been synced to the cloud yet. Logging out will wipe this data locally.\n\nAre you sure you want to logout?'),
+            content: const Text('Some runs or profile changes haven\'t been synced to the cloud yet. Logging out will wipe them from this device.\n\nAre you sure you want to logout?'),
             actions: [
               TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
               TextButton(
@@ -114,17 +133,31 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       }
     }
 
+    await ref.read(authProvider.notifier).signOut();
+    await _clearLocalSessionAndExit();
+  }
+
+  /// Removes everything the previous user left on this device, in storage and
+  /// in memory, then restarts at the auth screen with a fresh navigation stack.
+  Future<void> _clearLocalSessionAndExit() async {
     await LocalDatabase.instance.clearDatabase();
-    
-    // Invalidate state to clear in-memory data
+    try {
+      final shared = File('${(await getTemporaryDirectory()).path}/stride_run_summary.png');
+      if (await shared.exists()) await shared.delete();
+    } catch (_) {}
+
     ref.invalidate(progressProvider);
     ref.invalidate(profileProvider);
+    ref.invalidate(onboardingProvider);
+    ref.invalidate(pendingSyncCountProvider);
+    ref.read(trackingProvider.notifier).reset();
 
-    await ref.read(authProvider.notifier).signOut();
-    
     if (mounted) {
-      Navigator.of(context).pushReplacement(
+      // The settings route sits on top of the home screen; replacing only it
+      // left a signed-out home screen one back-press away.
+      Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const AuthScreen()),
+        (_) => false,
       );
     }
   }

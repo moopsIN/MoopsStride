@@ -162,6 +162,7 @@ CREATE TABLE user_profile (
 
   Future<void> clearDatabase() async {
     final db = await instance.database;
+    await db.delete('splits');
     await db.delete('activities');
     await db.delete('user_profile');
   }
