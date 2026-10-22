@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -28,6 +29,7 @@ class ProfileScreen extends ConsumerStatefulWidget {
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   bool _isSyncing = false;
+  bool _isDeleting = false;
 
   Future<void> _handleSyncNow() async {
     setState(() => _isSyncing = true);
@@ -135,6 +137,87 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
     await ref.read(authProvider.notifier).signOut();
     await _clearLocalSessionAndExit();
+  }
+
+  Future<void> _handleDeleteAccount() async {
+    if (_blockIfRunInProgress()) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Account?'),
+        content: const Text(
+            'This permanently deletes your account, all your runs and your profile, from the cloud and from this device. This cannot be undone.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Delete Account', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    final auth = ref.read(authProvider.notifier);
+    final user = ref.read(authProvider);
+    if (user == null) return;
+
+    String? password;
+    if (!auth.usesGoogle) {
+      password = await _askPassword();
+      if (password == null) return;
+    }
+
+    setState(() => _isDeleting = true);
+    try {
+      if (!await auth.reauthenticate(password: password)) return;
+      await ref.read(syncEngineProvider).wipeCloudData(user.uid);
+      await auth.deleteAccount();
+    } catch (e) {
+      if (mounted) {
+        final message = switch (e) {
+          SyncException(:final message) => message,
+          FirebaseAuthException(code: 'invalid-credential' || 'wrong-password') =>
+            'Incorrect password.',
+          FirebaseAuthException(code: 'network-request-failed') =>
+            'No connection. Check your network and try again.',
+          _ => "Couldn't delete your account: $e",
+        };
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(message),
+          behavior: SnackBarBehavior.floating,
+        ));
+      }
+      return;
+    } finally {
+      if (mounted) setState(() => _isDeleting = false);
+    }
+
+    await _clearLocalSessionAndExit();
+  }
+
+  Future<String?> _askPassword() {
+    final controller = TextEditingController();
+    return showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Confirm Your Password'),
+        content: TextField(
+          controller: controller,
+          obscureText: true,
+          autofocus: true,
+          decoration: const InputDecoration(labelText: 'Password'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Cancel')),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(controller.text),
+            child: const Text('Continue'),
+          ),
+        ],
+      ),
+    ).whenComplete(controller.dispose);
   }
 
   /// Removes everything the previous user left on this device, in storage and
@@ -421,6 +504,21 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         }
                       },
                     ),
+                    if (!isGuest) ...[
+                      _divider(context),
+                      ListTile(
+                        leading: const Icon(Icons.delete_forever_rounded, color: Color(0xFFE5484D)),
+                        title: const Text(
+                          'Delete Account',
+                          style: TextStyle(color: Color(0xFFE5484D), fontWeight: FontWeight.w600),
+                        ),
+                        trailing: _isDeleting
+                            ? const SizedBox(
+                                width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                            : null,
+                        onTap: _isDeleting ? null : _handleDeleteAccount,
+                      ),
+                    ],
                     ],
                   ),
                 ),

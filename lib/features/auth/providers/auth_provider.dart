@@ -61,6 +61,48 @@ class AuthNotifier extends Notifier<User?> {
     return true;
   }
 
+  /// Whether the signed-in user authenticates with Google (vs. a password).
+  bool get usesGoogle =>
+      _auth.currentUser?.providerData.any((p) => p.providerId == 'google.com') ?? false;
+
+  /// Deleting an account requires a recent sign-in, so confirm identity
+  /// before any data is destroyed. Returns false if the user cancelled.
+  Future<bool> reauthenticate({String? password}) async {
+    final user = _auth.currentUser;
+    if (user == null) return false;
+    if (usesGoogle) {
+      await _ensureInitialized();
+      final GoogleSignInAccount googleUser;
+      try {
+        googleUser = await GoogleSignIn.instance.authenticate();
+      } on GoogleSignInException catch (e) {
+        if (e.code == GoogleSignInExceptionCode.canceled) return false;
+        rethrow;
+      }
+      await user.reauthenticateWithCredential(
+        GoogleAuthProvider.credential(idToken: googleUser.authentication.idToken),
+      );
+    } else {
+      if (password == null) return false;
+      await user.reauthenticateWithCredential(
+        EmailAuthProvider.credential(email: user.email!, password: password),
+      );
+    }
+    return true;
+  }
+
+  /// Deletes the Firebase user. Call after [reauthenticate] and after the
+  /// user's cloud data is removed (security rules deny access afterwards).
+  Future<void> deleteAccount() async {
+    final wasGoogle = usesGoogle;
+    await _auth.currentUser?.delete();
+    if (wasGoogle) {
+      try {
+        await GoogleSignIn.instance.disconnect();
+      } catch (_) {}
+    }
+  }
+
   Future<void> signOut() async {
     await _auth.signOut();
     // Clear the cached Google account so the next sign-in can pick another.
