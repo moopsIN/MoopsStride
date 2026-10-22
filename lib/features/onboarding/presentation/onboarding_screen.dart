@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:stride/core/widgets/moop.dart';
 import 'package:stride/theme/app_theme.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -78,7 +79,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final state = ref.watch(onboardingProvider);
 
     return Scaffold(
@@ -91,36 +91,41 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               child: Row(
                 children: [
                   SizedBox(
-                    width: 44,
+                    width: 52,
+                    height: 48,
                     child: _currentPage > 0
-                        ? IconButton(
-                            onPressed: _previousPage,
-                            icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18),
-                          ).animate().fadeIn(duration: 250.ms)
+                        ? BrutalCard(
+                            width: 44,
+                            height: 44,
+                            borderRadius: 22,
+                            shadow: 3,
+                            color: context.stride.surface,
+                            onTap: _previousPage,
+                            child: Icon(Icons.arrow_back_rounded, size: 22, color: context.stride.ink),
+                          )
                         : null,
                   ),
                   Expanded(
                     child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
                       children: List.generate(_stepCount, (index) {
-                        final isActive = _currentPage == index;
-                        final isDone = index < _currentPage;
-                        return AnimatedContainer(
-                          duration: const Duration(milliseconds: 300),
-                          margin: const EdgeInsets.symmetric(horizontal: 4),
-                          width: isActive ? 28 : 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                            color: isActive || isDone
-                                ? theme.colorScheme.primary
-                                : theme.colorScheme.onSurface.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(4),
+                        final c = context.stride;
+                        final reached = index <= _currentPage;
+                        return Expanded(
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 300),
+                            margin: const EdgeInsets.symmetric(horizontal: 3),
+                            height: 12,
+                            decoration: BoxDecoration(
+                              color: reached ? c.go : c.surface,
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: c.outline, width: 2),
+                            ),
                           ),
                         );
                       }),
                     ),
                   ),
-                  const SizedBox(width: 44),
+                  const SizedBox(width: 8),
                 ],
               ),
             ),
@@ -142,7 +147,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
             // Footer Navigation
             Padding(
-              padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+              padding: const EdgeInsets.fromLTRB(20, 0, 16, 16),
               child: PrimaryButton(
                 text: _currentPage == _stepCount - 1 ? 'Get Started' : 'Next',
                 isLoading: state.isSaving,
@@ -218,41 +223,23 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   Widget _buildGenderIconChip(String label, IconData icon) {
+    final c = context.stride;
     final isSelected = ref.read(onboardingProvider).gender == label;
-    final theme = Theme.of(context);
-    final onSurface = theme.colorScheme.onSurface;
-    
-    return InkWell(
+    return BrutalCard(
+      width: 92,
+      height: 100,
+      color: isSelected ? c.butter : c.surface,
       onTap: () {
         ref.read(onboardingProvider.notifier).setGenderAge(label, int.tryParse(_ageController.text) ?? 25);
       },
-      borderRadius: BorderRadius.circular(20),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 250),
-        width: 90,
-        height: 100,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          color: isSelected ? theme.colorScheme.primary.withValues(alpha: 0.15) : onSurface.withValues(alpha: 0.05),
-          border: Border.all(
-            color: isSelected ? theme.colorScheme.primary : onSurface.withValues(alpha: 0.1),
-            width: isSelected ? 2 : 1,
-          ),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 36, color: isSelected ? theme.colorScheme.primary : onSurface.withValues(alpha: 0.5)),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              style: theme.textTheme.labelMedium?.copyWith(
-                color: isSelected ? onSurface : onSurface.withValues(alpha: 0.6),
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-              ),
-            ),
-          ],
-        ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 34, color: isSelected ? c.onPastel : c.ink),
+          const SizedBox(height: 6),
+          Text(label.toUpperCase(),
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(color: isSelected ? c.onPastel : c.ink)),
+        ],
       ),
     );
   }
@@ -326,10 +313,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   child: Center(
                     child: Text(
                       formatHeightToFtIn(cm),
-                      style: theme.textTheme.headlineSmall?.copyWith(
-                        color: theme.colorScheme.primary,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: theme.textTheme.headlineSmall?.copyWith(color: context.stride.inkMuted),
                     ),
                   ),
                 ),
@@ -357,10 +341,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   child: Center(
                     child: Text(
                       weight > 0 ? conversionText : '--',
-                      style: theme.textTheme.headlineSmall?.copyWith(
-                        color: theme.colorScheme.primary,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: theme.textTheme.headlineSmall?.copyWith(color: context.stride.inkMuted),
                     ),
                   ),
                 ),
@@ -385,26 +366,27 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               bmi = weight / (heightM * heightM);
             }
             
+            final c = context.stride;
             String category = '';
-            Color color = theme.colorScheme.primary;
+            Color color = c.surface;
             if (bmi > 0) {
               if (bmi < 18.5) {
                 category = 'Underweight';
-                color = Colors.blue;
+                color = c.sky;
               } else if (bmi < 25) {
                 category = 'Normal';
-                color = Colors.green;
+                color = c.sage;
               } else if (bmi < 30) {
                 category = 'Overweight';
-                color = Colors.orange;
+                color = c.butter;
               } else {
                 category = 'Obese';
-                color = Colors.red;
+                color = c.blush;
               }
             }
 
             return bmi > 0 ? BrutalCard(
-              borderRadius: 20,
+              color: color,
               padding: const EdgeInsets.all(16),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -412,30 +394,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'BODY MASS INDEX', 
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                        ),
-                      ),
+                      Text('BODY MASS INDEX', style: theme.textTheme.labelSmall?.copyWith(color: c.onPastel)),
                       const SizedBox(height: 4),
-                      Text(
-                        bmi.toStringAsFixed(1), 
-                        style: theme.textTheme.displaySmall?.copyWith(
-                          color: theme.colorScheme.primary,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      Text(bmi.toStringAsFixed(1), style: theme.textTheme.displaySmall?.copyWith(color: c.onPastel)),
                     ],
                   ),
-                  Text(
-                    category.toUpperCase(),
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      color: color,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 1.2,
-                    ),
-                  ),
+                  BrutalPill(text: category.toUpperCase(), color: c.surface),
                 ],
               ),
             ).animate().fadeIn() : const SizedBox.shrink();
@@ -448,16 +412,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   Widget _buildMetricField(TextEditingController controller, String label, String unit, {bool isInt = false}) {
     final theme = Theme.of(context);
     return BrutalCard(
-      borderRadius: 18,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Column(
         children: [
-          Text(
-            label.toUpperCase(),
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-            ),
-          ),
+          Text(label.toUpperCase(), style: theme.textTheme.labelSmall),
           TextField(
             controller: controller,
             keyboardType: TextInputType.numberWithOptions(decimal: !isInt),
@@ -465,10 +423,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             style: theme.textTheme.displayLarge?.copyWith(fontSize: 26),
             decoration: InputDecoration(
               border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
+              filled: false,
               suffixText: unit,
-              suffixStyle: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-              ),
+              suffixStyle: theme.textTheme.bodyMedium,
             ),
           ),
         ],
@@ -496,40 +455,28 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   Widget _buildOptionChip(String label, VoidCallback onTap, bool isSelected) {
-    final theme = Theme.of(context);
-    final onSurface = theme.colorScheme.onSurface;
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12.0),
-      child: InkWell(
-        onTap: () {
-          onTap();
-          setState(() {}); // trigger rebuild for color change since we read provider directly in the loop above
-        },
-        borderRadius: BorderRadius.circular(18),
-        child: BrutalCard(
-          borderRadius: 18,
-          padding: const EdgeInsets.all(20),
-          color: isSelected ? context.stride.butter : null,
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  label,
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontSize: 17,
-                    color: isSelected ? theme.colorScheme.primary : onSurface,
-                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-                  ),
-                ),
-              ),
-              if (isSelected)
-                Icon(Icons.check_circle_rounded, color: theme.colorScheme.primary)
-              else
-                Icon(Icons.circle_outlined, color: onSurface.withValues(alpha: 0.25)),
-            ],
+    final c = context.stride;
+    return BrutalCard(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+      color: isSelected ? c.butter : c.surface,
+      onTap: () {
+        onTap();
+        setState(() {}); // options read the provider directly, so rebuild
+      },
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(color: isSelected ? c.onPastel : c.ink),
+            ),
           ),
-        ),
+          Icon(
+            isSelected ? Icons.check_circle_rounded : Icons.circle_outlined,
+            color: isSelected ? c.onPastel : c.ink.withValues(alpha: 0.35),
+          ),
+        ],
       ),
     );
   }
@@ -552,25 +499,29 @@ class _StepContainer extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 24.0),
+      padding: const EdgeInsets.fromLTRB(20, 0, 16, 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const SizedBox(height: 20),
-          Text(
-            'STEP $step OF $total',
-            style: theme.textTheme.labelSmall?.copyWith(
-              letterSpacing: 2,
-              fontWeight: FontWeight.w700,
-              color: theme.colorScheme.primary,
-            ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    BrutalPill(text: 'STEP $step OF $total', color: context.stride.sky),
+                    const SizedBox(height: 12),
+                    Text(title, style: theme.textTheme.headlineLarge),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Moop(size: 64, mood: step == total ? MoopMood.excited : MoopMood.idle),
+            ],
           ).animate().fadeIn(duration: 350.ms),
-          const SizedBox(height: 10),
-          Text(
-            title,
-            style: theme.textTheme.displayLarge?.copyWith(fontSize: 30),
-          ).animate().fadeIn(duration: 400.ms).slideX(begin: 0.1, end: 0),
-          const SizedBox(height: 40),
+          const SizedBox(height: 28),
           ...children.animate(interval: 100.ms).fadeIn(duration: 400.ms).slideX(begin: 0.1, end: 0),
         ],
       ),

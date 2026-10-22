@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:stride/theme/brutal_card.dart';
+import 'package:stride/theme/app_theme.dart';
+import 'package:stride/core/widgets/moop.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:stride/core/widgets/primary_button.dart';
 import 'package:stride/features/onboarding/presentation/onboarding_screen.dart';
@@ -260,47 +263,52 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       builder: (ctx) {
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setSheetState) {
+            final text = Theme.of(context).textTheme;
             return Padding(
               padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-              child: Container(
-                padding: const EdgeInsets.only(left: 24, right: 24, top: 32, bottom: 24),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surface,
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-                ),
-                child: SafeArea(
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 12, 24, 20),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Text(
-                        'Continue with Email',
-                        style: Theme.of(context).textTheme.titleLarge,
-                        textAlign: TextAlign.center,
+                      Center(
+                        child: Container(
+                          width: 44,
+                          height: 5,
+                          decoration: BoxDecoration(
+                            color: context.stride.outline,
+                            borderRadius: BorderRadius.circular(3),
+                          ),
+                        ),
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 18),
+                      Text('continue with email', style: text.headlineLarge),
+                      const SizedBox(height: 4),
+                      Text("We'll sign you in, or help you create an account.", style: text.bodyMedium),
+                      const SizedBox(height: 20),
                       TextField(
                         controller: _emailController,
-                        decoration: InputDecoration(
+                        decoration: const InputDecoration(
                           labelText: 'Email',
-                          prefixIcon: const Icon(Icons.email_outlined),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          prefixIcon: Icon(Icons.alternate_email_rounded),
                         ),
                         keyboardType: TextInputType.emailAddress,
+                        autofillHints: const [AutofillHints.email],
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 12),
                       TextField(
                         controller: _passwordController,
-                        decoration: InputDecoration(
+                        decoration: const InputDecoration(
                           labelText: 'Password',
-                          prefixIcon: const Icon(Icons.lock_outline),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          prefixIcon: Icon(Icons.lock_outline_rounded),
                         ),
                         obscureText: true,
+                        autofillHints: const [AutofillHints.password],
                       ),
                       Align(
                         alignment: Alignment.centerRight,
@@ -309,7 +317,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                           child: const Text('Forgot password?'),
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 4),
                       PrimaryButton(
                         text: 'Continue',
                         isLoading: _isLoading,
@@ -328,95 +336,93 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.stride;
+    final text = Theme.of(context).textTheme;
     return Scaffold(
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const SizedBox(height: 96), // Increased top padding
-              Text(
-                'Stride',
-                style: Theme.of(context).textTheme.displayLarge?.copyWith(fontSize: 72, height: 1.0, letterSpacing: -1.5),
-                textAlign: TextAlign.center,
-              ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.1),
-              Text(
-                'by Moops',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
-                  letterSpacing: 2,
-                ),
-                textAlign: TextAlign.center,
-              ).animate().fadeIn(delay: 300.ms),
-              const SizedBox(height: 8),
-              Text(
-                'The offline-first running tracker.\nNo account required.',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
-                ),
-                textAlign: TextAlign.center,
-              ).animate().fadeIn(delay: 300.ms),
-              const SizedBox(height: 48),
-              
-              PrimaryButton(
-                text: 'Start Tracking Now (Offline)',
-                isLoading: _isLoading,
-                onPressed: _handleGuestLogin,
-              ).animate().slideY(begin: 0.1, delay: 400.ms).fadeIn(delay: 400.ms),
-              
-              const SizedBox(height: 32),
-              Row(
+        child: LayoutBuilder(
+          builder: (context, box) => SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 16, 16, 20),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: box.maxHeight - 36),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Expanded(child: Divider(color: Theme.of(context).colorScheme.surface)),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Text(
-                      'Or, sign in to enable cloud backups',
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
-                        fontWeight: FontWeight.w600,
-                      ),
+                  // Hero block: Moop on butter, wordmark, promise.
+                  BrutalCard(
+                    color: c.butter,
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('stride',
+                                      style: text.displayLarge?.copyWith(fontSize: 60, color: c.onPastel, letterSpacing: -2)),
+                                  const SizedBox(height: 6),
+                                  BrutalPill(text: 'BY MOOPS', color: c.blush),
+                                ],
+                              ),
+                            ),
+                            const Moop(size: 104, mood: MoopMood.happy),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'The offline-first running tracker.\nNo account needed to start.',
+                          style: text.bodyLarge?.copyWith(color: c.onPastel, fontWeight: FontWeight.w500),
+                        ),
+                      ],
                     ),
+                  ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.08, curve: Curves.easeOut),
+                  const SizedBox(height: 28),
+                  PrimaryButton(
+                    text: 'Start tracking now',
+                    icon: Icons.directions_run_rounded,
+                    isLoading: _isLoading,
+                    onPressed: _handleGuestLogin,
                   ),
-                  Expanded(child: Divider(color: Theme.of(context).colorScheme.surface)),
+                  const SizedBox(height: 22),
+                  Row(
+                    children: [
+                      Expanded(child: Divider(color: c.outline.withValues(alpha: 0.25), thickness: 2)),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: Text('OR BACK UP YOUR RUNS', style: text.labelSmall),
+                      ),
+                      Expanded(child: Divider(color: c.outline.withValues(alpha: 0.25), thickness: 2)),
+                    ],
+                  ),
+                  const SizedBox(height: 18),
+                  PrimaryButton(
+                    text: 'Continue with Google',
+                    icon: Icons.g_mobiledata_rounded,
+                    color: c.surface,
+                    foregroundColor: c.ink,
+                    onPressed: _isLoading ? () {} : _handleGoogleLogin,
+                  ),
+                  const SizedBox(height: 10),
+                  PrimaryButton(
+                    text: 'Continue with email',
+                    icon: Icons.alternate_email_rounded,
+                    color: c.sky,
+                    onPressed: _isLoading ? () {} : _showEmailAuthSheet,
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    'Your runs stay on this device unless you sign in.',
+                    textAlign: TextAlign.center,
+                    style: text.bodySmall,
+                  ),
                 ],
-              ).animate().fadeIn(delay: 500.ms),
-              const SizedBox(height: 32),
-              
-              ElevatedButton.icon(
-                onPressed: _handleGoogleLogin,
-                icon: const Icon(Icons.g_mobiledata, size: 28),
-                label: const Text('Continue with Google', style: TextStyle(fontWeight: FontWeight.w600)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: Colors.red,
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-              ).animate().slideY(begin: 0.1, delay: 600.ms).fadeIn(delay: 600.ms),
-              
-              const SizedBox(height: 16),
-              
-              TextButton(
-                onPressed: _showEmailAuthSheet,
-                child: const Text('Continue with Email'),
-              ).animate().fadeIn(delay: 700.ms),
-              
-              const SizedBox(height: 48),
-              
-              Center(
-                child: Image.asset(
-                  Theme.of(context).brightness == Brightness.dark
-                      ? 'assets/images/moops-logo-dark.png'
-                      : 'assets/images/moops-logo-light.png',
-                  height: 48,
-                  opacity: const AlwaysStoppedAnimation(0.3),
-                ).animate().fadeIn(delay: 900.ms),
               ),
-              const SizedBox(height: 24),
-            ],
+            ),
           ),
         ),
       ),

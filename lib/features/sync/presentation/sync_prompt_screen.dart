@@ -7,6 +7,9 @@ import 'package:stride/features/auth/providers/auth_provider.dart';
 import 'package:stride/features/tracking/presentation/tracking_screen.dart';
 import 'package:stride/features/onboarding/presentation/onboarding_screen.dart';
 import 'package:stride/core/database/local_db.dart';
+import 'package:stride/core/widgets/moop.dart';
+import 'package:stride/theme/app_theme.dart';
+import 'package:stride/theme/brutal_card.dart';
 
 class SyncPromptScreen extends ConsumerStatefulWidget {
   /// True when we couldn't tell whether the account has cloud data. The user
@@ -122,95 +125,64 @@ class _SyncPromptScreenState extends ConsumerState<SyncPromptScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.stride;
+    final text = Theme.of(context).textTheme;
+    final unreachable = widget.cloudUnreachable;
     return Scaffold(
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(24.0),
+          padding: const EdgeInsets.fromLTRB(20, 16, 16, 20),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const Spacer(),
-              Icon(
-                Icons.cloud_sync_rounded,
-                size: 80,
-                color: Theme.of(context).colorScheme.primary,
-              ).animate().scale(duration: 500.ms, curve: Curves.easeOutBack).fadeIn(),
-              
-              const SizedBox(height: 32),
-              
-              Text(
-                widget.cloudUnreachable ? "Couldn't Reach the Cloud" : 'Previous Data Found',
-                style: Theme.of(context).textTheme.displayLarge?.copyWith(fontSize: 28),
-                textAlign: TextAlign.center,
-              ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.1),
-              
-              const SizedBox(height: 16),
-              
-              Text(
-                widget.cloudUnreachable
-                    ? "We couldn't check your account for saved runs. Try again once you're online, or continue and they'll be merged in automatically later."
-                    : 'We found your profile and past runs saved to your account.',
-                style: Theme.of(context).textTheme.bodyLarge,
-                textAlign: TextAlign.center,
-              ).animate().fadeIn(delay: 300.ms),
-              
-              const Spacer(),
-              
-              PrimaryButton(
-                text: widget.cloudUnreachable ? 'Try Again' : 'Sync Now',
-                isLoading: _isSyncing,
-                onPressed: (_isSyncing || _isWiping) ? () {} : () { _handleSyncNow(); },
-              ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.2),
-              
-              const SizedBox(height: 16),
-              
-              if (widget.cloudUnreachable)
-                TextButton(
-                  onPressed: _isSyncing ? null : _handleContinueOffline,
-                  child: const Text('Continue Without Syncing'),
-                ).animate().fadeIn(delay: 500.ms)
-              else
-              ElevatedButton(
-                onPressed: (_isSyncing || _isWiping) ? null : () { _handleStartFresh(); },
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  backgroundColor: Colors.white,
-                  foregroundColor: Colors.red,
-                  elevation: 0,
-                ),
-                child: _isWiping 
-                  ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.red))
-                  : const Text('Start Fresh (Delete Cloud Data)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-              ).animate().fadeIn(delay: 500.ms).slideY(begin: 0.2),
-              
-              const SizedBox(height: 48),
-              
-              // Bottom Logo & Text
-              Center(
+              BrutalCard(
+                color: unreachable ? c.blush : c.sky,
+                padding: const EdgeInsets.fromLTRB(20, 24, 20, 22),
                 child: Column(
                   children: [
-                    Image.asset(
-                      Theme.of(context).brightness == Brightness.dark
-                          ? 'assets/images/moops-logo-dark.png'
-                          : 'assets/images/moops-logo-light.png',
-                      height: 48,
-                      opacity: const AlwaysStoppedAnimation(0.5),
-                    ),
-                    const SizedBox(height: 8),
+                    Moop(size: 120, mood: unreachable ? MoopMood.shocked : MoopMood.excited),
+                    const SizedBox(height: 16),
                     Text(
-                      'STRIDE BY MOOPS',
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
-                        letterSpacing: 2,
-                        fontWeight: FontWeight.w600,
-                      ),
+                      unreachable ? "couldn't reach the cloud" : 'welcome back!',
+                      style: text.headlineLarge?.copyWith(color: c.onPastel),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      unreachable
+                          ? "We couldn't check your account for saved runs. Try again once you're online, or continue and they'll merge in automatically later."
+                          : 'Your profile and past runs are saved to your account. Bring them to this device?',
+                      style: text.bodyLarge?.copyWith(color: c.onPastel),
+                      textAlign: TextAlign.center,
                     ),
                   ],
-                ).animate().fadeIn(delay: 600.ms),
+                ),
+              ).animate().fadeIn(duration: 350.ms).slideY(begin: 0.08, curve: Curves.easeOut),
+              const Spacer(),
+              PrimaryButton(
+                text: unreachable ? 'Try again' : 'Sync my runs',
+                icon: unreachable ? Icons.refresh_rounded : Icons.cloud_download_rounded,
+                isLoading: _isSyncing,
+                onPressed: (_isSyncing || _isWiping) ? () {} : _handleSyncNow,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 10),
+              if (unreachable)
+                PrimaryButton(
+                  text: 'Continue without syncing',
+                  color: c.surface,
+                  foregroundColor: c.ink,
+                  onPressed: _isSyncing ? () {} : _handleContinueOffline,
+                )
+              else
+                PrimaryButton(
+                  text: 'Start fresh (delete cloud data)',
+                  icon: Icons.delete_outline_rounded,
+                  color: c.surface,
+                  foregroundColor: c.coral,
+                  isLoading: _isWiping,
+                  onPressed: (_isSyncing || _isWiping) ? () {} : _handleStartFresh,
+                ),
             ],
           ),
         ),

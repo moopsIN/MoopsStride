@@ -4,6 +4,9 @@ import 'package:latlong2/latlong.dart';
 import 'package:stride/core/database/local_db.dart';
 import 'package:stride/features/progress/presentation/progress_screen.dart';
 import 'package:stride/features/splash/splash_screen.dart';
+import 'package:stride/features/auth/presentation/auth_screen.dart';
+import 'package:stride/features/onboarding/presentation/onboarding_screen.dart';
+import 'package:stride/features/sync/presentation/sync_prompt_screen.dart';
 import 'package:stride/features/tracking/presentation/tracking_screen.dart';
 import 'package:stride/features/tracking/presentation/run_summary_screen.dart';
 import 'package:stride/features/tracking/models/activity_model.dart';
@@ -42,9 +45,9 @@ void main() {
       await tester.pump(const Duration(milliseconds: 1500));
       await screenshot(tester, 'splash_end_$mode');
       expect(tester.takeException(), isNull);
-      // Let it route away so no timers are left pending.
-      await tester.pump(const Duration(seconds: 2));
-      await tester.pump(const Duration(seconds: 1));
+      // Let it route away, then tear down so no timers are left pending.
+      await settleFrames(tester);
+      await disposeScreen(tester);
     });
 
     for (final status in [TrackingStatus.notStarted, TrackingStatus.active, TrackingStatus.paused]) {
@@ -105,6 +108,22 @@ void main() {
         await tester.runAsync(() => Future.delayed(const Duration(milliseconds: 200)));
         await settleFrames(tester);
         await screenshot(tester, 'progress_${withRuns ? 'runs' : 'empty'}_$mode');
+        expect(tester.takeException(), isNull);
+        await disposeScreen(tester);
+      });
+    }
+
+    final simple = <String, Widget Function()>{
+      'auth': () => const AuthScreen(),
+      'onboarding': () => const OnboardingScreen(),
+      'sync_prompt': () => const SyncPromptScreen(),
+      'sync_prompt_offline': () => const SyncPromptScreen(cloudUnreachable: true),
+    };
+    for (final entry in simple.entries) {
+      testWidgets('${entry.key} ($mode)', (tester) async {
+        await pumpScreen(tester, entry.value(), dark: dark, size: const Size(360, 740));
+        await settleFrames(tester);
+        await screenshot(tester, '${entry.key}_$mode');
         expect(tester.takeException(), isNull);
         await disposeScreen(tester);
       });
