@@ -10,6 +10,7 @@ import 'package:stride/core/config/secrets.dart';
 import 'package:stride/features/tracking/presentation/run_summary_screen.dart';
 import 'package:stride/features/tracking/presentation/hold_to_confirm_button.dart';
 import 'package:stride/core/providers/preferences_provider.dart';
+import 'package:stride/core/utils/formatters.dart';
 import 'package:stride/features/profile/presentation/profile_screen.dart';
 import 'package:stride/features/progress/providers/progress_provider.dart';
 import 'package:stride/features/progress/presentation/progress_screen.dart';
@@ -353,9 +354,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
     final isKm = ref.watch(isKmProvider);
     final distLabel = isKm ? 'KM' : 'MI';
     final distValue = isKm ? state.distanceKm : (state.distanceKm * 0.621371);
-    final speedLabel = isKm ? 'km/h' : 'mph';
-    final speedValue = isKm ? state.currentSpeed : (state.currentSpeed * 0.621371);
-    final formattedSpeed = speedValue == 0 ? "0.0" : speedValue.toStringAsFixed(1);
+    final paceLabel = isKm ? 'PACE /KM' : 'PACE /MI';
 
     return GlassContainer(
       borderRadius: 22,
@@ -367,7 +366,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
           _statDivider(context),
           _buildStatItem(context, distLabel, distValue.toStringAsFixed(2), highlight: true),
           _statDivider(context),
-          _buildStatItem(context, speedLabel, formattedSpeed),
+          _buildStatItem(context, paceLabel, formatPace(state.currentSpeed, isKm: isKm)),
           _statDivider(context),
           _buildStatItem(context, 'STEPS', state.currentSteps.toString()),
         ],

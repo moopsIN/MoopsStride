@@ -10,6 +10,7 @@ import 'package:stride/core/config/secrets.dart';
 import 'package:stride/features/tracking/models/activity_model.dart';
 import 'package:stride/theme/glass_container.dart';
 import 'package:stride/core/providers/preferences_provider.dart';
+import 'package:stride/core/utils/formatters.dart';
 import 'package:stride/features/progress/providers/progress_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -328,9 +329,6 @@ class _RunSummaryScreenState extends ConsumerState<RunSummaryScreen> {
 
   Widget _buildStatsGrid(BuildContext context, WidgetRef ref) {
     final isKm = ref.watch(isKmProvider);
-    final speedValue = isKm ? activity.avgSpeedKmH : (activity.avgSpeedKmH * 0.621371);
-    final formattedSpeed = speedValue == 0 ? "0.0" : speedValue.toStringAsFixed(1);
-    final speedUnit = isKm ? 'km/h' : 'mph';
 
     return Column(
       children: [
@@ -338,12 +336,12 @@ class _RunSummaryScreenState extends ConsumerState<RunSummaryScreen> {
           children: [
             Expanded(
               child: _buildStatTile(context, Icons.schedule_rounded, 'TIME',
-                  _formatDuration(activity.durationSeconds), 300),
+                  formatDuration(activity.durationSeconds), 300),
             ),
             const SizedBox(width: 14),
             Expanded(
-              child: _buildStatTile(context, Icons.speed_rounded, 'AVG SPEED',
-                  formattedSpeed, 380, unit: speedUnit),
+              child: _buildStatTile(context, Icons.speed_rounded, 'AVG PACE',
+                  formatPace(activity.avgSpeedKmH, isKm: isKm), 380, unit: isKm ? '/km' : '/mi'),
             ),
           ],
         ),
@@ -486,16 +484,6 @@ class _RunSummaryScreenState extends ConsumerState<RunSummaryScreen> {
         ),
       ],
     ).animate().slideY(begin: 0.4, delay: 640.ms, curve: Curves.easeOutBack).fadeIn(delay: 640.ms);
-  }
-
-  String _formatDuration(int totalSeconds) {
-    final hours = totalSeconds ~/ 3600;
-    final minutes = (totalSeconds % 3600) ~/ 60;
-    final seconds = totalSeconds % 60;
-    if (hours > 0) {
-      return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
-    }
-    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
 
   String _formatDate(DateTime dt) {
