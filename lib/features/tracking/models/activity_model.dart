@@ -50,6 +50,8 @@ class ActivityModel {
     };
   }
 
+  /// Numbers are read as `num`: a whole double can come back as an int
+  /// (e.g. after a Firestore round trip).
   factory ActivityModel.fromMap(Map<String, dynamic> map) {
     List<LatLng> parsedRoute = [];
     if (map['route_polyline'] != null && map['route_polyline'] is String) {
@@ -57,7 +59,7 @@ class ActivityModel {
         final List<dynamic> decoded = jsonDecode(map['route_polyline']);
         parsedRoute = decoded.map((point) {
           final p = point as List<dynamic>;
-          return LatLng(p[0] as double, p[1] as double);
+          return LatLng((p[0] as num).toDouble(), (p[1] as num).toDouble());
         }).toList();
       } catch (e) {
         // Handle parsing error
@@ -67,15 +69,15 @@ class ActivityModel {
     return ActivityModel(
       id: map['id'] as String,
       type: map['type'] as String,
-      startTime: DateTime.fromMillisecondsSinceEpoch(map['start_time'] as int),
-      endTime: DateTime.fromMillisecondsSinceEpoch(map['end_time'] as int),
-      distanceMeters: map['distance_meters'] as double,
-      durationSeconds: map['duration_seconds'] as int,
-      avgPace: map['avg_pace'] as double,
-      caloriesEstimate: map['calories_estimate'] as double,
+      startTime: DateTime.fromMillisecondsSinceEpoch((map['start_time'] as num).toInt()),
+      endTime: DateTime.fromMillisecondsSinceEpoch((map['end_time'] as num).toInt()),
+      distanceMeters: (map['distance_meters'] as num).toDouble(),
+      durationSeconds: (map['duration_seconds'] as num).toInt(),
+      avgPace: (map['avg_pace'] as num).toDouble(),
+      caloriesEstimate: (map['calories_estimate'] as num).toDouble(),
       routePoints: parsedRoute,
-      steps: map['steps'] as int? ?? 0,
-      synced: (map['synced'] as int) == 1,
+      steps: (map['steps'] as num?)?.toInt() ?? 0,
+      synced: map['synced'] == 1,
     );
   }
 }
