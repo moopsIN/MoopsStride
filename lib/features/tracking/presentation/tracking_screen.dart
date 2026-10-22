@@ -494,7 +494,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                   children: [
                     Text('${progressState.currentStreak} Day Streak',
                         style: theme.textTheme.titleLarge?.copyWith(fontSize: 18)),
-                    Text('Keep the momentum going',
+                    Text(_weekSummary(progressState),
                         style: theme.textTheme.bodyMedium?.copyWith(color: muted, fontSize: 13)),
                   ],
                 ),
@@ -506,6 +506,14 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
         ).animate().slideX(begin: 0.1, delay: 200.ms).fadeIn(delay: 200.ms),
       ],
     );
+  }
+
+  String _weekSummary(ProgressState progress) {
+    if (progress.weekRuns == 0) return 'No runs yet this week';
+    final isKm = ref.watch(isKmProvider);
+    final distance = progress.weekDistanceMeters / (isKm ? 1000 : kmPerMile * 1000);
+    final runs = progress.weekRuns == 1 ? '1 run' : '${progress.weekRuns} runs';
+    return 'This week: ${distance.toStringAsFixed(1)} ${isKm ? 'km' : 'mi'} · $runs';
   }
 
   String _greeting() {

@@ -54,4 +54,27 @@ void main() {
     
     container.dispose();
   });
+
+  test('Weekly totals count only runs since Monday', () async {
+    final now = DateTime.now();
+    final monday = DateTime(now.year, now.month, now.day - (now.weekday - 1), 7);
+    final lastSunday = monday.subtract(const Duration(hours: 8));
+
+    ActivityModel run(String id, DateTime at, double meters) => ActivityModel(
+        id: id, type: 'run', startTime: at, endTime: at, distanceMeters: meters,
+        durationSeconds: 600, avgPace: 5.0, caloriesEstimate: 50, routePoints: []);
+
+    await LocalDatabase.instance.insertActivity(run('w1', monday, 3000).toMap());
+    await LocalDatabase.instance.insertActivity(run('w2', now, 2500).toMap());
+    await LocalDatabase.instance.insertActivity(run('old', lastSunday, 9000).toMap());
+
+    final container = ProviderContainer();
+    container.read(progressProvider.notifier).refresh();
+    await Future.delayed(const Duration(milliseconds: 100));
+
+    final state = container.read(progressProvider);
+    expect(state.weekRuns, 2);
+    expect(state.weekDistanceMeters, 5500);
+    container.dispose();
+  });
 }

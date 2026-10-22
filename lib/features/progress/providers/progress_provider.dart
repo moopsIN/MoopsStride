@@ -10,6 +10,8 @@ class ProgressState {
   final int currentStreak;
   final ActivityModel? longestRun;
   final ActivityModel? fastest5k;
+  final double weekDistanceMeters;
+  final int weekRuns;
 
   ProgressState({
     this.activities = const [],
@@ -17,6 +19,8 @@ class ProgressState {
     this.currentStreak = 0,
     this.longestRun,
     this.fastest5k,
+    this.weekDistanceMeters = 0,
+    this.weekRuns = 0,
   });
 
   ProgressState copyWith({
@@ -25,6 +29,8 @@ class ProgressState {
     int? currentStreak,
     ActivityModel? longestRun,
     ActivityModel? fastest5k,
+    double? weekDistanceMeters,
+    int? weekRuns,
   }) {
     return ProgressState(
       activities: activities ?? this.activities,
@@ -32,6 +38,8 @@ class ProgressState {
       currentStreak: currentStreak ?? this.currentStreak,
       longestRun: longestRun ?? this.longestRun,
       fastest5k: fastest5k ?? this.fastest5k,
+      weekDistanceMeters: weekDistanceMeters ?? this.weekDistanceMeters,
+      weekRuns: weekRuns ?? this.weekRuns,
     );
   }
 }
@@ -66,8 +74,15 @@ class ProgressNotifier extends Notifier<ProgressState> {
       }
     }
 
+    // Week runs Monday to Sunday, local time.
+    final now = DateTime.now();
+    final weekStart = DateTime(now.year, now.month, now.day - (now.weekday - 1));
+    final thisWeek = activities.where((a) => !a.startTime.isBefore(weekStart));
+
     state = state.copyWith(
       activities: activities,
+      weekDistanceMeters: thisWeek.fold<double>(0, (sum, a) => sum + a.distanceMeters),
+      weekRuns: thisWeek.length,
       isLoading: false,
       currentStreak: streak,
       longestRun: longest,
