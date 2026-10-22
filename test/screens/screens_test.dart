@@ -4,6 +4,10 @@ import 'package:latlong2/latlong.dart';
 import 'package:stride/core/database/local_db.dart';
 import 'package:stride/features/progress/presentation/progress_screen.dart';
 import 'package:stride/features/splash/splash_screen.dart';
+import 'package:stride/features/profile/presentation/profile_screen.dart';
+import 'package:stride/features/profile/presentation/edit_profile_screen.dart';
+import 'package:stride/features/profile/presentation/about_screen.dart';
+import 'package:firebase_auth_mocks/firebase_auth_mocks.dart';
 import 'package:stride/features/auth/presentation/auth_screen.dart';
 import 'package:stride/features/onboarding/presentation/onboarding_screen.dart';
 import 'package:stride/features/sync/presentation/sync_prompt_screen.dart';
@@ -120,6 +124,34 @@ void main() {
       'sync_prompt_offline': () => const SyncPromptScreen(cloudUnreachable: true),
     };
     for (final entry in simple.entries) {
+      testWidgets('${entry.key} ($mode)', (tester) async {
+        await pumpScreen(tester, entry.value(), dark: dark, size: const Size(360, 740));
+        await settleFrames(tester);
+        await screenshot(tester, '${entry.key}_$mode');
+        expect(tester.takeException(), isNull);
+        await disposeScreen(tester);
+      });
+    }
+
+    for (final signedIn in [false, true]) {
+      testWidgets('settings ${signedIn ? 'signed in' : 'guest'} ($mode)', (tester) async {
+        await tester.runAsync(() => LocalDatabase.instance.updateUserProfile({
+              'goal': 'Endurance', 'experience_level': 'Beginner', 'gender': 'Female',
+              'age': 29, 'height': 165.0, 'weight': 58.0, 'activity_level': 'Light',
+            }));
+        await pumpScreen(tester, const ProfileScreen(),
+            dark: dark, size: const Size(360, 740), user: signedIn ? MockUser(email: 'runner@moops.in') : null);
+        await settleFrames(tester);
+        await screenshot(tester, 'settings_${signedIn ? 'in' : 'guest'}_$mode');
+        expect(tester.takeException(), isNull);
+        await disposeScreen(tester);
+      });
+    }
+
+    for (final entry in <String, Widget Function()>{
+      'edit_profile': () => const EditProfileScreen(),
+      'about': () => const AboutScreen(),
+    }.entries) {
       testWidgets('${entry.key} ($mode)', (tester) async {
         await pumpScreen(tester, entry.value(), dark: dark, size: const Size(360, 740));
         await settleFrames(tester);

@@ -5,7 +5,9 @@ import 'package:stride/core/widgets/primary_button.dart';
 import 'package:stride/features/profile/providers/profile_provider.dart';
 import 'package:stride/core/providers/preferences_provider.dart';
 import 'package:stride/core/utils/formatters.dart';
+import 'package:stride/theme/app_theme.dart';
 import 'package:stride/theme/brutal_card.dart';
+import 'package:stride/core/widgets/screen_header.dart';
 
 class EditProfileScreen extends ConsumerStatefulWidget {
   const EditProfileScreen({super.key});
@@ -103,11 +105,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       padding: const EdgeInsets.only(left: 4, bottom: 12),
       child: Text(
         text,
-        style: theme.textTheme.labelSmall?.copyWith(
-          letterSpacing: 2,
-          fontWeight: FontWeight.w700,
-          color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-        ),
+        style: theme.textTheme.labelSmall,
       ),
     );
   }
@@ -115,14 +113,13 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   Widget _buildDropdownItem(String? value, List<String> items, Function(String?) onChanged) {
     final theme = Theme.of(context);
     return BrutalCard(
-      borderRadius: 18,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: value,
           isExpanded: true,
           dropdownColor: theme.colorScheme.surface,
-          icon: Icon(Icons.keyboard_arrow_down_rounded, color: theme.colorScheme.primary),
+          icon: Icon(Icons.keyboard_arrow_down_rounded, color: context.stride.ink),
           style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.bold,
             color: theme.colorScheme.onSurface,
@@ -144,16 +141,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     final theme = Theme.of(context);
     return Expanded(
       child: BrutalCard(
-        borderRadius: 18,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Column(
           children: [
-            Text(
-              label,
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-              ),
-            ),
+            Text(label, style: theme.textTheme.labelSmall),
             TextFormField(
               controller: controller,
               keyboardType: TextInputType.numberWithOptions(decimal: !isInt),
@@ -161,19 +152,17 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               style: theme.textTheme.displayLarge?.copyWith(fontSize: 26),
               decoration: InputDecoration(
                 border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                filled: false,
                 suffixText: unit,
-                suffixStyle: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                ),
+                suffixStyle: theme.textTheme.bodyMedium,
               ),
             ),
             if (subtitle != null) ...[
               Text(
                 subtitle,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.primary,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: theme.textTheme.labelMedium?.copyWith(color: context.stride.inkMuted),
               ),
             ]
           ],
@@ -189,17 +178,15 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     final isKg = ref.watch(isKgProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Edit Profile'),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: false,
-      ),
-      body: state.when(
+      body: SafeArea(
+        child: Column(
+          children: [
+            const ScreenHeader(title: 'edit profile'),
+            Expanded(
+              child: state.when(
         data: (profileState) {
-          return SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+          return SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 8, 16, 32),
               child: Form(
                 key: _formKey,
                 child: Column(
@@ -245,16 +232,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                         const SizedBox(width: 14),
                         Expanded(
                           child: BrutalCard(
-                            borderRadius: 18,
                             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                             child: Column(
                               children: [
-                                Text(
-                                  'GENDER',
-                                  style: theme.textTheme.labelSmall?.copyWith(
-                                    color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                                  ),
-                                ),
+                                Text('GENDER', style: theme.textTheme.labelSmall),
                                 const SizedBox(height: 4),
                                 DropdownButtonHideUnderline(
                                   child: DropdownButton<String>(
@@ -262,7 +243,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                                     isExpanded: true,
                                     alignment: Alignment.center,
                                     dropdownColor: theme.colorScheme.surface,
-                                    icon: Icon(Icons.keyboard_arrow_down_rounded, color: theme.colorScheme.primary),
+                                    icon: Icon(Icons.keyboard_arrow_down_rounded, color: context.stride.ink),
                                     style: theme.textTheme.titleMedium?.copyWith(
                                       fontWeight: FontWeight.bold,
                                       color: theme.colorScheme.onSurface,
@@ -313,19 +294,22 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
                     const SizedBox(height: 36),
                     PrimaryButton(
-                      text: 'Save Changes',
+                      text: 'Save changes',
                       isLoading: profileState.isSaving,
                       onPressed: _saveProfile,
                     ),
                   ],
                 ),
               ),
-            ),
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, stack) => Center(
           child: Text('Error: $err', style: theme.textTheme.bodyMedium),
+        ),
+              ),
+            ),
+          ],
         ),
       ),
     );

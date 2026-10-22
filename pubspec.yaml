@@ -80,12 +80,6 @@ flutter:
   uses-material-design: true
 
   # To add assets to your application, add an assets section, like this:
-  assets:
-    - assets/images/moops-logo-dark.png
-    - assets/images/moops-logo-light.png
-    - assets/images/male_avatar.png
-    - assets/images/female_avatar.png
-    - assets/images/other_avatar.png
 
   # Brand fonts are bundled (SIL OFL, licences in assets/fonts) so the app
   # never needs the network to render text.

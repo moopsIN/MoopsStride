@@ -4,8 +4,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_animate/flutter_animate.dart';
+import 'package:stride/theme/app_theme.dart';
 import 'package:stride/theme/brutal_card.dart';
+import 'package:stride/core/widgets/moop.dart';
+import 'package:stride/core/widgets/screen_header.dart';
 import 'package:stride/theme/theme_provider.dart';
 import 'package:stride/features/auth/providers/auth_provider.dart';
 import 'package:stride/features/auth/presentation/auth_screen.dart';
@@ -43,49 +45,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           : "Couldn't sync everything. Check your connection and try again."),
       behavior: SnackBarBehavior.floating,
     ));
-  }
-
-  Widget _buildDetailRow(BuildContext context, IconData icon, String label, String value) {
-    final theme = Theme.of(context);
-    final muted = theme.colorScheme.onSurface.withValues(alpha: 0.6);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      child: Row(
-        children: [
-          Icon(icon, size: 18, color: theme.colorScheme.primary),
-          const SizedBox(width: 12),
-          Text(label, style: theme.textTheme.bodyMedium?.copyWith(color: muted)),
-          const Spacer(),
-          Text(
-            value.isNotEmpty ? value : '—',
-            style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w700),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _sectionLabel(BuildContext context, String text) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(left: 4, bottom: 12),
-      child: Text(
-        text,
-        style: theme.textTheme.labelSmall?.copyWith(
-          letterSpacing: 2,
-          fontWeight: FontWeight.w700,
-          color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-        ),
-      ),
-    );
-  }
-
-  Widget _divider(BuildContext context) {
-    return Divider(
-      color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.1),
-      height: 1,
-      thickness: 1,
-    );
   }
 
   /// A run in progress holds a foreground location service and in-memory
@@ -247,285 +206,317 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final c = context.stride;
+    final text = Theme.of(context).textTheme;
     final themeMode = ref.watch(themeModeProvider);
     final user = ref.watch(authProvider);
     final profileState = ref.watch(profileProvider);
     final isGuest = user == null;
-    final isDarkMode = ref.watch(themeModeProvider) == ThemeMode.dark ||
-        (themeMode == ThemeMode.system &&
-            MediaQuery.of(context).platformBrightness == Brightness.dark);
+    final isDarkMode = themeMode == ThemeMode.dark ||
+        (themeMode == ThemeMode.system && MediaQuery.of(context).platformBrightness == Brightness.dark);
     final isKm = ref.watch(isKmProvider);
     final isKg = ref.watch(isKgProvider);
 
+    final status = isGuest
+        ? 'Tracking locally on this device'
+        : switch (ref.watch(pendingSyncCountProvider).value) {
+            null || 0 => 'Synced to your account',
+            1 => '1 change waiting to sync',
+            final n => '$n changes waiting to sync',
+          };
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Settings'),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: false,
-      ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Identity card
-              BrutalCard(
-                borderRadius: 20,
-                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            isGuest ? 'Guest User' : (user.email ?? 'User'),
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            isGuest
-                                ? 'Tracking locally on this device'
-                                : switch (ref.watch(pendingSyncCountProvider).value) {
-                                    null || 0 => 'Synced to your account',
-                                    1 => '1 change waiting to sync',
-                                    final n => '$n changes waiting to sync',
-                                  },
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: theme.colorScheme.onSurface.withValues(alpha: 0.55),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Container(
-                      width: 56,
-                      height: 56,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: theme.colorScheme.primary.withValues(alpha: 0.12),
-                        border: Border.all(
-                          color: theme.colorScheme.primary.withValues(alpha: 0.3),
-                          width: 1.5,
-                        ),
-                      ),
-                      child: ClipOval(
-                        child: profileState.when(
-                          data: (state) {
-                            final gender = state.gender;
-                            if (gender == 'Male') {
-                              return Image.asset('assets/images/male_avatar.png', fit: BoxFit.cover);
-                            } else if (gender == 'Female') {
-                              return Image.asset('assets/images/female_avatar.png', fit: BoxFit.cover);
-                            } else {
-                              return Image.asset('assets/images/other_avatar.png', fit: BoxFit.cover);
-                            }
-                          },
-                          loading: () => Icon(Icons.person_rounded, size: 28, color: theme.colorScheme.primary),
-                          error: (err, stack) => Icon(Icons.person_rounded, size: 28, color: theme.colorScheme.primary),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.08),
-
-              const SizedBox(height: 32),
-
-              _sectionLabel(context, 'PERSONAL DETAILS'),
-              profileState.when(
-                data: (state) {
-                  return BrutalCard(
-                    borderRadius: 20,
-                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
-                    child: Column(
+        child: Column(
+          children: [
+            const ScreenHeader(title: 'settings'),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(20, 8, 16, 28),
+                children: [
+                  // Identity
+                  BrutalCard(
+                    color: c.sage,
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
                       children: [
-                        _buildDetailRow(context, Icons.flag_rounded, 'Goal', state.goal),
-                        _divider(context),
-                        _buildDetailRow(
-                            context, Icons.trending_up_rounded, 'Experience', state.experienceLevel),
-                        _divider(context),
-                        _buildDetailRow(
-                            context, Icons.bolt_rounded, 'Activity', state.activityLevel),
-                        _divider(context),
-                        _buildDetailRow(
-                            context, Icons.person_outline_rounded, 'Gender', state.gender),
-                        _divider(context),
-                        _buildDetailRow(
-                            context, Icons.cake_rounded, 'Age', '${state.age} yrs'),
-                        _divider(context),
-                        _buildDetailRow(
-                            context, Icons.height_rounded, 'Height', '${state.height} cm (${formatHeightToFtIn(state.height)})'),
-                        _divider(context),
-                        _buildDetailRow(
-                            context, Icons.monitor_weight_rounded, 'Weight', isKg ? '${state.weight} kg' : '${kgToLbs(state.weight).toStringAsFixed(1)} lbs'),
-                        const SizedBox(height: 4),
-                        _divider(context),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: Padding(
-                            padding: const EdgeInsets.only(top: 4, bottom: 4, right: 4),
-                            child: TextButton.icon(
-                              onPressed: () {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(builder: (_) => const EditProfileScreen()),
-                                );
-                              },
-                              style: TextButton.styleFrom(
-                                foregroundColor: theme.colorScheme.primary,
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                minimumSize: Size.zero,
-                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        Container(
+                          width: 64,
+                          height: 64,
+                          decoration: Brutal.box(c, color: c.surface, radius: 32, shadow: 0),
+                          child: const Center(child: Moop(size: 44)),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                isGuest ? 'guest runner' : (user.email ?? 'runner'),
+                                style: text.headlineSmall?.copyWith(color: c.onPastel),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                              icon: const Icon(Icons.edit_rounded, size: 16),
-                              label: Text(
-                                'Edit Details', 
-                                style: theme.textTheme.labelLarge?.copyWith(
-                                  fontWeight: FontWeight.bold, 
-                                  color: theme.colorScheme.primary
-                                ),
-                              ),
-                            ),
+                              const SizedBox(height: 4),
+                              Text(status, style: text.bodyMedium?.copyWith(color: c.onPastel)),
+                            ],
                           ),
                         ),
                       ],
                     ),
-                  );
-                },
-                loading: () => const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 32),
-                  child: Center(child: CircularProgressIndicator()),
-                ),
-                error: (err, stack) => Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  child: Text('Failed to load profile.', style: theme.textTheme.bodyMedium),
-                ),
-              ),
-
-              const SizedBox(height: 28),
-
-              _sectionLabel(context, 'PREFERENCES'),
-              BrutalCard(
-                borderRadius: 20,
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                child: Material(
-                  color: Colors.transparent,
-                  child: Column(
-                    children: [
-                    SwitchListTile.adaptive(
-                      title: const Text('Distance Units'),
-                      subtitle: Text(isKm ? 'Kilometers (km)' : 'Miles (mi)'),
-                      value: isKm,
-                      onChanged: (val) => ref.read(isKmProvider.notifier).setKm(val),
-                      activeTrackColor: theme.colorScheme.primary,
-                    ),
-                    _divider(context),
-                    SwitchListTile.adaptive(
-                      title: const Text('Weight Units'),
-                      subtitle: Text(isKg ? 'Kilograms (kg)' : 'Pounds (lbs)'),
-                      value: isKg,
-                      onChanged: (val) => ref.read(isKgProvider.notifier).setKg(val),
-                      activeTrackColor: theme.colorScheme.primary,
-                    ),
-                    _divider(context),
-                    SwitchListTile.adaptive(
-                      title: const Text('Dark Mode'),
-                      value: isDarkMode,
-                      onChanged: (val) => ref.read(themeModeProvider.notifier).toggleTheme(val),
-                      activeTrackColor: theme.colorScheme.primary,
-                    ),
-                  ],
                   ),
-                ),
-              ),
 
-              const SizedBox(height: 28),
-
-              _sectionLabel(context, 'ACCOUNT'),
-              BrutalCard(
-                borderRadius: 20,
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                child: Material(
-                  color: Colors.transparent,
-                  child: Column(
-                    children: [
-                    if (!isGuest) ...[
-                      ListTile(
-                        leading: Icon(Icons.cloud_sync_rounded, color: theme.colorScheme.onSurface),
-                        title: const Text('Sync Now'),
-                        trailing: _isSyncing
-                            ? const SizedBox(
-                                width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                            : null,
-                        onTap: _isSyncing ? null : _handleSyncNow,
+                  _Section(
+                    label: 'ABOUT YOU',
+                    trailing: _SmallButton(
+                      label: 'EDIT',
+                      icon: Icons.edit_rounded,
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const EditProfileScreen()),
                       ),
-                      _divider(context),
-                    ],
-                    ListTile(
-                      leading: Icon(Icons.info_outline_rounded, color: theme.colorScheme.onSurface),
-                      title: const Text('About'),
-                      trailing: Icon(Icons.chevron_right_rounded,
-                          size: 20, color: theme.colorScheme.onSurface.withValues(alpha: 0.4)),
-                      onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(builder: (_) => const AboutScreen()),
-                        );
-                      },
                     ),
-                    _divider(context),
-                    ListTile(
-                      leading: Icon(
-                        isGuest ? Icons.login_rounded : Icons.logout_rounded,
-                        color: isGuest ? theme.colorScheme.primary : const Color(0xFFE5484D),
-                      ),
-                      title: Text(
-                        isGuest ? 'Sign In to Sync' : 'Sign Out',
-                        style: TextStyle(
-                          color: isGuest ? theme.colorScheme.primary : const Color(0xFFE5484D),
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      onTap: () async {
-                        if (isGuest) {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(builder: (_) => const AuthScreen()),
-                          );
-                        } else {
-                          await _handleSignOut();
-                        }
-                      },
-                    ),
-                    if (!isGuest) ...[
-                      _divider(context),
-                      ListTile(
-                        leading: const Icon(Icons.delete_forever_rounded, color: Color(0xFFE5484D)),
-                        title: const Text(
-                          'Delete Account',
-                          style: TextStyle(color: Color(0xFFE5484D), fontWeight: FontWeight.w600),
-                        ),
-                        trailing: _isDeleting
-                            ? const SizedBox(
-                                width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                            : null,
-                        onTap: _isDeleting ? null : _handleDeleteAccount,
-                      ),
-                    ],
-                    ],
                   ),
-                ),
+                  profileState.when(
+                    data: (p) => BrutalCard(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                      child: Column(
+                        children: [
+                          _DetailRow(icon: Icons.flag_rounded, label: 'Goal', value: p.goal),
+                          _DetailRow(icon: Icons.trending_up_rounded, label: 'Experience', value: p.experienceLevel),
+                          _DetailRow(icon: Icons.bolt_rounded, label: 'Activity', value: p.activityLevel),
+                          _DetailRow(icon: Icons.person_outline_rounded, label: 'Gender', value: p.gender),
+                          _DetailRow(icon: Icons.cake_rounded, label: 'Age', value: '${p.age} yrs'),
+                          _DetailRow(
+                            icon: Icons.height_rounded,
+                            label: 'Height',
+                            value: '${p.height.toStringAsFixed(0)} cm (${formatHeightToFtIn(p.height)})',
+                          ),
+                          _DetailRow(
+                            icon: Icons.monitor_weight_rounded,
+                            label: 'Weight',
+                            value: isKg
+                                ? '${p.weight.toStringAsFixed(1)} kg'
+                                : '${kgToLbs(p.weight).toStringAsFixed(1)} lbs',
+                            last: true,
+                          ),
+                        ],
+                      ),
+                    ),
+                    loading: () => const Padding(
+                      padding: EdgeInsets.all(32),
+                      child: Center(child: CircularProgressIndicator()),
+                    ),
+                    error: (err, stack) => Text("Couldn't load your profile.", style: text.bodyMedium),
+                  ),
+
+                  const _Section(label: 'PREFERENCES'),
+                  BrutalCard(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    // Switch tiles paint ripples on the nearest Material, which
+                    // the card's colour would otherwise hide.
+                    child: Material(
+                      type: MaterialType.transparency,
+                      child: Column(
+                      children: [
+                        _SwitchRow(
+                          title: 'Distance in kilometres',
+                          subtitle: isKm ? 'Kilometres (km)' : 'Miles (mi)',
+                          value: isKm,
+                          onChanged: (v) => ref.read(isKmProvider.notifier).setKm(v),
+                        ),
+                        _SwitchRow(
+                          title: 'Weight in kilograms',
+                          subtitle: isKg ? 'Kilograms (kg)' : 'Pounds (lbs)',
+                          value: isKg,
+                          onChanged: (v) => ref.read(isKgProvider.notifier).setKg(v),
+                        ),
+                        _SwitchRow(
+                          title: 'Dark mode',
+                          value: isDarkMode,
+                          onChanged: (v) => ref.read(themeModeProvider.notifier).toggleTheme(v),
+                        ),
+                      ],
+                      ),
+                    ),
+                  ),
+
+                  const _Section(label: 'ACCOUNT'),
+                  if (!isGuest)
+                    _ActionRow(
+                      icon: Icons.cloud_sync_rounded,
+                      label: 'Sync now',
+                      color: c.sky,
+                      busy: _isSyncing,
+                      onTap: _isSyncing ? null : _handleSyncNow,
+                    ),
+                  _ActionRow(
+                    icon: Icons.info_outline_rounded,
+                    label: 'About Stride',
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const AboutScreen()),
+                    ),
+                  ),
+                  _ActionRow(
+                    icon: isGuest ? Icons.login_rounded : Icons.logout_rounded,
+                    label: isGuest ? 'Sign in to back up runs' : 'Sign out',
+                    color: isGuest ? c.butter : null,
+                    onTap: () async {
+                      if (isGuest) {
+                        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AuthScreen()));
+                      } else {
+                        await _handleSignOut();
+                      }
+                    },
+                  ),
+                  if (!isGuest)
+                    _ActionRow(
+                      icon: Icons.delete_forever_rounded,
+                      label: 'Delete account',
+                      color: c.blush,
+                      busy: _isDeleting,
+                      onTap: _isDeleting ? null : _handleDeleteAccount,
+                    ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
+      ),
+    );
+  }
+}
+
+class _Section extends StatelessWidget {
+  final String label;
+  final Widget? trailing;
+  const _Section({required this.label, this.trailing});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 24, bottom: 8),
+      child: Row(
+        children: [
+          Expanded(child: Text(label, style: Theme.of(context).textTheme.labelSmall)),
+          ?trailing,
+        ],
+      ),
+    );
+  }
+}
+
+class _DetailRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  final bool last;
+
+  const _DetailRow({required this.icon, required this.label, required this.value, this.last = false});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.stride;
+    final text = Theme.of(context).textTheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 11),
+      decoration: BoxDecoration(
+        border: last ? null : Border(bottom: BorderSide(color: c.outline.withValues(alpha: 0.12), width: 1.5)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: c.ink),
+          const SizedBox(width: 12),
+          Text(label, style: text.bodyMedium),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              value.isNotEmpty ? value : '—',
+              textAlign: TextAlign.right,
+              style: text.titleMedium,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SwitchRow extends StatelessWidget {
+  final String title;
+  final String? subtitle;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  const _SwitchRow({required this.title, required this.value, required this.onChanged, this.subtitle});
+
+  @override
+  Widget build(BuildContext context) {
+    return SwitchListTile.adaptive(
+      title: Text(title),
+      subtitle: subtitle == null ? null : Text(subtitle!, style: Theme.of(context).textTheme.bodySmall),
+      value: value,
+      onChanged: onChanged,
+      activeTrackColor: context.stride.brand,
+    );
+  }
+}
+
+class _ActionRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color? color;
+  final bool busy;
+  final VoidCallback? onTap;
+
+  const _ActionRow({required this.icon, required this.label, this.color, this.busy = false, this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.stride;
+    final fg = color == null ? c.ink : c.onPastel;
+    return BrutalCard(
+      margin: const EdgeInsets.only(bottom: 6),
+      color: color,
+      onTap: onTap,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+      child: Row(
+        children: [
+          Icon(icon, size: 22, color: fg),
+          const SizedBox(width: 14),
+          Expanded(child: Text(label, style: Theme.of(context).textTheme.titleMedium?.copyWith(color: fg))),
+          busy
+              ? SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2.5, color: fg))
+              : Icon(Icons.arrow_forward_rounded, size: 20, color: fg),
+        ],
+      ),
+    );
+  }
+}
+
+class _SmallButton extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  const _SmallButton({required this.label, required this.icon, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.stride;
+    return BrutalCard(
+      shadow: 3,
+      borderRadius: Brutal.radiusPill,
+      color: c.butter,
+      onTap: onTap,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: c.onPastel),
+          const SizedBox(width: 5),
+          Text(label, style: Theme.of(context).textTheme.labelMedium?.copyWith(color: c.onPastel)),
+        ],
       ),
     );
   }
