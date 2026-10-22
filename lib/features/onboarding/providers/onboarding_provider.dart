@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stride/core/database/local_db.dart';
 import 'package:stride/features/sync/providers/sync_engine.dart';
+import 'package:stride/core/providers/preferences_provider.dart';
 
 class OnboardingState {
   final String goal;
@@ -85,7 +86,7 @@ class OnboardingNotifier extends Notifier<OnboardingState> {
         'height': state.height,
         'weight': state.weight,
         'activity_level': state.activityLevel,
-        'units_preference': 'km', // default
+        'units_preference': ref.read(isKmProvider) ? 'km' : 'mi',
       });
       state = state.copyWith(isSaving: false);
       ref.read(syncEngineProvider).syncUnsyncedActivities();

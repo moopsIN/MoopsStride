@@ -9,6 +9,7 @@ import 'package:stride/core/database/local_db.dart';
 import 'package:stride/features/auth/providers/auth_provider.dart';
 import 'package:stride/features/progress/providers/progress_provider.dart';
 import 'package:stride/features/profile/providers/profile_provider.dart';
+import 'package:stride/core/providers/preferences_provider.dart';
 import 'package:sqflite/sqflite.dart';
 
 enum _PushResult { ok, failed, timedOut }
@@ -368,9 +369,13 @@ class SyncEngine {
 
 final syncEngineProvider = Provider<SyncEngine>((ref) {
   final engine = SyncEngine()
-    ..onLocalDataChanged = () {
+    ..onLocalDataChanged = () async {
       ref.read(progressProvider.notifier).refresh();
       ref.invalidate(profileProvider);
+      final units = (await LocalDatabase.instance.getUserProfile())?['units_preference'];
+      if (units == 'km' || units == 'mi') {
+        ref.read(isKmProvider.notifier).applyFromProfile(units == 'km');
+      }
     };
 
   // When a user logs in, push any local "guest" runs and merge in their cloud

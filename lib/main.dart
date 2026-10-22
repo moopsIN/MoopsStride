@@ -19,6 +19,7 @@ void main() async {
   );
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   final prefs = await SharedPreferences.getInstance();
+  await migrateUnitsToProfile(prefs);
 
   runApp(
     ProviderScope(

@@ -188,6 +188,18 @@ CREATE TABLE user_profile (
     }
   }
 
+  /// Updates the unit on an existing profile only; returns false if there's
+  /// no profile yet (it gets the unit when onboarding creates it).
+  Future<bool> setUnitsPreference(String units) async {
+    final db = await instance.database;
+    final count = await db.update('user_profile', {
+      'units_preference': units,
+      'updated_at': DateTime.now().millisecondsSinceEpoch,
+      'synced': 0,
+    });
+    return count > 0;
+  }
+
   Future<void> clearDatabase() async {
     final db = await instance.database;
     await db.delete('splits');
