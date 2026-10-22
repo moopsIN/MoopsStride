@@ -1,13 +1,16 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:stride/theme/brutal_card.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:stride/core/providers/preferences_provider.dart';
+import 'package:stride/core/utils/formatters.dart';
+import 'package:stride/core/widgets/empty_state.dart';
+import 'package:stride/core/widgets/screen_header.dart';
 import 'package:stride/features/progress/providers/progress_provider.dart';
 import 'package:stride/features/tracking/models/activity_model.dart';
 import 'package:stride/features/tracking/presentation/run_summary_screen.dart';
-import 'package:stride/core/providers/preferences_provider.dart';
-import 'package:stride/core/utils/formatters.dart';
+import 'package:stride/theme/app_theme.dart';
+import 'package:stride/theme/brutal_card.dart';
 
 class ProgressScreen extends ConsumerWidget {
   const ProgressScreen({super.key});
@@ -18,216 +21,249 @@ class ProgressScreen extends ConsumerWidget {
     final isKm = ref.watch(isKmProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('My Progress'),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
+      body: SafeArea(
+        child: Column(
+          children: [
+            const ScreenHeader(title: 'progress'),
+            Expanded(
+              child: state.isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : state.activities.isEmpty
+                      ? const EmptyState(
+                          title: 'no runs yet',
+                          subtitle: 'Moop is napping until your first run.\nTap start on the home screen.',
+                        )
+                      : _Body(state: state, isKm: isKm),
+            ),
+          ],
+        ),
       ),
-      body: state.isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : state.activities.isEmpty
-              ? _buildEmptyState(context)
-              : _buildBody(context, state, isKm),
     );
   }
+}
 
-  Widget _buildEmptyState(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.directions_run, size: 80, color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5)),
-          const SizedBox(height: 24),
-          Text(
-            'No runs yet!',
-            style: Theme.of(context).textTheme.displayLarge?.copyWith(fontSize: 24),
+class _Body extends StatelessWidget {
+  final ProgressState state;
+  final bool isKm;
+
+  const _Body({required this.state, required this.isKm});
+
+  double get _unit => isKm ? 1000 : kmPerMile * 1000;
+  String get _unitLabel => isKm ? 'km' : 'mi';
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.stride;
+    final text = Theme.of(context).textTheme;
+    final total = state.activities.fold<double>(0, (s, a) => s + a.distanceMeters) / _unit;
+    final longest = state.longestRun;
+    final fastest = state.fastest5k;
+
+    Widget pair(Widget a, Widget b) => Row(
+          children: [Expanded(child: a), const SizedBox(width: 6), Expanded(child: b)],
+        );
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 8, 16, 24),
+      children: [
+        Row(
+          children: [
+            Expanded(child: _Metric(color: c.butter, value: total.toStringAsFixed(1), label: 'TOTAL ${_unitLabel.toUpperCase()}')),
+            const SizedBox(width: 6),
+            Expanded(child: _Metric(color: c.sky, value: '${state.activities.length}', label: 'RUNS')),
+            const SizedBox(width: 6),
+            Expanded(child: _Metric(color: c.blush, value: '${state.currentStreak}', label: 'STREAK')),
+          ],
+        ),
+        const SizedBox(height: 6),
+        pair(
+          _Metric(
+            color: c.sage,
+            icon: Icons.emoji_events_rounded,
+            value: longest == null ? '--' : '${(longest.distanceMeters / _unit).toStringAsFixed(2)} $_unitLabel',
+            label: 'LONGEST RUN',
           ),
-          const SizedBox(height: 8),
-          Text(
-            'Go out and track your first activity.',
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-        ],
-      ).animate().fadeIn(),
-    );
-  }
-
-  Widget _buildBody(BuildContext context, ProgressState state, bool isKm) {
-    final distanceUnit = isKm ? 'km' : 'mi';
-    final distanceMultiplier = isKm ? 1.0 : 0.621371;
-
-    return CustomScrollView(
-      slivers: [
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // PRs
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildPRCard(
-                        context, 
-                        'Longest Run', 
-                        state.longestRun != null ? '${((state.longestRun!.distanceMeters / 1000) * distanceMultiplier).toStringAsFixed(2)} $distanceUnit' : '--',
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: _buildPRCard(
-                        context, 
-                        'Fastest 5K', 
-                        state.fastest5k != null ? _formatPace(state.fastest5k!.avgPace) : '--',
-                      ),
-                    ),
-                  ],
-                ).animate().slideY(begin: 0.2).fadeIn(duration: 400.ms),
-
-                const SizedBox(height: 32),
-                
-                // Chart
-                Text('Recent Distances ($distanceUnit)', style: Theme.of(context).textTheme.titleMedium),
-                const SizedBox(height: 16),
-                SizedBox(
-                  height: 200,
-                  child: BrutalCard(
-                    padding: const EdgeInsets.all(16),
-                    child: _buildChart(context, state.activities, distanceMultiplier),
-                  ),
-                ).animate().slideY(begin: 0.2).fadeIn(delay: 150.ms),
-
-                const SizedBox(height: 32),
-                
-                Text('Activity History', style: Theme.of(context).textTheme.titleMedium),
-                const SizedBox(height: 16),
-              ],
-            ),
+          _Metric(
+            color: c.surface,
+            icon: Icons.bolt_rounded,
+            value: fastest == null ? '--' : '${formatPace(fastest.avgSpeedKmH, isKm: isKm)} /$_unitLabel',
+            label: 'FASTEST 5K PACE',
           ),
         ),
-        SliverPadding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
-          sliver: SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (context, index) {
-                final activity = state.activities[index];
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 16.0),
-                  child: GestureDetector(
-                    onTap: () {
-                      Navigator.of(context).push(MaterialPageRoute(
-                        builder: (_) => RunSummaryScreen(activity: activity),
-                      ));
-                    },
-                    child: BrutalCard(
-                      padding: const EdgeInsets.all(16),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                _formatDate(activity.startTime),
-                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                '${((activity.distanceMeters / 1000) * distanceMultiplier).toStringAsFixed(2)} $distanceUnit',
-                                style: Theme.of(context).textTheme.displayLarge?.copyWith(fontSize: 20),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                '${formatDuration(activity.durationSeconds)}  ·  '
-                                '${formatPace(activity.avgSpeedKmH, isKm: isKm)} /${isKm ? 'km' : 'mi'}',
-                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-                                    ),
-                              ),
-                            ],
-                          ),
-                          Icon(Icons.chevron_right, color: Theme.of(context).colorScheme.primary),
-                        ],
-                      ),
-                    ),
-                  ).animate().slideX(begin: 0.1).fadeIn(delay: Duration(milliseconds: 200 + (index * 50))),
-                );
-              },
-              childCount: state.activities.length,
-            ),
-          ),
+        const SizedBox(height: 22),
+        Text('RECENT RUNS (${_unitLabel.toUpperCase()})', style: text.labelSmall),
+        const SizedBox(height: 8),
+        BrutalCard(
+          height: 190,
+          padding: const EdgeInsets.fromLTRB(12, 18, 12, 10),
+          child: _RecentChart(activities: state.activities, unitMeters: _unit),
         ),
-      ],
+        const SizedBox(height: 22),
+        Text('HISTORY', style: text.labelSmall),
+        const SizedBox(height: 8),
+        for (final (i, a) in state.activities.indexed)
+          _HistoryRow(activity: a, isKm: isKm, color: [c.butter, c.sky, c.blush, c.sage][i % 4]),
+      ].animate(interval: 30.ms).fadeIn(duration: 250.ms),
     );
   }
+}
 
-  Widget _buildPRCard(BuildContext context, String title, String value) {
+class _Metric extends StatelessWidget {
+  final Color color;
+  final IconData? icon;
+  final String value;
+  final String label;
+
+  const _Metric({required this.color, required this.value, required this.label, this.icon});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.stride;
+    final text = Theme.of(context).textTheme;
+    final fg = color == c.surface ? c.ink : c.onPastel;
     return BrutalCard(
-      padding: const EdgeInsets.all(16),
+      color: color,
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: Theme.of(context).textTheme.labelSmall),
-          const SizedBox(height: 8),
-          Text(value, style: Theme.of(context).textTheme.displayLarge?.copyWith(fontSize: 24)),
+          if (icon != null) ...[
+            Icon(icon, size: 18, color: fg),
+            const SizedBox(height: 6),
+          ],
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(value, style: text.headlineMedium?.copyWith(color: fg)),
+          ),
+          const SizedBox(height: 4),
+          Text(label, style: text.labelSmall?.copyWith(color: fg), maxLines: 1, overflow: TextOverflow.ellipsis),
         ],
       ),
     );
   }
+}
 
-  Widget _buildChart(BuildContext context, List<ActivityModel> activities, double distanceMultiplier) {
-    if (activities.length < 2) {
-      return Center(
-        child: Text('More data needed for chart', style: Theme.of(context).textTheme.bodyMedium),
-      );
-    }
+/// Last seven runs as outlined bars, newest on the right.
+class _RecentChart extends StatelessWidget {
+  final List<ActivityModel> activities;
+  final double unitMeters;
 
-    final sorted = List<ActivityModel>.from(activities)..sort((a, b) => a.startTime.compareTo(b.startTime));
-    final latest = sorted.length > 7 ? sorted.sublist(sorted.length - 7) : sorted;
+  const _RecentChart({required this.activities, required this.unitMeters});
 
-    final spots = latest.asMap().entries.map((e) {
-      return FlSpot(e.key.toDouble(), (e.value.distanceMeters / 1000.0) * distanceMultiplier);
-    }).toList();
+  @override
+  Widget build(BuildContext context) {
+    final c = context.stride;
+    final text = Theme.of(context).textTheme;
+    final recent = (List<ActivityModel>.from(activities)..sort((a, b) => a.startTime.compareTo(b.startTime)))
+        .reversed
+        .take(7)
+        .toList()
+        .reversed
+        .toList();
+    final values = recent.map((a) => a.distanceMeters / unitMeters).toList();
+    final maxY = values.fold<double>(0, (m, v) => v > m ? v : m);
 
-    return LineChart(
-      LineChartData(
+    return BarChart(
+      BarChartData(
+        maxY: maxY == 0 ? 1 : maxY * 1.2,
+        alignment: BarChartAlignment.spaceAround,
         gridData: const FlGridData(show: false),
-        titlesData: const FlTitlesData(show: false),
         borderData: FlBorderData(show: false),
-        lineBarsData: [
-          LineChartBarData(
-            spots: spots,
-            isCurved: true,
-            color: Theme.of(context).colorScheme.primary,
-            barWidth: 4,
-            isStrokeCapRound: true,
-            dotData: const FlDotData(show: false),
-            belowBarData: BarAreaData(
-              show: true,
-              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+        barTouchData: BarTouchData(enabled: false),
+        titlesData: FlTitlesData(
+          leftTitles: const AxisTitles(),
+          rightTitles: const AxisTitles(),
+          topTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 18,
+              getTitlesWidget: (v, meta) => Text(values[v.toInt()].toStringAsFixed(1), style: text.labelSmall),
             ),
           ),
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 20,
+              getTitlesWidget: (v, meta) {
+                final d = recent[v.toInt()].startTime;
+                return Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text('${d.day}/${d.month}', style: text.labelSmall),
+                );
+              },
+            ),
+          ),
+        ),
+        barGroups: [
+          for (final (i, v) in values.indexed)
+            BarChartGroupData(x: i, barRods: [
+              BarChartRodData(
+                toY: v,
+                width: 22,
+                color: i == values.length - 1 ? c.butter : c.go,
+                borderRadius: BorderRadius.circular(6),
+                borderSide: BorderSide(color: c.outline, width: 2),
+              ),
+            ]),
         ],
       ),
     );
   }
+}
 
-  String _formatPace(double paceMinPerKm) {
-    if (paceMinPerKm == 0) return "--:--";
-    final minutes = paceMinPerKm.truncate();
-    final seconds = ((paceMinPerKm - minutes) * 60).round();
-    return '$minutes:${seconds.toString().padLeft(2, '0')}';
-  }
+class _HistoryRow extends StatelessWidget {
+  final ActivityModel activity;
+  final bool isKm;
+  final Color color;
 
-  String _formatDate(DateTime date) {
-    final now = DateTime.now();
-    final difference = now.difference(date);
-    if (difference.inDays == 0 && now.day == date.day) {
-      return 'Today, ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
-    } else if (difference.inDays == 1 || (difference.inDays == 0 && now.day != date.day)) {
-      return 'Yesterday, ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
-    }
-    return '${date.month}/${date.day}/${date.year}';
+  const _HistoryRow({required this.activity, required this.isKm, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.stride;
+    final text = Theme.of(context).textTheme;
+    const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+    final d = activity.startTime;
+    final distance = activity.distanceMeters / (isKm ? 1000 : kmPerMile * 1000);
+
+    return BrutalCard(
+      margin: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.all(10),
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => RunSummaryScreen(activity: activity)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 54,
+            height: 54,
+            decoration: Brutal.box(c, color: color, radius: Brutal.radiusSmall, shadow: 0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text('${d.day}', style: text.headlineSmall?.copyWith(color: c.onPastel, height: 1)),
+                Text(months[d.month - 1], style: text.labelSmall?.copyWith(color: c.onPastel, fontSize: 10)),
+              ],
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('${distance.toStringAsFixed(2)} ${isKm ? 'km' : 'mi'}', style: text.headlineSmall),
+                const SizedBox(height: 2),
+                Text(
+                  '${formatDuration(activity.durationSeconds)} · ${formatPace(activity.avgSpeedKmH, isKm: isKm)} /${isKm ? 'km' : 'mi'}',
+                  style: text.bodyMedium,
+                ),
+              ],
+            ),
+          ),
+          Icon(Icons.arrow_forward_rounded, color: c.ink),
+        ],
+      ),
+    );
   }
 }

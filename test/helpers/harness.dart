@@ -138,6 +138,7 @@ Future<void> screenshot(WidgetTester tester, String name) async {
 /// Unmounts the screen and runs fake time past any outstanding timers
 /// (entrance-animation delays, the sync engine's commit timeout).
 Future<void> disposeScreen(WidgetTester tester) async {
+  await flushRealAsync(tester);
   await tester.pumpWidget(const SizedBox());
   await tester.pump(const Duration(seconds: 30));
 }
@@ -145,7 +146,18 @@ Future<void> disposeScreen(WidgetTester tester) async {
 /// Steps frames so entrance animations (which start on the first frame and
 /// then tick) actually run; one long pump would only advance a single frame.
 Future<void> settleFrames(WidgetTester tester, {int frames = 20}) async {
+  await flushRealAsync(tester);
   for (var i = 0; i < frames; i++) {
     await tester.pump(const Duration(milliseconds: 100));
+  }
+}
+
+/// Gives real (non-fake) async work, chiefly sqflite calls on its isolate,
+/// time to finish and delivers the results. Without this a DB transaction
+/// started inside a test can stay open and block the next test forever.
+Future<void> flushRealAsync(WidgetTester tester) async {
+  for (var i = 0; i < 3; i++) {
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 60)));
+    await tester.pump();
   }
 }

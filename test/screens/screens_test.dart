@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart' hide Split;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:stride/core/database/local_db.dart';
+import 'package:stride/features/progress/presentation/progress_screen.dart';
 import 'package:stride/features/splash/splash_screen.dart';
 import 'package:stride/features/tracking/presentation/tracking_screen.dart';
 import 'package:stride/features/tracking/presentation/run_summary_screen.dart';
@@ -75,5 +77,37 @@ void main() {
       expect(tester.takeException(), isNull);
       await disposeScreen(tester);
     });
+
+    for (final withRuns in [false, true]) {
+      testWidgets('progress ${withRuns ? 'with runs' : 'empty'} ($mode)', (tester) async {
+        // sqflite runs on an isolate, which fake async never lets finish.
+        await tester.runAsync(() async {
+          final db = await LocalDatabase.instance.database;
+          await db.delete('activities');
+          if (withRuns) {
+            for (var i = 0; i < 6; i++) {
+              final day = DateTime(2026, 10, 15 + i, 7);
+              await LocalDatabase.instance.insertActivity(ActivityModel(
+                id: 'p$i',
+                type: 'run',
+                startTime: day,
+                endTime: day.add(const Duration(minutes: 30)),
+                distanceMeters: 3000.0 + i * 700,
+                durationSeconds: 1500 + i * 200,
+                avgPace: 6,
+                caloriesEstimate: 200,
+                routePoints: const [],
+              ).toMap());
+            }
+          }
+        });
+        await pumpScreen(tester, const ProgressScreen(), dark: dark, size: const Size(360, 740));
+        await tester.runAsync(() => Future.delayed(const Duration(milliseconds: 200)));
+        await settleFrames(tester);
+        await screenshot(tester, 'progress_${withRuns ? 'runs' : 'empty'}_$mode');
+        expect(tester.takeException(), isNull);
+        await disposeScreen(tester);
+      });
+    }
   }
 }

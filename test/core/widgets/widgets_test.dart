@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stride/core/widgets/stat_card.dart';
 import 'package:stride/core/widgets/empty_state.dart';
+import 'package:stride/core/widgets/moop.dart';
 import 'package:stride/theme/app_theme.dart';
 
 void main() {
@@ -32,13 +33,12 @@ void main() {
     testWidgets('EmptyState renders correctly', (WidgetTester tester) async {
       await tester.pumpWidget(createTestApp(
         const EmptyState(
-          icon: Icons.list,
           title: 'No Data',
           subtitle: 'Check back later',
         ),
       ));
 
-      expect(find.byIcon(Icons.list), findsOneWidget);
+      expect(find.byType(Moop), findsOneWidget);
       expect(find.text('No Data'), findsOneWidget);
       expect(find.text('Check back later'), findsOneWidget);
     });
