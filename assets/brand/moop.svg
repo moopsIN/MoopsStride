@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 230" width="200" height="230" role="img" aria-label="Moop, the Moops mascot">
+  <title>Moop</title>
+  <ellipse cx="100" cy="219" rx="52" ry="6" fill="#4A3E18" fill-opacity="0.14"/>
+  <g stroke="#3F5527" stroke-width="6" stroke-linecap="round" fill="none">
+    <path d="M85 190 L83 203"/>
+    <path d="M115 190 L117 203"/>
+    <path d="M34 132 Q20 140 12 154"/>
+    <path d="M166 132 Q180 140 188 154"/>
+  </g>
+  <g fill="#3F5527">
+    <ellipse cx="79" cy="207" rx="12.5" ry="7.5"/>
+    <ellipse cx="121" cy="207" rx="12.5" ry="7.5"/>
+    <circle cx="12" cy="154" r="6"/>
+    <circle cx="188" cy="154" r="6"/>
+  </g>
+  <path d="M100 54 Q98 44 101 36" fill="none" stroke="#3F5527" stroke-width="4" stroke-linecap="round"/>
+  <path d="M100.5 38 C89 37 82 29 84 19 C95 19 102 27 100.5 38Z" fill="#8CC063"/>
+  <path d="M101.5 37 C106 28 114 24 123 25 C121 34 111 39 101.5 37Z" fill="#A3D17A"/>
+  <path d="M100 50 C151 50 177 92 178 135 C179 177 147 197 100 197 C53 197 21 177 22 135 C23 92 49 50 100 50 Z" fill="#5C7A38"/>
+  <ellipse cx="100" cy="168" rx="46" ry="23" fill="#FFFFFF" fill-opacity="0.05"/>
+  <ellipse cx="68" cy="82" rx="22" ry="10" transform="rotate(-32 68 82)" fill="#FFFFFF" fill-opacity="0.2"/>
+  <circle cx="92" cy="66" r="4" fill="#FFFFFF" fill-opacity="0.2"/>
+  <ellipse cx="78" cy="117" rx="10.5" ry="13.5" fill="#10130B"/>
+  <ellipse cx="122" cy="117" rx="10.5" ry="13.5" fill="#10130B"/>
+  <g fill="#FFFFFF">
+    <circle cx="82.5" cy="110.5" r="4.2"/>
+    <circle cx="126.5" cy="110.5" r="4.2"/>
+    <circle cx="74.5" cy="123" r="1.9"/>
+    <circle cx="118.5" cy="123" r="1.9"/>
+  </g>
+  <ellipse cx="58" cy="137" rx="12" ry="6.5" fill="#F7A1B4" fill-opacity="0.75"/>
+  <ellipse cx="142" cy="137" rx="12" ry="6.5" fill="#F7A1B4" fill-opacity="0.75"/>
+  <path d="M91 137 q4.5 5.5 9 0 q4.5 5.5 9 0" fill="none" stroke="#10130B" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
