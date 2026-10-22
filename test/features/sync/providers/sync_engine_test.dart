@@ -17,6 +17,7 @@ void main() {
     final dbHelper = LocalDatabase.instance;
     final db = await dbHelper.database;
     await db.delete('activities');
+    await db.delete('user_profile');
   });
 
   test('SyncEngine pushes local data to Firestore and updates synced flag', () async {
@@ -201,6 +202,59 @@ void main() {
       expect(await localIds(), ['cloud_run', 'guest_run']);
       final cloud = await fakeFirestore.collection('users').doc('u').collection('activities').get();
       expect(cloud.docs.map((d) => d.id).toSet(), {'cloud_run', 'guest_run'});
+    });
+  });
+
+  group('profile sync', () {
+    late FakeFirebaseFirestore fakeFirestore;
+    late SyncEngine engine;
+
+    setUp(() {
+      fakeFirestore = FakeFirebaseFirestore();
+      engine = SyncEngine(
+        auth: MockFirebaseAuth(mockUser: MockUser(uid: 'u'), signedIn: true),
+        firestore: fakeFirestore,
+      );
+    });
+
+    test('pushes a local profile edit to users/{uid}', () async {
+      await LocalDatabase.instance.updateUserProfile({'goal': 'Marathon', 'weight': 61.5});
+
+      expect(await engine.syncUnsyncedActivities(), true);
+
+      final doc = await fakeFirestore.collection('users').doc('u').get();
+      expect(doc.data()?['profile']['goal'], 'Marathon');
+      expect(doc.data()?['profile']['weight'], 61.5);
+      expect((await LocalDatabase.instance.getUserProfile())?['synced'], 1);
+    });
+
+    test('a fresh device gets the cloud profile and the account counts as existing', () async {
+      await fakeFirestore.collection('users').doc('u').set({
+        'profile': {'goal': '5K', 'weight': 80, 'age': 40, 'updated_at': 5},
+      });
+
+      expect(await engine.checkCloudData('u'), CloudDataStatus.exists);
+      await engine.pullFromCloud('u');
+
+      final local = await LocalDatabase.instance.getUserProfile();
+      expect(local?['goal'], '5K');
+      expect(local?['weight'], 80.0);
+      expect(local?['synced'], 1);
+    });
+
+    test('a newer unsynced local edit is not overwritten by an older cloud copy', () async {
+      await fakeFirestore.collection('users').doc('u').set({
+        'profile': {'goal': 'old', 'updated_at': 1},
+      });
+      await LocalDatabase.instance.updateUserProfile({'goal': 'new'});
+
+      await engine.pullFromCloud('u');
+
+      expect((await LocalDatabase.instance.getUserProfile())?['goal'], 'new');
+    });
+
+    test('an empty account reports empty', () async {
+      expect(await engine.checkCloudData('u'), CloudDataStatus.empty);
     });
   });
 }

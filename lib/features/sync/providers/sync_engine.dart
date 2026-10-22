@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stride/core/database/local_db.dart';
 import 'package:stride/features/auth/providers/auth_provider.dart';
 import 'package:stride/features/progress/providers/progress_provider.dart';
+import 'package:stride/features/profile/providers/profile_provider.dart';
 import 'package:sqflite/sqflite.dart';
 
 enum _PushResult { ok, failed, timedOut }
@@ -60,6 +61,15 @@ class SyncEngine {
   })  : _auth = auth ?? FirebaseAuth.instance,
         _firestore = firestore ?? FirebaseFirestore.instance;
 
+  /// Synced profile fields, stored under `profile` on `users/{uid}`.
+  static const _profileFields = [
+    'goal', 'experience_level', 'gender', 'age', 'height', 'weight',
+    'activity_level', 'units_preference', 'updated_at',
+  ];
+
+  DocumentReference<Map<String, dynamic>> _userRef(String uid) =>
+      _firestore.collection('users').doc(uid);
+
   CollectionReference<Map<String, dynamic>> _activitiesRef(String uid) =>
       _firestore.collection('users').doc(uid).collection('activities');
 
@@ -84,8 +94,8 @@ class SyncEngine {
     }
   }
 
-  /// Pushes every locally unsynced activity. Returns true only if all of them
-  /// reached the server.
+  /// Pushes every local change (activities and profile). Returns true only if
+  /// all of them reached the server.
   Future<bool> syncUnsyncedActivities() => _exclusive(_push);
 
   Future<bool> _push() async {
@@ -100,8 +110,11 @@ class SyncEngine {
         whereArgs: [0],
       );
 
+      final profilePush = await _pushProfile(db, user.uid);
+      if (profilePush == _PushResult.timedOut) return false;
+      var allPushed = profilePush == _PushResult.ok;
+
       final ref = _activitiesRef(user.uid);
-      var allPushed = true;
 
       for (var i = 0; i < unsynced.length; i += batchLimit) {
         final chunk = unsynced.sublist(i, min(i + batchLimit, unsynced.length));
@@ -133,6 +146,25 @@ class SyncEngine {
       debugPrint('Sync failed: $e');
       return false;
     }
+  }
+
+  Future<_PushResult> _pushProfile(Database db, String uid) async {
+    final rows = await db.query('user_profile', where: 'synced = 0', limit: 1);
+    if (rows.isEmpty) return _PushResult.ok;
+    final local = rows.first;
+    try {
+      await _userRef(uid).set({
+        'profile': {for (final k in _profileFields) k: local[k]},
+      }, SetOptions(merge: true)).timeout(commitTimeout);
+    } on TimeoutException {
+      return _PushResult.timedOut;
+    } catch (e) {
+      debugPrint('Profile push failed: $e');
+      return _PushResult.failed;
+    }
+    await db.update('user_profile', {'synced': 1},
+        where: 'id = ? AND updated_at = ?', whereArgs: [local['id'], local['updated_at']]);
+    return _PushResult.ok;
   }
 
   Future<_PushResult> _pushRows(
@@ -183,6 +215,8 @@ class SyncEngine {
 
   Future<CloudDataStatus> checkCloudData(String uid) async {
     try {
+      final user = await _userRef(uid).get(_fromServer).timeout(commitTimeout);
+      if (user.data()?['profile'] is Map) return CloudDataStatus.exists;
       final snapshot = await _activitiesRef(uid).limit(1).get(_fromServer).timeout(commitTimeout);
       return snapshot.docs.isEmpty ? CloudDataStatus.empty : CloudDataStatus.exists;
     } catch (e) {
@@ -199,13 +233,17 @@ class SyncEngine {
 
   Future<void> _pull(String uid) async {
     final QuerySnapshot<Map<String, dynamic>> snapshot;
+    final DocumentSnapshot<Map<String, dynamic>> userDoc;
     try {
+      userDoc = await _userRef(uid).get(_fromServer).timeout(commitTimeout);
       snapshot = await _activitiesRef(uid).get(_fromServer).timeout(commitTimeout);
     } catch (e) {
       throw SyncException("Couldn't reach the cloud. Check your connection and try again.");
     }
 
     final db = await LocalDatabase.instance.database;
+    await _mergeProfile(db, userDoc.data()?['profile']);
+
     final pending = (await db.query('activities', columns: ['id'], where: 'synced = 0'))
         .map((r) => r['id'])
         .toSet();
@@ -238,6 +276,31 @@ class SyncEngine {
 
     await batch.commit(noResult: true);
     onLocalDataChanged?.call();
+  }
+
+  /// Last writer wins on `updated_at`; an unsynced local edit is only
+  /// overwritten by a strictly newer cloud copy.
+  Future<void> _mergeProfile(Database db, Object? remote) async {
+    if (remote is! Map) return;
+    final remoteAt = (remote['updated_at'] as num?)?.toInt() ?? 0;
+    final local = await LocalDatabase.instance.getUserProfile();
+    if (local != null) {
+      final localAt = local['updated_at'] as int? ?? 0;
+      if (local['synced'] == 1 ? remoteAt < localAt : remoteAt <= localAt) return;
+    }
+    num? n(String k) => remote[k] is num ? remote[k] as num : null;
+    await LocalDatabase.instance.updateUserProfile({
+      'goal': remote['goal'] as String? ?? '',
+      'experience_level': remote['experience_level'] as String? ?? '',
+      'gender': remote['gender'] as String? ?? '',
+      'age': n('age')?.toInt() ?? 25,
+      'height': n('height')?.toDouble() ?? 170.0,
+      'weight': n('weight')?.toDouble() ?? 70.0,
+      'activity_level': remote['activity_level'] as String? ?? '',
+      'units_preference': remote['units_preference'] as String? ?? 'km',
+      'updated_at': remoteAt,
+      'synced': 1,
+    });
   }
 
   /// Keeps only known columns and coerces numbers, since Firestore may hand
@@ -286,7 +349,10 @@ class SyncEngine {
 
 final syncEngineProvider = Provider<SyncEngine>((ref) {
   final engine = SyncEngine()
-    ..onLocalDataChanged = () => ref.read(progressProvider.notifier).refresh();
+    ..onLocalDataChanged = () {
+      ref.read(progressProvider.notifier).refresh();
+      ref.invalidate(profileProvider);
+    };
 
   // When a user logs in, push any local "guest" runs and merge in their cloud
   // history.

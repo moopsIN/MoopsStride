@@ -24,7 +24,7 @@ class LocalDatabase {
   Future<Database> _initDB(String filePath) async {
     final path = pathOverride ?? join(await getDatabasesPath(), filePath);
 
-    return await openDatabase(path, version: 4, onCreate: _createDB, onUpgrade: _upgradeDB);
+    return await openDatabase(path, version: 5, onCreate: _createDB, onUpgrade: _upgradeDB);
   }
 
   Future _upgradeDB(Database db, int oldVersion, int newVersion) async {
@@ -38,6 +38,10 @@ class LocalDatabase {
       await db.execute('ALTER TABLE activities ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0');
       await db.execute('ALTER TABLE activities ADD COLUMN deleted INTEGER NOT NULL DEFAULT 0');
       await db.execute('UPDATE activities SET updated_at = end_time');
+    }
+    if (oldVersion < 5) {
+      await db.execute('ALTER TABLE user_profile ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0');
+      await db.execute('ALTER TABLE user_profile ADD COLUMN synced INTEGER NOT NULL DEFAULT 0');
     }
   }
 
@@ -80,7 +84,9 @@ CREATE TABLE user_profile (
   height REAL,
   weight REAL,
   activity_level TEXT,
-  units_preference TEXT
+  units_preference TEXT,
+  updated_at INTEGER NOT NULL DEFAULT 0,
+  synced INTEGER NOT NULL DEFAULT 0
 )
 ''');
   }
@@ -137,25 +143,15 @@ CREATE TABLE user_profile (
     return result.isNotEmpty ? result.first : null;
   }
 
-  /// Inserts a placeholder profile if none exists.
-  Future<void> ensureProfile() async {
+  /// Upserts the single profile row. Local edits are stamped and marked
+  /// unsynced; the sync engine passes its own `updated_at`/`synced`.
+  Future<void> updateUserProfile(Map<String, dynamic> fields) async {
     final db = await instance.database;
-    final result = await db.query('user_profile', limit: 1);
-    if (result.isNotEmpty) return;
-    await db.insert('user_profile', {
-      'goal': '',
-      'experience_level': '',
-      'gender': '',
-      'age': 25,
-      'height': 170.0,
-      'weight': 70.0,
-      'activity_level': '',
-      'units_preference': 'km',
-    });
-  }
-
-  Future<void> updateUserProfile(Map<String, dynamic> profile) async {
-    final db = await instance.database;
+    final profile = {
+      'updated_at': DateTime.now().millisecondsSinceEpoch,
+      'synced': 0,
+      ...fields,
+    };
     final result = await db.query('user_profile', limit: 1);
     if (result.isNotEmpty) {
       await db.update('user_profile', profile, where: 'id = ?', whereArgs: [result.first['id']]);

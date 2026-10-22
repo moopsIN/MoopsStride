@@ -24,29 +24,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     Future.delayed(const Duration(seconds: 2), () async {
       if (!mounted) return;
       
-      final db = await LocalDatabase.instance.database;
-      final profiles = await db.query('user_profile', limit: 1);
-      final activities = await db.query('activities', limit: 1);
-      
-      // If they have a profile OR they have local activities (meaning they synced but profile wasn't downloaded),
-      // we consider onboarding complete.
-      final hasCompletedOnboarding = profiles.isNotEmpty || activities.isNotEmpty;
-      
-      // If we are recovering a synced user that has activities but no profile, ensure we insert a default one now
-      // so other parts of the app don't crash or behave weirdly.
-      if (activities.isNotEmpty && profiles.isEmpty) {
-        await db.insert('user_profile', {
-          'goal': '',
-          'experience_level': '',
-          'gender': '',
-          'age': 25,
-          'height': 170.0,
-          'weight': 70.0,
-          'activity_level': '',
-          'units_preference': 'km',
-        });
-      }
-      
+      final hasCompletedOnboarding = await LocalDatabase.instance.getUserProfile() != null;
+
       if (!mounted) return;
 
       final user = ref.read(authProvider);

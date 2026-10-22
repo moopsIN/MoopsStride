@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stride/core/database/local_db.dart';
+import 'package:stride/features/sync/providers/sync_engine.dart';
 
 class ProfileState {
   final String goal;
@@ -116,6 +117,7 @@ class ProfileNotifier extends AsyncNotifier<ProfileState> {
         activityLevel: activityLevel,
         isSaving: false,
       ));
+      ref.read(syncEngineProvider).syncUnsyncedActivities();
       return true;
     } catch (e) {
       state = AsyncData(currentState.copyWith(isSaving: false, hasError: true));

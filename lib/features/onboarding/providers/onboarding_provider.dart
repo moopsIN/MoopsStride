@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stride/core/database/local_db.dart';
+import 'package:stride/features/sync/providers/sync_engine.dart';
 
 class OnboardingState {
   final String goal;
@@ -76,8 +77,7 @@ class OnboardingNotifier extends Notifier<OnboardingState> {
   Future<bool> saveProfile() async {
     state = state.copyWith(isSaving: true, hasError: false);
     try {
-      final db = await LocalDatabase.instance.database;
-      await db.insert('user_profile', {
+      await LocalDatabase.instance.updateUserProfile({
         'goal': state.goal,
         'experience_level': state.experienceLevel,
         'gender': state.gender,
@@ -88,6 +88,7 @@ class OnboardingNotifier extends Notifier<OnboardingState> {
         'units_preference': 'km', // default
       });
       state = state.copyWith(isSaving: false);
+      ref.read(syncEngineProvider).syncUnsyncedActivities();
       return true;
     } catch (e) {
       state = state.copyWith(isSaving: false, hasError: true);

@@ -50,8 +50,11 @@ class _SyncPromptScreenState extends ConsumerState<SyncPromptScreen> {
         }
       } else {
         await ref.read(syncEngineProvider).pullFromCloud(user.uid);
-        await LocalDatabase.instance.ensureProfile();
-        next = const TrackingScreen();
+        // Runs but no saved profile (older accounts): ask for real details
+        // rather than inventing them, since calories depend on weight.
+        next = await LocalDatabase.instance.getUserProfile() != null
+            ? const TrackingScreen()
+            : const OnboardingScreen();
       }
     } catch (e) {
       if (!mounted) return;
@@ -137,7 +140,7 @@ class _SyncPromptScreenState extends ConsumerState<SyncPromptScreen> {
               Text(
                 widget.cloudUnreachable
                     ? "We couldn't check your account for saved runs. Try again once you're online, or continue and they'll be merged in automatically later."
-                    : 'We found past runs associated with your account in the cloud.',
+                    : 'We found your profile and past runs saved to your account.',
                 style: Theme.of(context).textTheme.bodyLarge,
                 textAlign: TextAlign.center,
               ).animate().fadeIn(delay: 300.ms),
