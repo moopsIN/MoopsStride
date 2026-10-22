@@ -137,6 +137,23 @@ CREATE TABLE user_profile (
     return result.isNotEmpty ? result.first : null;
   }
 
+  /// Inserts a placeholder profile if none exists.
+  Future<void> ensureProfile() async {
+    final db = await instance.database;
+    final result = await db.query('user_profile', limit: 1);
+    if (result.isNotEmpty) return;
+    await db.insert('user_profile', {
+      'goal': '',
+      'experience_level': '',
+      'gender': '',
+      'age': 25,
+      'height': 170.0,
+      'weight': 70.0,
+      'activity_level': '',
+      'units_preference': 'km',
+    });
+  }
+
   Future<void> updateUserProfile(Map<String, dynamic> profile) async {
     final db = await instance.database;
     final result = await db.query('user_profile', limit: 1);

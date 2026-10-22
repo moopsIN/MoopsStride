@@ -5,10 +5,8 @@ import 'package:stride/features/auth/presentation/auth_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stride/features/auth/providers/auth_provider.dart';
 import 'package:stride/features/tracking/presentation/tracking_screen.dart';
-import 'package:stride/features/onboarding/presentation/onboarding_screen.dart';
 import 'package:stride/core/database/local_db.dart';
 import 'package:stride/features/sync/presentation/sync_prompt_screen.dart';
-import 'package:stride/features/sync/providers/sync_engine.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -57,12 +55,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       if (hasCompletedOnboarding) {
         nextScreen = const TrackingScreen();
       } else if (user != null) {
-        final hasCloudData = await ref.read(syncEngineProvider).checkCloudDataExists(user.uid);
-        if (hasCloudData) {
-          nextScreen = const SyncPromptScreen();
-        } else {
-          nextScreen = const OnboardingScreen();
-        }
+        nextScreen = await SyncPromptScreen.routeFor(ref, user.uid);
       } else {
         nextScreen = const AuthScreen();
       }

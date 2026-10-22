@@ -7,9 +7,23 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stride/core/database/local_db.dart';
 import 'package:stride/features/auth/providers/auth_provider.dart';
+import 'package:stride/features/progress/providers/progress_provider.dart';
 import 'package:sqflite/sqflite.dart';
 
 enum _PushResult { ok, failed, timedOut }
+
+/// Whether an account already has data in the cloud. [unknown] means the
+/// server couldn't be reached; callers must not treat it as [empty].
+enum CloudDataStatus { exists, empty, unknown }
+
+/// Thrown when the cloud can't be read, so callers can tell the user instead
+/// of silently carrying on with partial data.
+class SyncException implements Exception {
+  final String message;
+  SyncException(this.message);
+  @override
+  String toString() => message;
+}
 
 class SyncEngine {
   /// Firestore rejects batches over 500 operations; stay well under it.
@@ -20,9 +34,25 @@ class SyncEngine {
   /// Firestore's local cache either way; we just stop waiting for it.
   static const Duration commitTimeout = Duration(seconds: 20);
 
+  /// Local columns a cloud activity doc may populate.
+  static const _activityColumns = {
+    'id', 'type', 'start_time', 'end_time', 'distance_meters', 'duration_seconds',
+    'avg_pace', 'calories_estimate', 'route_polyline', 'steps', 'updated_at',
+  };
+
+  /// Reads that must reflect the server; Firestore's offline cache would
+  /// otherwise answer "no data" on a fresh device.
+  static const _fromServer = GetOptions(source: Source.server);
+
   final FirebaseAuth _auth;
   final FirebaseFirestore _firestore;
-  bool _isSyncing = false;
+
+  /// Called after a pull changes local data, so UI can reload.
+  void Function()? onLocalDataChanged;
+
+  /// Push and pull run one at a time; interleaving them could let a pull drop
+  /// a row a concurrent push had just marked synced.
+  Future<void> _tail = Future.value();
 
   SyncEngine({
     FirebaseAuth? auth,
@@ -33,14 +63,35 @@ class SyncEngine {
   CollectionReference<Map<String, dynamic>> _activitiesRef(String uid) =>
       _firestore.collection('users').doc(uid).collection('activities');
 
+  Future<T> _exclusive<T>(Future<T> Function() task) {
+    final result = _tail.then((_) => task());
+    _tail = result.then((_) {}, onError: (_) {});
+    return result;
+  }
+
+  /// Pushes local changes, then pulls the cloud's. Returns true if both
+  /// completed fully.
+  Future<bool> fullSync() async {
+    final user = _auth.currentUser;
+    if (user == null) return false;
+    final pushed = await syncUnsyncedActivities();
+    try {
+      await pullFromCloud(user.uid);
+      return pushed;
+    } catch (e) {
+      debugPrint('Pull failed: $e');
+      return false;
+    }
+  }
+
   /// Pushes every locally unsynced activity. Returns true only if all of them
   /// reached the server.
-  Future<bool> syncUnsyncedActivities() async {
-    if (_isSyncing) return false;
+  Future<bool> syncUnsyncedActivities() => _exclusive(_push);
+
+  Future<bool> _push() async {
     final user = _auth.currentUser;
     if (user == null) return false; // Must be logged in to sync
 
-    _isSyncing = true;
     try {
       final db = await LocalDatabase.instance.database;
       final unsynced = await db.query(
@@ -81,8 +132,6 @@ class SyncEngine {
       // Sync failed (offline, permission denied, etc). Will retry later.
       debugPrint('Sync failed: $e');
       return false;
-    } finally {
-      _isSyncing = false;
     }
   }
 
@@ -132,53 +181,93 @@ class SyncEngine {
   Map<String, dynamic> _toCloud(Map<String, dynamic> row) =>
       Map<String, dynamic>.from(row)..remove('synced');
 
-  Future<bool> checkCloudDataExists(String uid) async {
+  Future<CloudDataStatus> checkCloudData(String uid) async {
     try {
-      final snapshot = await _firestore.collection('users').doc(uid).collection('activities').limit(1).get();
-      return snapshot.docs.isNotEmpty;
+      final snapshot = await _activitiesRef(uid).limit(1).get(_fromServer).timeout(commitTimeout);
+      return snapshot.docs.isEmpty ? CloudDataStatus.empty : CloudDataStatus.exists;
     } catch (e) {
       debugPrint('Cloud check failed: $e');
-      return false;
+      return CloudDataStatus.unknown;
     }
   }
 
-  Future<void> downSync(String uid) async {
+  /// Merges the cloud's activities into the local DB. Locally pending rows win
+  /// until they're pushed; cloud tombstones remove local copies; synced local
+  /// rows missing from the cloud were wiped elsewhere and are dropped.
+  /// Throws [SyncException] if the cloud can't be read.
+  Future<void> pullFromCloud(String uid) => _exclusive(() => _pull(uid));
+
+  Future<void> _pull(String uid) async {
+    final QuerySnapshot<Map<String, dynamic>> snapshot;
     try {
-      final db = await LocalDatabase.instance.database;
-      
-      // Ensure we have a local profile so splash screen doesn't think we need onboarding
-      final profiles = await db.query('user_profile', limit: 1);
-      if (profiles.isEmpty) {
-        await db.insert('user_profile', {
-          'goal': '',
-          'experience_level': '',
-          'gender': '',
-          'age': 25,
-          'height': 170.0,
-          'weight': 70.0,
-          'activity_level': '',
-          'units_preference': 'km',
-        });
-      }
-
-      final snapshot = await _firestore.collection('users').doc(uid).collection('activities').get();
-      if (snapshot.docs.isEmpty) return;
-
-      final batch = db.batch();
-
-      for (final doc in snapshot.docs) {
-        final data = doc.data();
-        data['synced'] = 1; // It's coming from cloud, so it's already synced
-        batch.insert(
-          'activities',
-          data,
-          conflictAlgorithm: ConflictAlgorithm.replace,
-        );
-      }
-      await batch.commit();
+      snapshot = await _activitiesRef(uid).get(_fromServer).timeout(commitTimeout);
     } catch (e) {
-      debugPrint('Down-sync failed: $e');
+      throw SyncException("Couldn't reach the cloud. Check your connection and try again.");
     }
+
+    final db = await LocalDatabase.instance.database;
+    final pending = (await db.query('activities', columns: ['id'], where: 'synced = 0'))
+        .map((r) => r['id'])
+        .toSet();
+
+    final batch = db.batch();
+    final remoteIds = <String>{};
+    for (final doc in snapshot.docs) {
+      remoteIds.add(doc.id);
+      if (pending.contains(doc.id)) continue;
+
+      final data = doc.data();
+      if (data['deleted'] == 1) {
+        batch.delete('activities', where: 'id = ?', whereArgs: [doc.id]);
+        continue;
+      }
+      final row = _rowFromCloud(doc.id, data);
+      if (row == null) {
+        debugPrint('Skipping malformed cloud activity ${doc.id}');
+        continue;
+      }
+      batch.insert('activities', row, conflictAlgorithm: ConflictAlgorithm.replace);
+    }
+
+    final syncedLocal = await db.query('activities', columns: ['id'], where: 'synced = 1');
+    for (final r in syncedLocal) {
+      if (!remoteIds.contains(r['id'])) {
+        batch.delete('activities', where: 'id = ? AND synced = 1', whereArgs: [r['id']]);
+      }
+    }
+
+    await batch.commit(noResult: true);
+    onLocalDataChanged?.call();
+  }
+
+  /// Keeps only known columns and coerces numbers, since Firestore may hand
+  /// back an int where SQLite and the model expect a double. Returns null if a
+  /// required field is missing.
+  Map<String, dynamic>? _rowFromCloud(String id, Map<String, dynamic> data) {
+    num? n(String k) => data[k] is num ? data[k] as num : null;
+    final start = n('start_time'), end = n('end_time'), distance = n('distance_meters'),
+        duration = n('duration_seconds'), pace = n('avg_pace'), calories = n('calories_estimate');
+    if (start == null || end == null || distance == null || duration == null ||
+        pace == null || calories == null) {
+      return null;
+    }
+    final row = {
+      for (final k in _activityColumns)
+        if (data.containsKey(k)) k: data[k],
+    };
+    return row
+      ..['id'] = id
+      ..['type'] = data['type'] is String ? data['type'] : 'run'
+      ..['start_time'] = start.toInt()
+      ..['end_time'] = end.toInt()
+      ..['distance_meters'] = distance.toDouble()
+      ..['duration_seconds'] = duration.toInt()
+      ..['avg_pace'] = pace.toDouble()
+      ..['calories_estimate'] = calories.toDouble()
+      ..['steps'] = n('steps')?.toInt() ?? 0
+      ..['updated_at'] = n('updated_at')?.toInt() ?? end.toInt()
+      ..['synced'] = 1
+      ..['deleted'] = 0;
   }
 
   Future<void> wipeCloudData(String uid) async {
@@ -196,14 +285,16 @@ class SyncEngine {
 }
 
 final syncEngineProvider = Provider<SyncEngine>((ref) {
-  final engine = SyncEngine();
-  
-  // Listen to auth state. When user logs in, trigger a sync for any local "guest" runs.
+  final engine = SyncEngine()
+    ..onLocalDataChanged = () => ref.read(progressProvider.notifier).refresh();
+
+  // When a user logs in, push any local "guest" runs and merge in their cloud
+  // history.
   ref.listen<User?>(authProvider, (previous, next) {
     if (next != null && previous == null) {
-      engine.syncUnsyncedActivities();
+      engine.fullSync();
     }
   });
-  
+
   return engine;
 });

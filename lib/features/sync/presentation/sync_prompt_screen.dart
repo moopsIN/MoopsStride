@@ -6,9 +6,26 @@ import 'package:stride/features/sync/providers/sync_engine.dart';
 import 'package:stride/features/auth/providers/auth_provider.dart';
 import 'package:stride/features/tracking/presentation/tracking_screen.dart';
 import 'package:stride/features/onboarding/presentation/onboarding_screen.dart';
+import 'package:stride/core/database/local_db.dart';
 
 class SyncPromptScreen extends ConsumerStatefulWidget {
-  const SyncPromptScreen({super.key});
+  /// True when we couldn't tell whether the account has cloud data. The user
+  /// is offered a retry instead of being sent to onboarding as if new.
+  final bool cloudUnreachable;
+
+  const SyncPromptScreen({super.key, this.cloudUnreachable = false});
+
+  /// Where a signed-in user with no local profile should go next.
+  static Future<Widget> routeFor(WidgetRef ref, String uid) async {
+    switch (await ref.read(syncEngineProvider).checkCloudData(uid)) {
+      case CloudDataStatus.exists:
+        return const SyncPromptScreen();
+      case CloudDataStatus.unknown:
+        return const SyncPromptScreen(cloudUnreachable: true);
+      case CloudDataStatus.empty:
+        return const OnboardingScreen();
+    }
+  }
 
   @override
   ConsumerState<SyncPromptScreen> createState() => _SyncPromptScreenState();
@@ -19,15 +36,44 @@ class _SyncPromptScreenState extends ConsumerState<SyncPromptScreen> {
   bool _isWiping = false;
 
   Future<void> _handleSyncNow() async {
-    setState(() => _isSyncing = true);
     final user = ref.read(authProvider);
-    if (user != null) {
-      await ref.read(syncEngineProvider).downSync(user.uid);
+    if (user == null) return;
+    setState(() => _isSyncing = true);
+
+    final Widget next;
+    try {
+      if (widget.cloudUnreachable) {
+        // Retry the check; it decides between this prompt and onboarding.
+        next = await SyncPromptScreen.routeFor(ref, user.uid);
+        if (next is SyncPromptScreen && next.cloudUnreachable) {
+          throw SyncException("Still can't reach the cloud. Check your connection.");
+        }
+      } else {
+        await ref.read(syncEngineProvider).pullFromCloud(user.uid);
+        await LocalDatabase.instance.ensureProfile();
+        next = const TrackingScreen();
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isSyncing = false);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(e is SyncException ? e.message : 'Sync failed: $e'),
+        behavior: SnackBarBehavior.floating,
+      ));
+      return;
     }
-    
+
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => const TrackingScreen()),
+      MaterialPageRoute(builder: (_) => next),
+    );
+  }
+
+  /// Offline fallback: set up locally now; cloud history merges in on the
+  /// next successful sync instead of being lost.
+  void _handleContinueOffline() {
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (_) => const OnboardingScreen()),
     );
   }
 
@@ -81,7 +127,7 @@ class _SyncPromptScreenState extends ConsumerState<SyncPromptScreen> {
               const SizedBox(height: 32),
               
               Text(
-                'Previous Data Found',
+                widget.cloudUnreachable ? "Couldn't Reach the Cloud" : 'Previous Data Found',
                 style: Theme.of(context).textTheme.displayLarge?.copyWith(fontSize: 28),
                 textAlign: TextAlign.center,
               ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.1),
@@ -89,7 +135,9 @@ class _SyncPromptScreenState extends ConsumerState<SyncPromptScreen> {
               const SizedBox(height: 16),
               
               Text(
-                'We found profile data and past runs associated with your account in the cloud.',
+                widget.cloudUnreachable
+                    ? "We couldn't check your account for saved runs. Try again once you're online, or continue and they'll be merged in automatically later."
+                    : 'We found past runs associated with your account in the cloud.',
                 style: Theme.of(context).textTheme.bodyLarge,
                 textAlign: TextAlign.center,
               ).animate().fadeIn(delay: 300.ms),
@@ -97,13 +145,19 @@ class _SyncPromptScreenState extends ConsumerState<SyncPromptScreen> {
               const Spacer(),
               
               PrimaryButton(
-                text: 'Sync Now',
+                text: widget.cloudUnreachable ? 'Try Again' : 'Sync Now',
                 isLoading: _isSyncing,
                 onPressed: (_isSyncing || _isWiping) ? () {} : () { _handleSyncNow(); },
               ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.2),
               
               const SizedBox(height: 16),
               
+              if (widget.cloudUnreachable)
+                TextButton(
+                  onPressed: _isSyncing ? null : _handleContinueOffline,
+                  child: const Text('Continue Without Syncing'),
+                ).animate().fadeIn(delay: 500.ms)
+              else
               ElevatedButton(
                 onPressed: (_isSyncing || _isWiping) ? null : () { _handleStartFresh(); },
                 style: ElevatedButton.styleFrom(
