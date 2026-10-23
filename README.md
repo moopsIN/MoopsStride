@@ -17,6 +17,16 @@
   <img src="docs/screenshots/settings_in_light.png" width="160" alt="Settings">
 </p>
 
+<p align="center"><sub>Rendered by the screen tests (light theme)</sub></p>
+
+<p align="center">
+  <img src="docs/screenshots/device-splash.png" width="200" alt="Splash on a Motorola edge 70">
+  <img src="docs/screenshots/device-login.png" width="200" alt="Welcome screen on a Motorola edge 70">
+  <img src="docs/screenshots/device-home.png" width="200" alt="Home screen on a Motorola edge 70">
+</p>
+
+<p align="center"><sub>On a real phone: Motorola edge 70, dark mode (map pixelated for privacy)</sub></p>
+
 ---
 
 ## What it does
