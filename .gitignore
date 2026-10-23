@@ -57,3 +57,8 @@ firestore-tests/node_modules/
 firebase-debug.log
 firestore-debug.log
 ui-debug.log
+
+# Android release signing (never commit)
+android/key.properties
+*.jks
+*.keystore
