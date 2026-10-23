@@ -65,6 +65,10 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: 0.14.4
+  # image 4.11+ (via flutter_launcher_icons) calls an archive API newer than
+  # its own constraint allows; 4.10.1 predates that.
+  image: 4.10.1
   fake_cloud_firestore: ^4.1.1
   firebase_auth_mocks: ^0.15.2
 
@@ -132,3 +136,12 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+# App icon: `dart run flutter_launcher_icons`. Source art in assets/brand/icon.
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: assets/brand/icon/app-icon-source.png
+  remove_alpha_ios: true
+  adaptive_icon_background: "#FDE179"
+  adaptive_icon_foreground: assets/brand/icon/adaptive-foreground.png
