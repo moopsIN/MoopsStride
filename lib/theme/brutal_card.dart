@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:stride/theme/app_theme.dart';
@@ -74,12 +76,17 @@ class _PressableState extends State<Pressable> {
 
   @override
   Widget build(BuildContext context) {
-    final offset = _down ? widget.shadow : 0.0;
-    final content = AnimatedContainer(
-      duration: const Duration(milliseconds: 70),
-      curve: Curves.easeOut,
-      transform: Matrix4.translationValues(offset, offset, 0),
-      child: widget.builder(context, widget.shadow - offset),
+    // Snap in fast; on release, spring back with a tiny overshoot so the
+    // block feels physically pushed and let go. Position and shadow come
+    // from the same animated value so the shadow never detaches.
+    final content = TweenAnimationBuilder<double>(
+      tween: Tween(end: _down ? widget.shadow : 0.0),
+      duration: Duration(milliseconds: _down ? 60 : 420),
+      curve: _down ? Curves.easeOut : const ElasticOutCurve(0.55),
+      builder: (context, offset, _) => Transform.translate(
+        offset: Offset(offset, offset),
+        child: widget.builder(context, math.max(0, widget.shadow - offset)),
+      ),
     );
     if (widget.onTap == null) return content;
     return GestureDetector(

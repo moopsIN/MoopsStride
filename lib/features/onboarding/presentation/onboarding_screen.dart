@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:stride/theme/notebook_background.dart';
 import 'package:stride/core/widgets/moop.dart';
 import 'package:stride/theme/app_theme.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -82,79 +83,82 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     final state = ref.watch(onboardingProvider);
 
     return Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Header: back button + progress
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 8, 24, 8),
-              child: Row(
-                children: [
-                  SizedBox(
-                    width: 52,
-                    height: 48,
-                    child: _currentPage > 0
-                        ? BrutalCard(
-                            width: 44,
-                            height: 44,
-                            borderRadius: 22,
-                            shadow: 3,
-                            color: context.stride.surface,
-                            onTap: _previousPage,
-                            child: Icon(Icons.arrow_back_rounded, size: 22, color: context.stride.ink),
-                          )
-                        : null,
-                  ),
-                  Expanded(
-                    child: Row(
-                      children: List.generate(_stepCount, (index) {
-                        final c = context.stride;
-                        final reached = index <= _currentPage;
-                        return Expanded(
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 300),
-                            margin: const EdgeInsets.symmetric(horizontal: 3),
-                            height: 12,
-                            decoration: BoxDecoration(
-                              color: reached ? c.go : c.surface,
-                              borderRadius: BorderRadius.circular(6),
-                              border: Border.all(color: c.outline, width: 2),
-                            ),
-                          ),
-                        );
-                      }),
+      body: NotebookBackground(
+        seed: 2,
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Header: back button + progress
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 8, 24, 8),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 52,
+                      height: 48,
+                      child: _currentPage > 0
+                          ? BrutalCard(
+                              width: 44,
+                              height: 44,
+                              borderRadius: 22,
+                              shadow: 3,
+                              color: context.stride.surface,
+                              onTap: _previousPage,
+                              child: Icon(Icons.arrow_back_rounded, size: 22, color: context.stride.ink),
+                            )
+                          : null,
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                ],
+                    Expanded(
+                      child: Row(
+                        children: List.generate(_stepCount, (index) {
+                          final c = context.stride;
+                          final reached = index <= _currentPage;
+                          return Expanded(
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 300),
+                              margin: const EdgeInsets.symmetric(horizontal: 3),
+                              height: 12,
+                              decoration: BoxDecoration(
+                                color: reached ? c.go : c.surface,
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(color: c.outline, width: 2),
+                              ),
+                            ),
+                          );
+                        }),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                ),
               ),
-            ),
-
-            Expanded(
-              child: PageView(
-                controller: _pageController,
-                physics: const NeverScrollableScrollPhysics(), // Disable swipe to force button clicks
-                onPageChanged: (idx) => setState(() => _currentPage = idx),
-                children: [
-                  _buildGoalStep(),
-                  _buildExperienceStep(),
-                  _buildGenderAgeStep(),
-                  _buildHeightWeightStep(),
-                  _buildActivityStep(),
-                ],
+  
+              Expanded(
+                child: PageView(
+                  controller: _pageController,
+                  physics: const NeverScrollableScrollPhysics(), // Disable swipe to force button clicks
+                  onPageChanged: (idx) => setState(() => _currentPage = idx),
+                  children: [
+                    _buildGoalStep(),
+                    _buildExperienceStep(),
+                    _buildGenderAgeStep(),
+                    _buildHeightWeightStep(),
+                    _buildActivityStep(),
+                  ],
+                ),
               ),
-            ),
-
-            // Footer Navigation
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 16, 16),
-              child: PrimaryButton(
-                text: _currentPage == _stepCount - 1 ? 'Get Started' : 'Next',
-                isLoading: state.isSaving,
-                onPressed: _nextPage,
+  
+              // Footer Navigation
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 16, 16),
+                child: PrimaryButton(
+                  text: _currentPage == _stepCount - 1 ? 'Get Started' : 'Next',
+                  isLoading: state.isSaving,
+                  onPressed: _nextPage,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -456,27 +460,43 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   Widget _buildOptionChip(String label, VoidCallback onTap, bool isSelected) {
     final c = context.stride;
-    return BrutalCard(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
-      color: isSelected ? c.butter : c.surface,
-      onTap: () {
-        onTap();
-        setState(() {}); // options read the provider directly, so rebuild
-      },
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              label,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(color: isSelected ? c.onPastel : c.ink),
+    // A selected option pops (scale overshoot) and its check spins in.
+    return TweenAnimationBuilder<double>(
+      key: ValueKey('$label-$isSelected'),
+      tween: Tween(begin: isSelected ? 0.94 : 1.0, end: 1.0),
+      duration: const Duration(milliseconds: 450),
+      curve: const ElasticOutCurve(0.6),
+      builder: (context, scale, child) => Transform.scale(scale: scale, child: child),
+      child: BrutalCard(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+        color: isSelected ? c.butter : c.surface,
+        onTap: () {
+          onTap();
+          setState(() {}); // options read the provider directly, so rebuild
+        },
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                label,
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(color: isSelected ? c.onPastel : c.ink),
+              ),
             ),
-          ),
-          Icon(
-            isSelected ? Icons.check_circle_rounded : Icons.circle_outlined,
-            color: isSelected ? c.onPastel : c.ink.withValues(alpha: 0.35),
-          ),
-        ],
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 280),
+              transitionBuilder: (child, anim) => RotationTransition(
+                turns: Tween(begin: -0.25, end: 0.0).animate(anim),
+                child: ScaleTransition(scale: anim, child: child),
+              ),
+              child: Icon(
+                isSelected ? Icons.check_circle_rounded : Icons.circle_outlined,
+                key: ValueKey(isSelected),
+                color: isSelected ? c.onPastel : c.ink.withValues(alpha: 0.35),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
