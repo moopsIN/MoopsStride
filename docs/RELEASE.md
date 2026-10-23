@@ -67,7 +67,7 @@ firebase deploy --only firestore:rules
 ## Console tasks that aren't in code
 
 - **Restrict the MapTiler key** (cloud.maptiler.com → API keys) to the app's package name `in.moops.stride` and iOS bundle id.
-- **Play Console data safety form:** see `docs/PRIVACY.md` for what the app collects.
+- **Play Console data safety form and location declaration:** answers are in `docs/STORE_DATA_SAFETY.md`.
 - **Privacy policy URL:** publish `docs/PRIVACY.md` (for example at moops.in/stride/privacy) and link it in both stores and in the app listing.
 
 ## iOS (later)
