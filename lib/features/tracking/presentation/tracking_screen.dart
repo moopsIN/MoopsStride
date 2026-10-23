@@ -119,6 +119,8 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
   bool _hasZoomedForActiveRun = false;
   bool _isMapReady = false;
   bool _centeredOnUser = false;
+  /// Bumped when "start run" is tapped so Moop cheers.
+  int _startCheer = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -168,7 +170,8 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                 hasStarted ? _buildRunHeader(context, state) : _buildHomeHeader(context),
                 const SizedBox(height: 16),
                 Expanded(child: _buildMapCard(context, state)),
-                const SizedBox(height: 14),
+                // Extra room when idle for Moop perched on the start button.
+                SizedBox(height: hasStarted ? 14 : 40),
                 // Idle: "start run" sits right under the map, the easiest
                 // thing to reach, with the info blocks below it so stray taps
                 // near the bottom edge land on them, not on start.
@@ -472,20 +475,43 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
           ],
         );
       default:
-        return _BigButton(
-          label: 'start run',
-          icon: Icons.directions_run_rounded,
-          color: c.go,
-          onTap: () async {
-            final ok = await notifier.startTracking();
-            if (ok) {
-              HapticFeedback.mediumImpact();
-            } else if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                content: Text('Turn on location and allow access to track your run.'),
-              ));
-            }
-          },
+        // Moop sits on the start button's right end, feet on its top edge:
+        // waves hello now and then, cheers when the run is started. It
+        // ignores touches so taps reach the button and map underneath.
+        return Stack(
+          clipBehavior: Clip.none,
+          children: [
+            _BigButton(
+              label: 'start run',
+              icon: Icons.directions_run_rounded,
+              color: c.go,
+              onTap: () async {
+                setState(() => _startCheer++);
+                final ok = await notifier.startTracking();
+                if (ok) {
+                  HapticFeedback.mediumImpact();
+                } else if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                    content: Text('Turn on location and allow access to track your run.'),
+                  ));
+                }
+              },
+            ),
+            Positioned(
+              right: 26,
+              top: -46,
+              child: IgnorePointer(
+                child: Moop(
+                  size: 56,
+                  greet: true,
+                  idleWave: const Duration(seconds: 8),
+                  reaction: MoopReaction.cheer,
+                  reactionTick: _startCheer,
+                  growth: ref.watch(rewardsProvider).moopGrowth,
+                ),
+              ),
+            ),
+          ],
         );
     }
   }
