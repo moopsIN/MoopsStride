@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stride/core/providers/preferences_provider.dart';
 
-/// Light/dark/system, remembered across launches.
+/// Follows the device by default; the user can override to light or dark.
+/// Remembered across launches.
 class ThemeModeNotifier extends Notifier<ThemeMode> {
   static const _key = 'theme_mode';
 
@@ -12,9 +13,9 @@ class ThemeModeNotifier extends Notifier<ThemeMode> {
     return ThemeMode.values.firstWhere((m) => m.name == saved, orElse: () => ThemeMode.system);
   }
 
-  void toggleTheme(bool isDark) {
-    state = isDark ? ThemeMode.dark : ThemeMode.light;
-    ref.read(sharedPreferencesProvider).setString(_key, state.name);
+  void setMode(ThemeMode mode) {
+    state = mode;
+    ref.read(sharedPreferencesProvider).setString(_key, mode.name);
   }
 }
 

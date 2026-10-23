@@ -215,8 +215,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final user = ref.watch(authProvider);
     final profileState = ref.watch(profileProvider);
     final isGuest = user == null;
-    final isDarkMode = themeMode == ThemeMode.dark ||
-        (themeMode == ThemeMode.system && MediaQuery.of(context).platformBrightness == Brightness.dark);
     final isKm = ref.watch(isKmProvider);
     final isKg = ref.watch(isKgProvider);
 
@@ -333,10 +331,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           value: isKg,
                           onChanged: (v) => ref.read(isKgProvider.notifier).setKg(v),
                         ),
-                        _SwitchRow(
-                          title: 'Dark mode',
-                          value: isDarkMode,
-                          onChanged: (v) => ref.read(themeModeProvider.notifier).toggleTheme(v),
+                        _ThemeRow(
+                          mode: themeMode,
+                          onChanged: (m) => ref.read(themeModeProvider.notifier).setMode(m),
                         ),
                       ],
                       ),
@@ -437,6 +434,47 @@ class _DetailRow extends StatelessWidget {
               textAlign: TextAlign.right,
               style: text.titleMedium,
               overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Appearance: follow the device (default), or force light or dark.
+class _ThemeRow extends StatelessWidget {
+  final ThemeMode mode;
+  final ValueChanged<ThemeMode> onChanged;
+
+  const _ThemeRow({required this.mode, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Appearance', style: text.titleMedium),
+          const SizedBox(height: 2),
+          Text(
+            mode == ThemeMode.system ? 'Matches your device setting' : 'Overrides your device setting',
+            style: text.bodySmall,
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            child: SegmentedButton<ThemeMode>(
+              segments: const [
+                ButtonSegment(value: ThemeMode.system, label: Text('System'), icon: Icon(Icons.phone_android_rounded)),
+                ButtonSegment(value: ThemeMode.light, label: Text('Light'), icon: Icon(Icons.light_mode_rounded)),
+                ButtonSegment(value: ThemeMode.dark, label: Text('Dark'), icon: Icon(Icons.dark_mode_rounded)),
+              ],
+              selected: {mode},
+              onSelectionChanged: (s) => onChanged(s.first),
+              showSelectedIcon: false,
             ),
           ),
         ],
