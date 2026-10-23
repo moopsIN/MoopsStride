@@ -10,7 +10,6 @@
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/01-splash-stride.png" width="150" alt="Splash: Moop strides in">
   <img src="docs/screenshots/02-splash.png" width="150" alt="Splash">
   <img src="docs/screenshots/03-welcome.png" width="150" alt="Welcome screen">
   <img src="docs/screenshots/04-onboarding-goal.png" width="150" alt="Onboarding: goal">
