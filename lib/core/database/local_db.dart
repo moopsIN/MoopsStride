@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
@@ -22,9 +25,23 @@ class LocalDatabase {
   }
 
   Future<Database> _initDB(String filePath) async {
-    final path = pathOverride ?? join(await getDatabasesPath(), filePath);
+    final dir = await getDatabasesPath();
+    final path = pathOverride ?? join(dir, filePath);
 
-    return await openDatabase(path, version: 6, onCreate: _createDB, onUpgrade: _upgradeDB);
+    final db = await openDatabase(path, version: 6, onCreate: _createDB, onUpgrade: _upgradeDB);
+    if (pathOverride == null && Platform.isIOS) await _excludeFromBackup(dir);
+    return db;
+  }
+
+  /// iOS backs up app data to iCloud by default; the run database holds the
+  /// user's full GPS history, so keep its directory out of backups (Android
+  /// does the same via allowBackup=false). Best effort: never blocks startup.
+  Future<void> _excludeFromBackup(String dir) async {
+    try {
+      await const MethodChannel('stride/storage').invokeMethod('excludeFromBackup', dir);
+    } catch (e) {
+      debugPrint('Could not exclude database from backup: $e');
+    }
   }
 
   Future _upgradeDB(Database db, int oldVersion, int newVersion) async {
