@@ -10,22 +10,15 @@
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/splash_end_dark.png" width="160" alt="Splash">
-  <img src="docs/screenshots/auth_light.png" width="160" alt="Welcome">
-  <img src="docs/screenshots/summary_light.png" width="160" alt="Run summary">
-  <img src="docs/screenshots/progress_runs_light.png" width="160" alt="Progress">
-  <img src="docs/screenshots/settings_in_light.png" width="160" alt="Settings">
+  <img src="docs/screenshots/01-splash-stride.png" width="150" alt="Splash: Moop strides in">
+  <img src="docs/screenshots/02-splash.png" width="150" alt="Splash">
+  <img src="docs/screenshots/03-welcome.png" width="150" alt="Welcome screen">
+  <img src="docs/screenshots/04-onboarding-goal.png" width="150" alt="Onboarding: goal">
+  <img src="docs/screenshots/05-onboarding-body.png" width="150" alt="Onboarding: body metrics">
+  <img src="docs/screenshots/06-home.png" width="150" alt="Home screen">
 </p>
 
-<p align="center"><sub>Rendered by the screen tests (light theme)</sub></p>
-
-<p align="center">
-  <img src="docs/screenshots/device-splash.png" width="200" alt="Splash on a Motorola edge 70">
-  <img src="docs/screenshots/device-login.png" width="200" alt="Welcome screen on a Motorola edge 70">
-  <img src="docs/screenshots/device-home.png" width="200" alt="Home screen on a Motorola edge 70">
-</p>
-
-<p align="center"><sub>On a real phone: Motorola edge 70, dark mode (map pixelated for privacy)</sub></p>
+<p align="center"><sub>Release build on a Motorola edge 70 (light mode). The home map is pixelated for privacy.</sub></p>
 
 ---
 
