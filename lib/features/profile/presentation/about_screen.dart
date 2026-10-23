@@ -9,9 +9,11 @@ import 'package:url_launcher/url_launcher.dart';
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
 
-  Future<void> _launchUrl() async {
-    final url = Uri.parse('https://moops.in');
-    if (!await launchUrl(url)) {
+  /// Always hands the link to the OS's own browser app (not an in-app
+  /// WebView or Custom Tab), on both Android and iOS.
+  Future<void> _open(String url) async {
+    final uri = Uri.parse(url);
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
       debugPrint('Could not launch $url');
     }
   }
@@ -20,6 +22,22 @@ class AboutScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.stride;
     final text = Theme.of(context).textTheme;
+
+    Widget linkCard({required IconData icon, required String label, required Color color, required String url}) {
+      return BrutalCard(
+        color: color,
+        onTap: () => _open(url),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+        child: Row(
+          children: [
+            Icon(icon, color: c.onPastel),
+            const SizedBox(width: 12),
+            Expanded(child: Text(label, style: text.titleMedium?.copyWith(color: c.onPastel))),
+            Icon(Icons.arrow_outward_rounded, color: c.onPastel),
+          ],
+        ),
+      );
+    }
 
     return Scaffold(
       body: NotebookBackground(
@@ -75,19 +93,35 @@ class AboutScreen extends StatelessWidget {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 14),
-                    BrutalCard(
+                    const SizedBox(height: 22),
+                    Text('LINKS', style: text.labelSmall),
+                    const SizedBox(height: 8),
+                    linkCard(
+                      icon: Icons.language_rounded,
+                      label: 'Stride project page',
                       color: c.sky,
-                      onTap: _launchUrl,
-                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-                      child: Row(
-                        children: [
-                          Icon(Icons.language_rounded, color: c.onPastel),
-                          const SizedBox(width: 12),
-                          Expanded(child: Text('moops.in', style: text.titleMedium?.copyWith(color: c.onPastel))),
-                          Icon(Icons.arrow_outward_rounded, color: c.onPastel),
-                        ],
-                      ),
+                      url: 'https://moops.in/work/stride',
+                    ),
+                    const SizedBox(height: 8),
+                    linkCard(
+                      icon: Icons.code_rounded,
+                      label: 'Source on GitHub',
+                      color: c.surface,
+                      url: 'https://github.com/moopsIN/MoopsStride',
+                    ),
+                    const SizedBox(height: 8),
+                    linkCard(
+                      icon: Icons.privacy_tip_outlined,
+                      label: 'Privacy policy',
+                      color: c.butter,
+                      url: 'https://moops.in/work/stride/privacy-policy',
+                    ),
+                    const SizedBox(height: 8),
+                    linkCard(
+                      icon: Icons.delete_outline_rounded,
+                      label: 'Delete your account',
+                      color: c.blush,
+                      url: 'https://moops.in/work/stride/delete-account',
                     ),
                     const SizedBox(height: 28),
                     Text('VERSION 1.0.0', textAlign: TextAlign.center, style: text.labelSmall),

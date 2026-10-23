@@ -10,14 +10,8 @@
 </p>
 
 <p align="center">
-  <img src="screenshots/02-splash.png" width="150" alt="Splash">
-  <img src="screenshots/03-welcome.png" width="150" alt="Welcome screen">
-  <img src="screenshots/04-onboarding-goal.png" width="150" alt="Onboarding: goal">
-  <img src="screenshots/05-onboarding-body.png" width="150" alt="Onboarding: body metrics">
-  <img src="screenshots/06-home.png" width="150" alt="Home screen">
+  <img src="screenshots/featured.png" width="800" alt="Moop running across a hillside">
 </p>
-
-<p align="center"><sub>Release build on a Motorola edge 70 (light mode). The home map is pixelated for privacy.</sub></p>
 
 ---
 
@@ -40,6 +34,18 @@ Stride uses cute neo-brutalism: flat pastel blocks, 2.5 px ink outlines, hard of
 | Type | **Fraunces** for display, **Geist** for UI, **Geist Mono** for labels and numbers. All three are bundled, so no network is needed. |
 | Mascot | Moop is a Flutter `CustomPainter` built from the same geometry as the website's SVG. It has moods (idle, happy, excited, sleepy, shocked), breathes, blinks, and has a running cycle. See `lib/core/widgets/moop.dart`. |
 | Tokens | `lib/theme/app_theme.dart` (`StrideColors`, `Brutal`), with components in `lib/theme/brutal_card.dart`. |
+
+## Screenshots
+
+<p align="center">
+  <img src="screenshots/02-splash.png" width="150" alt="Splash">
+  <img src="screenshots/03-welcome.png" width="150" alt="Welcome screen">
+  <img src="screenshots/04-onboarding-goal.png" width="150" alt="Onboarding: goal">
+  <img src="screenshots/05-onboarding-body.png" width="150" alt="Onboarding: body metrics">
+  <img src="screenshots/06-home.png" width="150" alt="Home screen">
+</p>
+
+<p align="center"><sub>Release build on a Motorola edge 70 (light mode). The home map is pixelated for privacy.</sub></p>
 
 ## Tech stack
 
