@@ -62,3 +62,6 @@ ui-debug.log
 android/key.properties
 *.jks
 *.keystore
+
+# Internal docs (release, store, privacy drafts): kept locally, not in git
+docs/

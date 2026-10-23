@@ -10,11 +10,11 @@
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/02-splash.png" width="150" alt="Splash">
-  <img src="docs/screenshots/03-welcome.png" width="150" alt="Welcome screen">
-  <img src="docs/screenshots/04-onboarding-goal.png" width="150" alt="Onboarding: goal">
-  <img src="docs/screenshots/05-onboarding-body.png" width="150" alt="Onboarding: body metrics">
-  <img src="docs/screenshots/06-home.png" width="150" alt="Home screen">
+  <img src="screenshots/02-splash.png" width="150" alt="Splash">
+  <img src="screenshots/03-welcome.png" width="150" alt="Welcome screen">
+  <img src="screenshots/04-onboarding-goal.png" width="150" alt="Onboarding: goal">
+  <img src="screenshots/05-onboarding-body.png" width="150" alt="Onboarding: body metrics">
+  <img src="screenshots/06-home.png" width="150" alt="Home screen">
 </p>
 
 <p align="center"><sub>Release build on a Motorola edge 70 (light mode). The home map is pixelated for privacy.</sub></p>

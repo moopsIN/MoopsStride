@@ -12,7 +12,7 @@ plugins {
 }
 
 // Release signing comes from android/key.properties (gitignored; see
-// docs/RELEASE.md). Without it, release builds fall back to debug signing so
+// the local release notes). Without it, release builds fall back to debug signing so
 // `flutter run --release` still works locally.
 val keystorePropertiesFile = rootProject.file("key.properties")
 val keystoreProperties = Properties().apply {
