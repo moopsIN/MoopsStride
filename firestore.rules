@@ -1,16 +1,87 @@
 rules_version = '2';
 
-// Each user can only read and write their own profile and runs.
+// Stride stores, per user:
+//   users/{uid}                      { profile: {...} }
+//   users/{uid}/activities/{runId}   a run, or a deletion tombstone
+// Each user can only touch their own documents, and every write must have
+// exactly the shape the app produces. Anything not matched below is denied.
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /users/{uid} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
 
-      match /activities/{activityId} {
-        allow read, delete: if request.auth != null && request.auth.uid == uid;
-        // Docs carry their own id; keep it consistent with the path.
-        allow create, update: if request.auth != null && request.auth.uid == uid
-          && request.resource.data.id == activityId;
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    function isNum(v) {
+      return v is int || v is float;
+    }
+
+    // Optional field: absent, null, or satisfying the check.
+    function optStr(d, k, maxLen) {
+      return !(k in d) || d[k] == null || (d[k] is string && d[k].size() <= maxLen);
+    }
+    function optNumIn(d, k, lo, hi) {
+      return !(k in d) || d[k] == null || (isNum(d[k]) && d[k] >= lo && d[k] <= hi);
+    }
+    function optIntIn(d, k, lo, hi) {
+      return !(k in d) || d[k] == null || (d[k] is int && d[k] >= lo && d[k] <= hi);
+    }
+
+    function validProfile(p) {
+      return p is map
+        && p.keys().hasOnly(['goal', 'experience_level', 'gender', 'age', 'height', 'weight',
+                             'activity_level', 'units_preference', 'updated_at'])
+        && optStr(p, 'goal', 40)
+        && optStr(p, 'experience_level', 40)
+        && optStr(p, 'gender', 40)
+        && optStr(p, 'activity_level', 40)
+        && optIntIn(p, 'age', 0, 150)
+        && optNumIn(p, 'height', 0, 300)
+        && optNumIn(p, 'weight', 0, 700)
+        && (!('units_preference' in p) || p.units_preference == null
+            || p.units_preference in ['km', 'mi', ''])
+        && optIntIn(p, 'updated_at', 0, 9999999999999);
+    }
+
+    // A deleted run: only what other devices need to drop their copy.
+    function validTombstone(d, runId) {
+      return d.keys().hasOnly(['id', 'deleted', 'updated_at'])
+        && d.id == runId
+        && d.deleted == 1
+        && d.updated_at is int;
+    }
+
+    function validRun(d, runId) {
+      return d.keys().hasOnly(['id', 'type', 'start_time', 'end_time', 'distance_meters',
+                               'duration_seconds', 'avg_pace', 'calories_estimate',
+                               'route_polyline', 'steps', 'updated_at', 'deleted', 'splits'])
+        && d.keys().hasAll(['id', 'type', 'start_time', 'end_time', 'distance_meters',
+                            'duration_seconds', 'avg_pace', 'calories_estimate'])
+        && d.id == runId
+        && d.type in ['run', 'walk']
+        && d.start_time is int && d.end_time is int && d.end_time >= d.start_time
+        && isNum(d.distance_meters) && d.distance_meters >= 0 && d.distance_meters <= 1000000
+        && d.duration_seconds is int && d.duration_seconds >= 0 && d.duration_seconds <= 604800
+        && isNum(d.avg_pace) && d.avg_pace >= 0
+        && isNum(d.calories_estimate) && d.calories_estimate >= 0
+        && optStr(d, 'route_polyline', 900000)
+        && optStr(d, 'splits', 100000)
+        && optIntIn(d, 'steps', 0, 10000000)
+        && optIntIn(d, 'updated_at', 0, 9999999999999)
+        && (!('deleted' in d) || d.deleted == 0);
+    }
+
+    match /users/{uid} {
+      allow read, delete: if isOwner(uid);
+      allow create, update: if isOwner(uid)
+        && request.resource.data.keys().hasOnly(['profile'])
+        && validProfile(request.resource.data.profile);
+
+      match /activities/{runId} {
+        allow read, delete: if isOwner(uid);
+        allow create, update: if isOwner(uid)
+          && (validRun(request.resource.data, runId)
+              || validTombstone(request.resource.data, runId));
       }
     }
   }
