@@ -169,9 +169,19 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                 const SizedBox(height: 16),
                 Expanded(child: _buildMapCard(context, state)),
                 const SizedBox(height: 14),
-                hasStarted ? _buildRunStats(context, state) : _buildHomeBlocks(context),
-                const SizedBox(height: 18),
-                _buildControls(context, state),
+                // Idle: "start run" sits right under the map, the easiest
+                // thing to reach, with the info blocks below it so stray taps
+                // near the bottom edge land on them, not on start.
+                // Running: live stats above, pause/finish at the bottom.
+                if (hasStarted) ...[
+                  _buildRunStats(context, state),
+                  const SizedBox(height: 18),
+                  _buildControls(context, state),
+                ] else ...[
+                  _buildControls(context, state),
+                  const SizedBox(height: 14),
+                  _buildHomeBlocks(context),
+                ],
               ],
             ),
           ),
