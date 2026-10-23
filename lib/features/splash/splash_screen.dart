@@ -1,6 +1,8 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:stride/features/tracking/models/activity_model.dart';
+import 'package:stride/features/rewards/domain/rewards_engine.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stride/core/database/local_db.dart';
 import 'package:stride/core/widgets/moop.dart';
@@ -27,6 +29,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
   /// Moop runs until this point of the timeline, then stops and hops.
   static const double _arrive = 0.55;
 
+  /// Returning runners see their grown-up Moop from the first frame they can.
+  int _growth = 0;
+
   @override
   void initState() {
     super.initState();
@@ -35,6 +40,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
 
   Future<void> _start() async {
     final reduceMotion = MediaQuery.of(context).disableAnimations;
+    _loadGrowth();
     final next = _resolveNext();
     if (reduceMotion) {
       _c.value = 1;
@@ -49,6 +55,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
           FadeTransition(opacity: animation, child: child),
       transitionDuration: const Duration(milliseconds: 450),
     ));
+  }
+
+  Future<void> _loadGrowth() async {
+    final runs = (await LocalDatabase.instance.getActivities()).map(ActivityModel.fromMap);
+    final growth = RewardsEngine.compute(runs, DateTime.now()).moopGrowth;
+    if (mounted && growth != _growth) setState(() => _growth = growth);
   }
 
   Future<Widget> _resolveNext() async {
@@ -130,6 +142,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
                               child: Moop(
                                 size: moopSize,
                                 running: running,
+                                growth: _growth,
                                 mood: t >= _arrive ? MoopMood.happy : MoopMood.idle,
                               ),
                             ),

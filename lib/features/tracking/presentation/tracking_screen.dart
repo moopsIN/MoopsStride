@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:stride/features/rewards/domain/badges.dart';
+import 'package:stride/features/rewards/domain/rewards_engine.dart';
+import 'package:stride/features/rewards/presentation/badges_screen.dart';
+import 'package:stride/features/rewards/providers/rewards_provider.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -157,8 +161,8 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(_greeting(), style: text.headlineLarge),
-              const SizedBox(height: 2),
-              Text('ready when you are.', style: text.bodyMedium),
+              const SizedBox(height: 6),
+              _LevelChip(rewards: ref.watch(rewardsProvider)),
             ],
           ),
         ),
@@ -170,7 +174,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
           onTap: () => Navigator.of(context).push(
             MaterialPageRoute(builder: (_) => const ProfileScreen()),
           ),
-          child: const Center(child: Moop(size: 36, animate: false)),
+          child: Center(child: Moop(size: 36, animate: false, growth: ref.watch(rewardsProvider).moopGrowth)),
         ),
       ],
     );
@@ -464,6 +468,40 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
     if (hour < 12) return 'good morning';
     if (hour < 17) return 'good afternoon';
     return 'good evening';
+  }
+}
+
+/// Level and badge count; opens the badges screen.
+class _LevelChip extends StatelessWidget {
+  final RewardsSnapshot rewards;
+  const _LevelChip({required this.rewards});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.stride;
+    return BrutalCard(
+      shadow: 3,
+      borderRadius: Brutal.radiusPill,
+      color: c.butter,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BadgesScreen())),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.military_tech_rounded, size: 16, color: c.onPastel),
+          const SizedBox(width: 5),
+          Flexible(
+            child: Text(
+              'LEVEL ${rewards.level} · ${rewards.earned.length}/${BadgeId.values.length} BADGES',
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(color: c.onPastel),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(width: 2),
+          Icon(Icons.chevron_right_rounded, size: 16, color: c.onPastel),
+        ],
+      ),
+    );
   }
 }
 

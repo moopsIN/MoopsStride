@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:stride/features/rewards/providers/rewards_provider.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -219,7 +220,7 @@ class _RunSummaryScreenState extends ConsumerState<RunSummaryScreen> {
             ],
           ),
         ),
-        const Moop(size: 76, mood: MoopMood.excited),
+        Moop(size: 76, mood: MoopMood.excited, growth: ref.watch(rewardsProvider).moopGrowth),
       ],
     );
   }

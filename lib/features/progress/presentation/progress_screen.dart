@@ -1,5 +1,8 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:stride/features/rewards/presentation/rewards_widgets.dart';
+import 'package:stride/features/rewards/presentation/badges_screen.dart';
+import 'package:stride/features/rewards/providers/rewards_provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stride/core/providers/preferences_provider.dart';
@@ -66,6 +69,13 @@ class _Body extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 8, 16, 24),
       children: [
+        Consumer(
+          builder: (context, ref, _) => LevelCard(
+            rewards: ref.watch(rewardsProvider),
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BadgesScreen())),
+          ),
+        ),
+        const SizedBox(height: 6),
         Row(
           children: [
             Expanded(child: _Metric(color: c.butter, value: total.toStringAsFixed(1), label: 'TOTAL ${_unitLabel.toUpperCase()}')),
