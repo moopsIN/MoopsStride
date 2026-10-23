@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:stride/features/rewards/domain/unlocks.dart';
+import 'package:stride/features/rewards/data/run_rewards.dart';
 import 'package:stride/features/rewards/domain/badges.dart';
 import 'package:stride/features/rewards/domain/rewards_engine.dart';
 import 'package:stride/features/rewards/presentation/badges_screen.dart';
@@ -63,13 +65,29 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
       return;
     }
 
-    await notifier.saveActivity(activity);
+    // Rewards must never cost a run: if anything in the rewards step fails,
+    // the run is still saved and there's simply no celebration.
+    var saved = false;
+    var unlocks = Unlocks.none;
+    try {
+      unlocks = await saveRunAndCollectUnlocks(
+        run: activity,
+        save: () async {
+          await notifier.saveActivity(activity);
+          saved = true;
+        },
+        store: ref.read(rewardsSeenStoreProvider),
+      );
+    } catch (e) {
+      debugPrint('Rewards step failed: $e');
+      if (!saved) await notifier.saveActivity(activity);
+    }
     ref.read(progressProvider.notifier).refresh();
     if (!mounted) return;
 
     await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => RunSummaryScreen(activity: activity),
+        builder: (_) => RunSummaryScreen(activity: activity, unlocks: unlocks),
       ),
     );
 

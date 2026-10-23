@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:stride/features/rewards/providers/rewards_provider.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stride/theme/app_theme.dart';
@@ -183,6 +184,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   /// in memory, then restarts at the auth screen with a fresh navigation stack.
   Future<void> _clearLocalSessionAndExit() async {
     await LocalDatabase.instance.clearDatabase();
+    // Celebrated-badge memory belongs to the account that just left.
+    await ref.read(rewardsSeenStoreProvider).clear();
     try {
       final shared = File('${(await getTemporaryDirectory()).path}/stride_run_summary.png');
       if (await shared.exists()) await shared.delete();

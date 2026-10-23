@@ -86,7 +86,7 @@ class BadgesScreen extends ConsumerWidget {
             children: [
               SizedBox(width: 120, child: BadgeTile(id: id, earned: earned != null, progress: progress?.fraction)),
               const SizedBox(height: 16),
-              Text(def.title.toLowerCase(), style: text.headlineLarge, textAlign: TextAlign.center),
+              Text(badgeHeadline(id), style: text.headlineLarge, textAlign: TextAlign.center),
               const SizedBox(height: 6),
               Text(def.description, style: text.bodyLarge?.copyWith(color: c.inkMuted), textAlign: TextAlign.center),
               const SizedBox(height: 12),

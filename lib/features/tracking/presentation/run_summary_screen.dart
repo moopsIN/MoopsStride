@@ -2,6 +2,8 @@ import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:stride/features/rewards/presentation/celebration_sheet.dart';
+import 'package:stride/features/rewards/domain/unlocks.dart';
 import 'package:stride/features/rewards/providers/rewards_provider.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -22,8 +24,10 @@ import 'package:stride/theme/brutal_card.dart';
 /// pastel stat tiles and splits.
 class RunSummaryScreen extends ConsumerStatefulWidget {
   final ActivityModel activity;
+  /// What this run unlocked; celebrated once when the summary opens.
+  final Unlocks unlocks;
 
-  const RunSummaryScreen({super.key, required this.activity});
+  const RunSummaryScreen({super.key, required this.activity, this.unlocks = Unlocks.none});
 
   @override
   ConsumerState<RunSummaryScreen> createState() => _RunSummaryScreenState();
@@ -36,6 +40,16 @@ class _RunSummaryScreenState extends ConsumerState<RunSummaryScreen> {
   bool _isCapturing = false;
 
   ActivityModel get activity => widget.activity;
+
+  @override
+  void initState() {
+    super.initState();
+    if (!widget.unlocks.isEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) showCelebration(context, widget.unlocks);
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

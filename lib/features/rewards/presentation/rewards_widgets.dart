@@ -19,6 +19,13 @@ import 'package:stride/theme/brutal_card.dart';
   };
 }
 
+/// Badge title as a headline. Headlines are lowercase in this brand, but
+/// numeric titles keep their case ("5K", not "5k").
+String badgeHeadline(BadgeId id) {
+  final title = badgeDef(id).title;
+  return title.contains(RegExp(r'[0-9]')) ? title : title.toLowerCase();
+}
+
 /// An outlined progress bar in the brutal style.
 class BrutalProgressBar extends StatelessWidget {
   final double value;

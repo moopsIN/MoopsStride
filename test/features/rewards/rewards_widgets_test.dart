@@ -33,6 +33,12 @@ Widget themed(Widget child, {bool dark = false}) => MaterialApp(
 void main() {
   setUpAll(setUpScreenTests);
 
+  test('badge headlines are lowercase except numeric titles', () {
+    expect(badgeHeadline(BadgeId.firstStride), 'first stride');
+    expect(badgeHeadline(BadgeId.run5k), '5K');
+    expect(badgeHeadline(BadgeId.total10), '10 km club');
+  });
+
   for (final dark in [false, true]) {
     final mode = dark ? 'dark' : 'light';
 
