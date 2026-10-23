@@ -54,4 +54,4 @@ If this policy changes, we'll update the date above and, for significant changes
 
 ## Contact
 
-Moops Design, https://moops.in. Email: **[TODO: add contact email before publishing]**
+Moops Design, https://moops.in. Email: info@moops.in
