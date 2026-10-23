@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:stride/theme/notebook_background.dart';
 import 'package:stride/features/rewards/presentation/celebration_sheet.dart';
 import 'package:stride/features/rewards/domain/unlocks.dart';
 import 'package:stride/features/rewards/providers/rewards_provider.dart';
@@ -55,49 +56,52 @@ class _RunSummaryScreenState extends ConsumerState<RunSummaryScreen> {
   Widget build(BuildContext context) {
     final c = context.stride;
     return Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 12, 16, 12),
-                child: RepaintBoundary(
-                  key: _shareKey,
-                  child: Container(
-                    // Solid ground so the shared image isn't transparent.
-                    color: c.background,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        _buildMapCard(context),
-                        const SizedBox(height: 18),
-                        _buildHeadline(context)
-                            .animate()
-                            .fadeIn(duration: 350.ms)
-                            .slideY(begin: 0.15, curve: Curves.easeOut),
-                        const SizedBox(height: 16),
-                        _buildStatsGrid(context),
-                        if (activity.splits.isNotEmpty) ...[
-                          const SizedBox(height: 14),
-                          _buildSplits(context),
+      body: NotebookBackground(
+        seed: 5,
+        child: SafeArea(
+          child: Column(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 16, 12),
+                  child: RepaintBoundary(
+                    key: _shareKey,
+                    child: Container(
+                      // Solid ground so the shared image isn't transparent.
+                      color: c.background,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _buildMapCard(context),
+                          const SizedBox(height: 18),
+                          _buildHeadline(context)
+                              .animate()
+                              .fadeIn(duration: 350.ms)
+                              .slideY(begin: 0.15, curve: Curves.easeOut),
+                          const SizedBox(height: 16),
+                          _buildStatsGrid(context),
+                          if (activity.splits.isNotEmpty) ...[
+                            const SizedBox(height: 14),
+                            _buildSplits(context),
+                          ],
+                          if (_isCapturing) ...[
+                            const SizedBox(height: 14),
+                            Text('tracked with stride · by moops',
+                                textAlign: TextAlign.center,
+                                style: Theme.of(context).textTheme.labelSmall),
+                          ],
                         ],
-                        if (_isCapturing) ...[
-                          const SizedBox(height: 14),
-                          Text('tracked with stride · by moops',
-                              textAlign: TextAlign.center,
-                              style: Theme.of(context).textTheme.labelSmall),
-                        ],
-                      ],
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 4, 16, 12),
-              child: _buildActions(context),
-            ),
-          ],
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 4, 16, 12),
+                child: _buildActions(context),
+              ),
+            ],
+          ),
         ),
       ),
     );

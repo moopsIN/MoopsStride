@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:stride/theme/notebook_background.dart';
 import 'package:stride/theme/brutal_card.dart';
 import 'package:stride/theme/app_theme.dart';
 import 'package:stride/core/widgets/moop.dart';
@@ -339,88 +340,91 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     final c = context.stride;
     final text = Theme.of(context).textTheme;
     return Scaffold(
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, box) => SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(20, 16, 16, 20),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: box.maxHeight - 36),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Hero block: Moop on butter, wordmark, promise.
-                  BrutalCard(
-                    color: c.butter,
-                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('stride',
-                                      style: text.displayLarge?.copyWith(fontSize: 60, color: c.onPastel, letterSpacing: -2)),
-                                  const SizedBox(height: 6),
-                                  BrutalPill(text: 'BY MOOPS', color: c.blush),
-                                ],
+      body: NotebookBackground(
+        seed: 1,
+        child: SafeArea(
+          child: LayoutBuilder(
+            builder: (context, box) => SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 16, 16, 20),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: box.maxHeight - 36),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Hero block: Moop on butter, wordmark, promise.
+                    BrutalCard(
+                      color: c.butter,
+                      padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('stride',
+                                        style: text.displayLarge?.copyWith(fontSize: 60, color: c.onPastel, letterSpacing: -2)),
+                                    const SizedBox(height: 6),
+                                    BrutalPill(text: 'BY MOOPS', color: c.blush),
+                                  ],
+                                ),
                               ),
-                            ),
-                            const Moop(size: 104, mood: MoopMood.happy),
-                          ],
+                              const Moop(size: 104, mood: MoopMood.happy),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'The offline-first running tracker.\nNo account needed to start.',
+                            style: text.bodyLarge?.copyWith(color: c.onPastel, fontWeight: FontWeight.w500),
+                          ),
+                        ],
+                      ),
+                    ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.08, curve: Curves.easeOut),
+                    const SizedBox(height: 28),
+                    PrimaryButton(
+                      text: 'Start tracking now',
+                      icon: Icons.directions_run_rounded,
+                      isLoading: _isLoading,
+                      onPressed: _handleGuestLogin,
+                    ),
+                    const SizedBox(height: 22),
+                    Row(
+                      children: [
+                        Expanded(child: Divider(color: c.outline.withValues(alpha: 0.25), thickness: 2)),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: Text('OR BACK UP YOUR RUNS', style: text.labelSmall),
                         ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'The offline-first running tracker.\nNo account needed to start.',
-                          style: text.bodyLarge?.copyWith(color: c.onPastel, fontWeight: FontWeight.w500),
-                        ),
+                        Expanded(child: Divider(color: c.outline.withValues(alpha: 0.25), thickness: 2)),
                       ],
                     ),
-                  ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.08, curve: Curves.easeOut),
-                  const SizedBox(height: 28),
-                  PrimaryButton(
-                    text: 'Start tracking now',
-                    icon: Icons.directions_run_rounded,
-                    isLoading: _isLoading,
-                    onPressed: _handleGuestLogin,
-                  ),
-                  const SizedBox(height: 22),
-                  Row(
-                    children: [
-                      Expanded(child: Divider(color: c.outline.withValues(alpha: 0.25), thickness: 2)),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        child: Text('OR BACK UP YOUR RUNS', style: text.labelSmall),
-                      ),
-                      Expanded(child: Divider(color: c.outline.withValues(alpha: 0.25), thickness: 2)),
-                    ],
-                  ),
-                  const SizedBox(height: 18),
-                  PrimaryButton(
-                    text: 'Continue with Google',
-                    icon: Icons.g_mobiledata_rounded,
-                    color: c.surface,
-                    foregroundColor: c.ink,
-                    onPressed: _isLoading ? () {} : _handleGoogleLogin,
-                  ),
-                  const SizedBox(height: 10),
-                  PrimaryButton(
-                    text: 'Continue with email',
-                    icon: Icons.alternate_email_rounded,
-                    color: c.sky,
-                    onPressed: _isLoading ? () {} : _showEmailAuthSheet,
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    'Your runs stay on this device unless you sign in.',
-                    textAlign: TextAlign.center,
-                    style: text.bodySmall,
-                  ),
-                ],
+                    const SizedBox(height: 18),
+                    PrimaryButton(
+                      text: 'Continue with Google',
+                      icon: Icons.g_mobiledata_rounded,
+                      color: c.surface,
+                      foregroundColor: c.ink,
+                      onPressed: _isLoading ? () {} : _handleGoogleLogin,
+                    ),
+                    const SizedBox(height: 10),
+                    PrimaryButton(
+                      text: 'Continue with email',
+                      icon: Icons.alternate_email_rounded,
+                      color: c.sky,
+                      onPressed: _isLoading ? () {} : _showEmailAuthSheet,
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      'Your runs stay on this device unless you sign in.',
+                      textAlign: TextAlign.center,
+                      style: text.bodySmall,
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

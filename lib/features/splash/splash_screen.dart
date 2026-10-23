@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:stride/theme/notebook_background.dart';
 import 'package:stride/features/tracking/models/activity_model.dart';
 import 'package:stride/features/rewards/domain/rewards_engine.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -89,94 +90,98 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
 
     return Scaffold(
       backgroundColor: c.background,
-      body: LayoutBuilder(builder: (context, box) {
-        final centerX = box.maxWidth / 2;
-        return AnimatedBuilder(
-          animation: _c,
-          builder: (context, _) {
-            final t = _c.value;
-            final run = _interval(t, 0, _arrive);
-            final moopCenterX = -moopSize + (centerX + moopSize) * run;
-            final running = t < _arrive && t > 0;
-            final hopT = _interval(t, _arrive, _arrive + 0.15, Curves.linear);
-            final hop = math.sin(hopT * math.pi) * 18;
-            final word = _interval(t, 0.5, 0.78, Curves.easeOutBack);
-            final byline = _interval(t, 0.7, 0.92);
-
-            return Stack(
-              children: [
-                // Two calm brand shapes, neo-brutalist but orderly.
-                Positioned(
-                  top: -90,
-                  right: -70,
-                  child: _Blob(color: c.butter, size: 230, round: true),
-                ),
-                Positioned(
-                  bottom: -50,
-                  left: -40,
-                  child: Transform.rotate(angle: -0.25, child: _Blob(color: c.sky, size: 150)),
-                ),
-                Align(
-                  alignment: const Alignment(0, -0.15),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      SizedBox(
-                        width: box.maxWidth,
-                        height: moopSize * 1.3,
-                        child: Stack(
-                          clipBehavior: Clip.none,
-                          children: [
-                            // The trail Moop leaves behind as it runs in.
-                            Positioned(
-                              left: 0,
-                              bottom: 6,
-                              child: CustomPaint(
-                                size: Size(math.max(0, moopCenterX - moopSize * 0.35), 4),
-                                painter: _TrailPainter(c.outline.withValues(alpha: 0.35)),
+      body: NotebookBackground(
+        seed: 11,
+        doodles: 3,
+        child: LayoutBuilder(builder: (context, box) {
+          final centerX = box.maxWidth / 2;
+          return AnimatedBuilder(
+            animation: _c,
+            builder: (context, _) {
+              final t = _c.value;
+              final run = _interval(t, 0, _arrive);
+              final moopCenterX = -moopSize + (centerX + moopSize) * run;
+              final running = t < _arrive && t > 0;
+              final hopT = _interval(t, _arrive, _arrive + 0.15, Curves.linear);
+              final hop = math.sin(hopT * math.pi) * 18;
+              final word = _interval(t, 0.5, 0.78, Curves.easeOutBack);
+              final byline = _interval(t, 0.7, 0.92);
+  
+              return Stack(
+                children: [
+                  // Two calm brand shapes, neo-brutalist but orderly.
+                  Positioned(
+                    top: -90,
+                    right: -70,
+                    child: _Blob(color: c.butter, size: 230, round: true),
+                  ),
+                  Positioned(
+                    bottom: -50,
+                    left: -40,
+                    child: Transform.rotate(angle: -0.25, child: _Blob(color: c.sky, size: 150)),
+                  ),
+                  Align(
+                    alignment: const Alignment(0, -0.15),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SizedBox(
+                          width: box.maxWidth,
+                          height: moopSize * 1.3,
+                          child: Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              // The trail Moop leaves behind as it runs in.
+                              Positioned(
+                                left: 0,
+                                bottom: 6,
+                                child: CustomPaint(
+                                  size: Size(math.max(0, moopCenterX - moopSize * 0.35), 4),
+                                  painter: _TrailPainter(c.outline.withValues(alpha: 0.35)),
+                                ),
                               ),
-                            ),
-                            Positioned(
-                              left: moopCenterX - moopSize / 2,
-                              bottom: hop,
-                              child: Moop(
-                                size: moopSize,
-                                running: running,
-                                growth: _growth,
-                                mood: t >= _arrive ? MoopMood.happy : MoopMood.idle,
+                              Positioned(
+                                left: moopCenterX - moopSize / 2,
+                                bottom: hop,
+                                child: Moop(
+                                  size: moopSize,
+                                  running: running,
+                                  growth: _growth,
+                                  mood: t >= _arrive ? MoopMood.happy : MoopMood.idle,
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      Opacity(
-                        opacity: word.clamp(0.0, 1.0),
-                        child: Transform.translate(
-                          offset: Offset(0, (1 - word) * 24),
-                          child: Text(
-                            'stride',
-                            style: text.displayLarge?.copyWith(fontSize: 64, letterSpacing: -2),
+                            ],
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 10),
-                      Opacity(
-                        opacity: byline,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: Brutal.box(c, color: c.blush, radius: Brutal.radiusPill, shadow: 3),
-                          child: Text('BY MOOPS', style: text.labelMedium?.copyWith(color: c.onPastel, letterSpacing: 2)),
+                        const SizedBox(height: 20),
+                        Opacity(
+                          opacity: word.clamp(0.0, 1.0),
+                          child: Transform.translate(
+                            offset: Offset(0, (1 - word) * 24),
+                            child: Text(
+                              'stride',
+                              style: text.displayLarge?.copyWith(fontSize: 64, letterSpacing: -2),
+                            ),
+                          ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 10),
+                        Opacity(
+                          opacity: byline,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: Brutal.box(c, color: c.blush, radius: Brutal.radiusPill, shadow: 3),
+                            child: Text('BY MOOPS', style: text.labelMedium?.copyWith(color: c.onPastel, letterSpacing: 2)),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
-            );
-          },
-        );
-      }),
+                ],
+              );
+            },
+          );
+        }),
+      ),
     );
   }
 }

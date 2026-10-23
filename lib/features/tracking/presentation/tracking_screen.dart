@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:stride/theme/notebook_background.dart';
 import 'package:stride/features/rewards/domain/unlocks.dart';
 import 'package:stride/features/rewards/data/run_rewards.dart';
 import 'package:stride/features/rewards/domain/badges.dart';
@@ -156,20 +157,23 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
     final hasStarted = state.status != TrackingStatus.notStarted;
 
     return Scaffold(
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 12, 16, 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              hasStarted ? _buildRunHeader(context, state) : _buildHomeHeader(context),
-              const SizedBox(height: 16),
-              Expanded(child: _buildMapCard(context, state)),
-              const SizedBox(height: 14),
-              hasStarted ? _buildRunStats(context, state) : _buildHomeBlocks(context),
-              const SizedBox(height: 18),
-              _buildControls(context, state),
-            ],
+      body: NotebookBackground(
+        seed: 4,
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 16, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                hasStarted ? _buildRunHeader(context, state) : _buildHomeHeader(context),
+                const SizedBox(height: 16),
+                Expanded(child: _buildMapCard(context, state)),
+                const SizedBox(height: 14),
+                hasStarted ? _buildRunStats(context, state) : _buildHomeBlocks(context),
+                const SizedBox(height: 18),
+                _buildControls(context, state),
+              ],
+            ),
           ),
         ),
       ),

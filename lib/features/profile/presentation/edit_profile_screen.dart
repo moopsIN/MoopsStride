@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:stride/theme/notebook_background.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:stride/core/widgets/primary_button.dart';
@@ -178,138 +179,141 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     final isKg = ref.watch(isKgProvider);
 
     return Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: [
-            const ScreenHeader(title: 'edit profile'),
-            Expanded(
-              child: state.when(
-        data: (profileState) {
-          return SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 8, 16, 32),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _sectionLabel(context, 'BODY METRICS'),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        ValueListenableBuilder<TextEditingValue>(
-                          valueListenable: _heightController,
-                          builder: (context, value, child) {
-                            final cm = double.tryParse(value.text) ?? 0.0;
-                            return _buildMetricField(context, 'HEIGHT', _heightController, 'cm', subtitle: formatHeightToFtIn(cm));
-                          },
-                        ),
-                        const SizedBox(width: 14),
-                        ValueListenableBuilder<TextEditingValue>(
-                          valueListenable: _weightController,
-                          builder: (context, value, child) {
-                            final weight = double.tryParse(value.text) ?? 0.0;
-                            final conversionText = isKg 
-                                ? '${kgToLbs(weight).toStringAsFixed(1)} lbs' 
-                                : '${lbsToKg(weight).toStringAsFixed(1)} kg';
-                            return _buildMetricField(
-                              context, 
-                              'WEIGHT', 
-                              _weightController, 
-                              isKg ? 'kg' : 'lbs',
-                              subtitle: weight > 0 ? conversionText : '--',
-                            );
-                          },
-                        ),
-                      ],
-                    ).animate().fadeIn(duration: 350.ms).slideY(begin: 0.08),
-
-                    const SizedBox(height: 24),
-                    _sectionLabel(context, 'PERSONAL DETAILS'),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildMetricField(context, 'AGE', _ageController, 'yrs', isInt: true),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: BrutalCard(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                            child: Column(
-                              children: [
-                                Text('GENDER', style: theme.textTheme.labelSmall),
-                                const SizedBox(height: 4),
-                                DropdownButtonHideUnderline(
-                                  child: DropdownButton<String>(
-                                    value: _selectedGender,
-                                    isExpanded: true,
-                                    alignment: Alignment.center,
-                                    dropdownColor: theme.colorScheme.surface,
-                                    icon: Icon(Icons.keyboard_arrow_down_rounded, color: context.stride.ink),
-                                    style: theme.textTheme.titleMedium?.copyWith(
-                                      fontWeight: FontWeight.bold,
-                                      color: theme.colorScheme.onSurface,
+      body: NotebookBackground(
+        seed: 9,
+        child: SafeArea(
+          child: Column(
+            children: [
+              const ScreenHeader(title: 'edit profile'),
+              Expanded(
+                child: state.when(
+          data: (profileState) {
+            return SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(20, 8, 16, 32),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _sectionLabel(context, 'BODY METRICS'),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          ValueListenableBuilder<TextEditingValue>(
+                            valueListenable: _heightController,
+                            builder: (context, value, child) {
+                              final cm = double.tryParse(value.text) ?? 0.0;
+                              return _buildMetricField(context, 'HEIGHT', _heightController, 'cm', subtitle: formatHeightToFtIn(cm));
+                            },
+                          ),
+                          const SizedBox(width: 14),
+                          ValueListenableBuilder<TextEditingValue>(
+                            valueListenable: _weightController,
+                            builder: (context, value, child) {
+                              final weight = double.tryParse(value.text) ?? 0.0;
+                              final conversionText = isKg 
+                                  ? '${kgToLbs(weight).toStringAsFixed(1)} lbs' 
+                                  : '${lbsToKg(weight).toStringAsFixed(1)} kg';
+                              return _buildMetricField(
+                                context, 
+                                'WEIGHT', 
+                                _weightController, 
+                                isKg ? 'kg' : 'lbs',
+                                subtitle: weight > 0 ? conversionText : '--',
+                              );
+                            },
+                          ),
+                        ],
+                      ).animate().fadeIn(duration: 350.ms).slideY(begin: 0.08),
+  
+                      const SizedBox(height: 24),
+                      _sectionLabel(context, 'PERSONAL DETAILS'),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildMetricField(context, 'AGE', _ageController, 'yrs', isInt: true),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: BrutalCard(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              child: Column(
+                                children: [
+                                  Text('GENDER', style: theme.textTheme.labelSmall),
+                                  const SizedBox(height: 4),
+                                  DropdownButtonHideUnderline(
+                                    child: DropdownButton<String>(
+                                      value: _selectedGender,
+                                      isExpanded: true,
+                                      alignment: Alignment.center,
+                                      dropdownColor: theme.colorScheme.surface,
+                                      icon: Icon(Icons.keyboard_arrow_down_rounded, color: context.stride.ink),
+                                      style: theme.textTheme.titleMedium?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                        color: theme.colorScheme.onSurface,
+                                      ),
+                                      items: _genders.map((String value) {
+                                        return DropdownMenuItem<String>(
+                                          value: value,
+                                          child: Text(value),
+                                        );
+                                      }).toList(),
+                                      onChanged: (newValue) {
+                                        setState(() {
+                                          _selectedGender = newValue;
+                                        });
+                                      },
                                     ),
-                                    items: _genders.map((String value) {
-                                      return DropdownMenuItem<String>(
-                                        value: value,
-                                        child: Text(value),
-                                      );
-                                    }).toList(),
-                                    onChanged: (newValue) {
-                                      setState(() {
-                                        _selectedGender = newValue;
-                                      });
-                                    },
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
-                        ),
-                      ],
-                    ).animate().fadeIn(duration: 350.ms, delay: 50.ms).slideY(begin: 0.08),
-                    const SizedBox(height: 28),
-
-                    _sectionLabel(context, 'PRIMARY GOAL'),
-                    _buildDropdownItem(
-                      _selectedGoal,
-                      _goals,
-                      (val) => setState(() => _selectedGoal = val),
-                    ),
-                    const SizedBox(height: 18),
-
-                    _sectionLabel(context, 'EXPERIENCE LEVEL'),
-                    _buildDropdownItem(
-                      _selectedExperience,
-                      _experiences,
-                      (val) => setState(() => _selectedExperience = val),
-                    ),
-                    const SizedBox(height: 18),
-
-                    _sectionLabel(context, 'ACTIVITY LEVEL'),
-                    _buildDropdownItem(
-                      _selectedActivity,
-                      _activities,
-                      (val) => setState(() => _selectedActivity = val),
-                    ),
-
-                    const SizedBox(height: 36),
-                    PrimaryButton(
-                      text: 'Save changes',
-                      isLoading: profileState.isSaving,
-                      onPressed: _saveProfile,
-                    ),
-                  ],
+                        ],
+                      ).animate().fadeIn(duration: 350.ms, delay: 50.ms).slideY(begin: 0.08),
+                      const SizedBox(height: 28),
+  
+                      _sectionLabel(context, 'PRIMARY GOAL'),
+                      _buildDropdownItem(
+                        _selectedGoal,
+                        _goals,
+                        (val) => setState(() => _selectedGoal = val),
+                      ),
+                      const SizedBox(height: 18),
+  
+                      _sectionLabel(context, 'EXPERIENCE LEVEL'),
+                      _buildDropdownItem(
+                        _selectedExperience,
+                        _experiences,
+                        (val) => setState(() => _selectedExperience = val),
+                      ),
+                      const SizedBox(height: 18),
+  
+                      _sectionLabel(context, 'ACTIVITY LEVEL'),
+                      _buildDropdownItem(
+                        _selectedActivity,
+                        _activities,
+                        (val) => setState(() => _selectedActivity = val),
+                      ),
+  
+                      const SizedBox(height: 36),
+                      PrimaryButton(
+                        text: 'Save changes',
+                        isLoading: profileState.isSaving,
+                        onPressed: _saveProfile,
+                      ),
+                    ],
+                  ),
+                ),
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (err, stack) => Center(
+            child: Text('Error: $err', style: theme.textTheme.bodyMedium),
+          ),
                 ),
               ),
-          );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, stack) => Center(
-          child: Text('Error: $err', style: theme.textTheme.bodyMedium),
-        ),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

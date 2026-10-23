@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:stride/theme/notebook_background.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:stride/core/widgets/primary_button.dart';
@@ -129,61 +130,64 @@ class _SyncPromptScreenState extends ConsumerState<SyncPromptScreen> {
     final text = Theme.of(context).textTheme;
     final unreachable = widget.cloudUnreachable;
     return Scaffold(
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 16, 20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Spacer(),
-              BrutalCard(
-                color: unreachable ? c.blush : c.sky,
-                padding: const EdgeInsets.fromLTRB(20, 24, 20, 22),
-                child: Column(
-                  children: [
-                    Moop(size: 120, mood: unreachable ? MoopMood.shocked : MoopMood.excited),
-                    const SizedBox(height: 16),
-                    Text(
-                      unreachable ? "couldn't reach the cloud" : 'welcome back!',
-                      style: text.headlineLarge?.copyWith(color: c.onPastel),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      unreachable
-                          ? "We couldn't check your account for saved runs. Try again once you're online, or continue and they'll merge in automatically later."
-                          : 'Your profile and past runs are saved to your account. Bring them to this device?',
-                      style: text.bodyLarge?.copyWith(color: c.onPastel),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-              ).animate().fadeIn(duration: 350.ms).slideY(begin: 0.08, curve: Curves.easeOut),
-              const Spacer(),
-              PrimaryButton(
-                text: unreachable ? 'Try again' : 'Sync my runs',
-                icon: unreachable ? Icons.refresh_rounded : Icons.cloud_download_rounded,
-                isLoading: _isSyncing,
-                onPressed: (_isSyncing || _isWiping) ? () {} : _handleSyncNow,
-              ),
-              const SizedBox(height: 10),
-              if (unreachable)
+      body: NotebookBackground(
+        seed: 3,
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 16, 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Spacer(),
+                BrutalCard(
+                  color: unreachable ? c.blush : c.sky,
+                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 22),
+                  child: Column(
+                    children: [
+                      Moop(size: 120, mood: unreachable ? MoopMood.shocked : MoopMood.excited),
+                      const SizedBox(height: 16),
+                      Text(
+                        unreachable ? "couldn't reach the cloud" : 'welcome back!',
+                        style: text.headlineLarge?.copyWith(color: c.onPastel),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        unreachable
+                            ? "We couldn't check your account for saved runs. Try again once you're online, or continue and they'll merge in automatically later."
+                            : 'Your profile and past runs are saved to your account. Bring them to this device?',
+                        style: text.bodyLarge?.copyWith(color: c.onPastel),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ).animate().fadeIn(duration: 350.ms).slideY(begin: 0.08, curve: Curves.easeOut),
+                const Spacer(),
                 PrimaryButton(
-                  text: 'Continue without syncing',
-                  color: c.surface,
-                  foregroundColor: c.ink,
-                  onPressed: _isSyncing ? () {} : _handleContinueOffline,
-                )
-              else
-                PrimaryButton(
-                  text: 'Start fresh (delete cloud data)',
-                  icon: Icons.delete_outline_rounded,
-                  color: c.surface,
-                  foregroundColor: c.coral,
-                  isLoading: _isWiping,
-                  onPressed: (_isSyncing || _isWiping) ? () {} : _handleStartFresh,
+                  text: unreachable ? 'Try again' : 'Sync my runs',
+                  icon: unreachable ? Icons.refresh_rounded : Icons.cloud_download_rounded,
+                  isLoading: _isSyncing,
+                  onPressed: (_isSyncing || _isWiping) ? () {} : _handleSyncNow,
                 ),
-            ],
+                const SizedBox(height: 10),
+                if (unreachable)
+                  PrimaryButton(
+                    text: 'Continue without syncing',
+                    color: c.surface,
+                    foregroundColor: c.ink,
+                    onPressed: _isSyncing ? () {} : _handleContinueOffline,
+                  )
+                else
+                  PrimaryButton(
+                    text: 'Start fresh (delete cloud data)',
+                    icon: Icons.delete_outline_rounded,
+                    color: c.surface,
+                    foregroundColor: c.coral,
+                    isLoading: _isWiping,
+                    onPressed: (_isSyncing || _isWiping) ? () {} : _handleStartFresh,
+                  ),
+              ],
+            ),
           ),
         ),
       ),

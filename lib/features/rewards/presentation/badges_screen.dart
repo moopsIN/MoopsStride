@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:stride/theme/notebook_background.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stride/core/widgets/screen_header.dart';
 import 'package:stride/features/rewards/domain/badges.dart';
@@ -37,32 +38,35 @@ class BadgesScreen extends ConsumerWidget {
 
     final lockedIds = [for (final p in rewards.locked) p.id];
     return Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: [
-            const ScreenHeader(title: 'badges'),
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(20, 8, 16, 28),
-                children: [
-                  LevelCard(rewards: rewards),
-                  const SizedBox(height: 22),
-                  Text('EARNED · ${earned.length} OF ${BadgeId.values.length}', style: text.labelSmall),
-                  const SizedBox(height: 8),
-                  if (earned.isEmpty)
-                    Text('Finish a run to earn your first badge.', style: text.bodyMedium)
-                  else
-                    grid(earned, isEarned: true),
-                  if (lockedIds.isNotEmpty) ...[
+      body: NotebookBackground(
+        seed: 7,
+        child: SafeArea(
+          child: Column(
+            children: [
+              const ScreenHeader(title: 'badges'),
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(20, 8, 16, 28),
+                  children: [
+                    LevelCard(rewards: rewards),
                     const SizedBox(height: 22),
-                    Text('STILL TO EARN', style: text.labelSmall),
+                    Text('EARNED · ${earned.length} OF ${BadgeId.values.length}', style: text.labelSmall),
                     const SizedBox(height: 8),
-                    grid(lockedIds, isEarned: false),
+                    if (earned.isEmpty)
+                      Text('Finish a run to earn your first badge.', style: text.bodyMedium)
+                    else
+                      grid(earned, isEarned: true),
+                    if (lockedIds.isNotEmpty) ...[
+                      const SizedBox(height: 22),
+                      Text('STILL TO EARN', style: text.labelSmall),
+                      const SizedBox(height: 8),
+                      grid(lockedIds, isEarned: false),
+                    ],
                   ],
-                ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

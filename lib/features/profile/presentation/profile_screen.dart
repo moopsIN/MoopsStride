@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:stride/theme/notebook_background.dart';
 import 'package:stride/features/rewards/providers/rewards_provider.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -227,159 +228,162 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           };
 
     return Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: [
-            const ScreenHeader(title: 'settings'),
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(20, 8, 16, 28),
-                children: [
-                  // Identity
-                  BrutalCard(
-                    color: c.sage,
-                    padding: const EdgeInsets.all(16),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 64,
-                          height: 64,
-                          decoration: Brutal.box(c, color: c.surface, radius: 32, shadow: 0),
-                          child: const Center(child: Moop(size: 44)),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                isGuest ? 'guest runner' : (user.email ?? 'runner'),
-                                style: text.headlineSmall?.copyWith(color: c.onPastel),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 4),
-                              Text(status, style: text.bodyMedium?.copyWith(color: c.onPastel)),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  _Section(
-                    label: 'ABOUT YOU',
-                    trailing: _SmallButton(
-                      label: 'EDIT',
-                      icon: Icons.edit_rounded,
-                      onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const EditProfileScreen()),
-                      ),
-                    ),
-                  ),
-                  profileState.when(
-                    data: (p) => BrutalCard(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                      child: Column(
+      body: NotebookBackground(
+        seed: 8,
+        child: SafeArea(
+          child: Column(
+            children: [
+              const ScreenHeader(title: 'settings'),
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(20, 8, 16, 28),
+                  children: [
+                    // Identity
+                    BrutalCard(
+                      color: c.sage,
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
                         children: [
-                          _DetailRow(icon: Icons.flag_rounded, label: 'Goal', value: p.goal),
-                          _DetailRow(icon: Icons.trending_up_rounded, label: 'Experience', value: p.experienceLevel),
-                          _DetailRow(icon: Icons.bolt_rounded, label: 'Activity', value: p.activityLevel),
-                          _DetailRow(icon: Icons.person_outline_rounded, label: 'Gender', value: p.gender),
-                          _DetailRow(icon: Icons.cake_rounded, label: 'Age', value: '${p.age} yrs'),
-                          _DetailRow(
-                            icon: Icons.height_rounded,
-                            label: 'Height',
-                            value: '${p.height.toStringAsFixed(0)} cm (${formatHeightToFtIn(p.height)})',
+                          Container(
+                            width: 64,
+                            height: 64,
+                            decoration: Brutal.box(c, color: c.surface, radius: 32, shadow: 0),
+                            child: const Center(child: Moop(size: 44)),
                           ),
-                          _DetailRow(
-                            icon: Icons.monitor_weight_rounded,
-                            label: 'Weight',
-                            value: isKg
-                                ? '${p.weight.toStringAsFixed(1)} kg'
-                                : '${kgToLbs(p.weight).toStringAsFixed(1)} lbs',
-                            last: true,
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  isGuest ? 'guest runner' : (user.email ?? 'runner'),
+                                  style: text.headlineSmall?.copyWith(color: c.onPastel),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 4),
+                                Text(status, style: text.bodyMedium?.copyWith(color: c.onPastel)),
+                              ],
+                            ),
                           ),
                         ],
                       ),
                     ),
-                    loading: () => const Padding(
-                      padding: EdgeInsets.all(32),
-                      child: Center(child: CircularProgressIndicator()),
-                    ),
-                    error: (err, stack) => Text("Couldn't load your profile.", style: text.bodyMedium),
-                  ),
-
-                  const _Section(label: 'PREFERENCES'),
-                  BrutalCard(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    // Switch tiles paint ripples on the nearest Material, which
-                    // the card's colour would otherwise hide.
-                    child: Material(
-                      type: MaterialType.transparency,
-                      child: Column(
-                      children: [
-                        _SwitchRow(
-                          title: 'Distance in kilometres',
-                          subtitle: isKm ? 'Kilometres (km)' : 'Miles (mi)',
-                          value: isKm,
-                          onChanged: (v) => ref.read(isKmProvider.notifier).setKm(v),
+  
+                    _Section(
+                      label: 'ABOUT YOU',
+                      trailing: _SmallButton(
+                        label: 'EDIT',
+                        icon: Icons.edit_rounded,
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const EditProfileScreen()),
                         ),
-                        _SwitchRow(
-                          title: 'Weight in kilograms',
-                          subtitle: isKg ? 'Kilograms (kg)' : 'Pounds (lbs)',
-                          value: isKg,
-                          onChanged: (v) => ref.read(isKgProvider.notifier).setKg(v),
-                        ),
-                        _ThemeRow(
-                          mode: themeMode,
-                          onChanged: (m) => ref.read(themeModeProvider.notifier).setMode(m),
-                        ),
-                      ],
                       ),
                     ),
-                  ),
-
-                  const _Section(label: 'ACCOUNT'),
-                  if (!isGuest)
+                    profileState.when(
+                      data: (p) => BrutalCard(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                        child: Column(
+                          children: [
+                            _DetailRow(icon: Icons.flag_rounded, label: 'Goal', value: p.goal),
+                            _DetailRow(icon: Icons.trending_up_rounded, label: 'Experience', value: p.experienceLevel),
+                            _DetailRow(icon: Icons.bolt_rounded, label: 'Activity', value: p.activityLevel),
+                            _DetailRow(icon: Icons.person_outline_rounded, label: 'Gender', value: p.gender),
+                            _DetailRow(icon: Icons.cake_rounded, label: 'Age', value: '${p.age} yrs'),
+                            _DetailRow(
+                              icon: Icons.height_rounded,
+                              label: 'Height',
+                              value: '${p.height.toStringAsFixed(0)} cm (${formatHeightToFtIn(p.height)})',
+                            ),
+                            _DetailRow(
+                              icon: Icons.monitor_weight_rounded,
+                              label: 'Weight',
+                              value: isKg
+                                  ? '${p.weight.toStringAsFixed(1)} kg'
+                                  : '${kgToLbs(p.weight).toStringAsFixed(1)} lbs',
+                              last: true,
+                            ),
+                          ],
+                        ),
+                      ),
+                      loading: () => const Padding(
+                        padding: EdgeInsets.all(32),
+                        child: Center(child: CircularProgressIndicator()),
+                      ),
+                      error: (err, stack) => Text("Couldn't load your profile.", style: text.bodyMedium),
+                    ),
+  
+                    const _Section(label: 'PREFERENCES'),
+                    BrutalCard(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      // Switch tiles paint ripples on the nearest Material, which
+                      // the card's colour would otherwise hide.
+                      child: Material(
+                        type: MaterialType.transparency,
+                        child: Column(
+                        children: [
+                          _SwitchRow(
+                            title: 'Distance in kilometres',
+                            subtitle: isKm ? 'Kilometres (km)' : 'Miles (mi)',
+                            value: isKm,
+                            onChanged: (v) => ref.read(isKmProvider.notifier).setKm(v),
+                          ),
+                          _SwitchRow(
+                            title: 'Weight in kilograms',
+                            subtitle: isKg ? 'Kilograms (kg)' : 'Pounds (lbs)',
+                            value: isKg,
+                            onChanged: (v) => ref.read(isKgProvider.notifier).setKg(v),
+                          ),
+                          _ThemeRow(
+                            mode: themeMode,
+                            onChanged: (m) => ref.read(themeModeProvider.notifier).setMode(m),
+                          ),
+                        ],
+                        ),
+                      ),
+                    ),
+  
+                    const _Section(label: 'ACCOUNT'),
+                    if (!isGuest)
+                      _ActionRow(
+                        icon: Icons.cloud_sync_rounded,
+                        label: 'Sync now',
+                        color: c.sky,
+                        busy: _isSyncing,
+                        onTap: _isSyncing ? null : _handleSyncNow,
+                      ),
                     _ActionRow(
-                      icon: Icons.cloud_sync_rounded,
-                      label: 'Sync now',
-                      color: c.sky,
-                      busy: _isSyncing,
-                      onTap: _isSyncing ? null : _handleSyncNow,
+                      icon: Icons.info_outline_rounded,
+                      label: 'About Stride',
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const AboutScreen()),
+                      ),
                     ),
-                  _ActionRow(
-                    icon: Icons.info_outline_rounded,
-                    label: 'About Stride',
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const AboutScreen()),
-                    ),
-                  ),
-                  _ActionRow(
-                    icon: isGuest ? Icons.login_rounded : Icons.logout_rounded,
-                    label: isGuest ? 'Sign in to back up runs' : 'Sign out',
-                    color: isGuest ? c.butter : null,
-                    onTap: () async {
-                      if (isGuest) {
-                        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AuthScreen()));
-                      } else {
-                        await _handleSignOut();
-                      }
-                    },
-                  ),
-                  if (!isGuest)
                     _ActionRow(
-                      icon: Icons.delete_forever_rounded,
-                      label: 'Delete account',
-                      color: c.blush,
-                      busy: _isDeleting,
-                      onTap: _isDeleting ? null : _handleDeleteAccount,
+                      icon: isGuest ? Icons.login_rounded : Icons.logout_rounded,
+                      label: isGuest ? 'Sign in to back up runs' : 'Sign out',
+                      color: isGuest ? c.butter : null,
+                      onTap: () async {
+                        if (isGuest) {
+                          Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AuthScreen()));
+                        } else {
+                          await _handleSignOut();
+                        }
+                      },
                     ),
-                ],
+                    if (!isGuest)
+                      _ActionRow(
+                        icon: Icons.delete_forever_rounded,
+                        label: 'Delete account',
+                        color: c.blush,
+                        busy: _isDeleting,
+                        onTap: _isDeleting ? null : _handleDeleteAccount,
+                      ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

@@ -1,5 +1,6 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:stride/theme/notebook_background.dart';
 import 'package:stride/features/rewards/presentation/rewards_widgets.dart';
 import 'package:stride/features/rewards/presentation/badges_screen.dart';
 import 'package:stride/features/rewards/providers/rewards_provider.dart';
@@ -24,21 +25,24 @@ class ProgressScreen extends ConsumerWidget {
     final isKm = ref.watch(isKmProvider);
 
     return Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: [
-            const ScreenHeader(title: 'progress'),
-            Expanded(
-              child: state.isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : state.activities.isEmpty
-                      ? const EmptyState(
-                          title: 'no runs yet',
-                          subtitle: 'Moop is napping until your first run.\nTap start on the home screen.',
-                        )
-                      : _Body(state: state, isKm: isKm),
-            ),
-          ],
+      body: NotebookBackground(
+        seed: 6,
+        child: SafeArea(
+          child: Column(
+            children: [
+              const ScreenHeader(title: 'progress'),
+              Expanded(
+                child: state.isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : state.activities.isEmpty
+                        ? const EmptyState(
+                            title: 'no runs yet',
+                            subtitle: 'Moop is napping until your first run.\nTap start on the home screen.',
+                          )
+                        : _Body(state: state, isKm: isKm),
+              ),
+            ],
+          ),
         ),
       ),
     );
