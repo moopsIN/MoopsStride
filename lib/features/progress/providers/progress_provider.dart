@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stride/core/database/local_db.dart';
 import 'package:stride/features/sync/providers/sync_engine.dart';
 import 'package:stride/features/auth/providers/auth_provider.dart';
+import 'package:stride/features/rewards/domain/streaks.dart';
 import 'package:stride/features/tracking/models/activity_model.dart';
 
 class ProgressState {
@@ -59,7 +60,7 @@ class ProgressNotifier extends Notifier<ProgressState> {
     final activities = rawData.map((e) => ActivityModel.fromMap(e)).toList();
     
     // Calculate Streak
-    final streak = _calculateStreak(activities);
+    final streak = currentStreak(activities.map((a) => a.startTime), DateTime.now());
     
     // Calculate PRs
     ActivityModel? longest;
@@ -119,52 +120,6 @@ class ProgressNotifier extends Notifier<ProgressState> {
     }
   }
 
-  int _calculateStreak(List<ActivityModel> acts) {
-    if (acts.isEmpty) return 0;
-    
-    // Sort by date descending
-    final sorted = List<ActivityModel>.from(acts)..sort((a, b) => b.startTime.compareTo(a.startTime));
-    
-    // Get unique days (local time)
-    final uniqueDays = <String>{};
-    for (final a in sorted) {
-      uniqueDays.add('${a.startTime.year}-${a.startTime.month}-${a.startTime.day}');
-    }
-    
-    final days = uniqueDays.map((d) {
-      final parts = d.split('-');
-      return DateTime(int.parse(parts[0]), int.parse(parts[1]), int.parse(parts[2]));
-    }).toList();
-    
-    if (days.isEmpty) return 0;
-    
-    final today = DateTime.now();
-    final todayStr = '${today.year}-${today.month}-${today.day}';
-    final yesterday = today.subtract(const Duration(days: 1));
-    final yesterdayStr = '${yesterday.year}-${yesterday.month}-${yesterday.day}';
-    
-    int streak = 0;
-    DateTime currentDateToMatch;
-    
-    if (uniqueDays.contains(todayStr)) {
-      currentDateToMatch = DateTime(today.year, today.month, today.day);
-    } else if (uniqueDays.contains(yesterdayStr)) {
-      currentDateToMatch = DateTime(yesterday.year, yesterday.month, yesterday.day);
-    } else {
-      return 0; // No activity today or yesterday
-    }
-    
-    for (final day in days) {
-      if (day.isAtSameMomentAs(currentDateToMatch)) {
-        streak++;
-        currentDateToMatch = currentDateToMatch.subtract(const Duration(days: 1));
-      } else {
-        break; // gap found
-      }
-    }
-    
-    return streak;
-  }
 }
 
 final progressProvider = NotifierProvider<ProgressNotifier, ProgressState>(() {
