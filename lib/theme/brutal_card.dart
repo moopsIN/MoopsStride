@@ -107,6 +107,7 @@ class BrutalPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.stride;
+    final fg = textOn(color ?? c.butter);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: Brutal.box(c, color: color ?? c.butter, radius: Brutal.radiusPill, shadow: 0)
@@ -115,10 +116,10 @@ class BrutalPill extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (icon != null) ...[
-            Icon(icon, size: 14, color: c.onPastel),
+            Icon(icon, size: 14, color: fg),
             const SizedBox(width: 5),
           ],
-          Text(text, style: Theme.of(context).textTheme.labelMedium?.copyWith(color: c.onPastel)),
+          Text(text, style: Theme.of(context).textTheme.labelMedium?.copyWith(color: fg)),
         ],
       ),
     );

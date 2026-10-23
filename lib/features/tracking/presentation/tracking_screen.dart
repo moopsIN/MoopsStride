@@ -117,6 +117,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
   static const double _activeZoom = 19.5;
   bool _hasZoomedForActiveRun = false;
   bool _isMapReady = false;
+  bool _centeredOnUser = false;
 
   @override
   Widget build(BuildContext context) {
@@ -141,6 +142,14 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
         _hasZoomedForActiveRun = true;
       } else if (state.status == TrackingStatus.notStarted) {
         _hasZoomedForActiveRun = false;
+        // The map is built before the first GPS fix (centred on 0,0, i.e.
+        // open ocean); bring it to the user once a fix arrives.
+        if (!_centeredOnUser) {
+          _centeredOnUser = true;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) _mapController.move(state.currentLocation!, _idleZoom);
+          });
+        }
       }
     }
 
@@ -426,7 +435,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                 HoldToConfirmButton(
                   icon: Icons.stop_rounded,
                   color: c.stop,
-                  iconColor: c.onPastel,
+                  iconColor: textOn(c.stop),
                   size: 62,
                   onConfirmed: _finishRun,
                 ),
@@ -545,7 +554,6 @@ class _InfoBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = context.stride;
     final text = Theme.of(context).textTheme;
     final valueSize = big ? 46.0 : (compact ? 22.0 : 30.0);
     return BrutalCard(
@@ -559,7 +567,7 @@ class _InfoBlock extends StatelessWidget {
         mainAxisAlignment: big || compact ? MainAxisAlignment.spaceBetween : MainAxisAlignment.start,
         children: [
           if (icon != null) ...[
-            Icon(icon, size: 20, color: c.onPastel),
+            Icon(icon, size: 20, color: textOn(color)),
             const SizedBox(height: 6),
           ],
           FittedBox(
@@ -569,13 +577,13 @@ class _InfoBlock extends StatelessWidget {
               value,
               style: text.displayLarge?.copyWith(
                 fontSize: valueSize,
-                color: c.onPastel,
+                color: textOn(color),
                 fontFeatures: const [FontFeature.tabularFigures()],
               ),
             ),
           ),
           const SizedBox(height: 4),
-          Text(label, style: text.labelSmall?.copyWith(color: c.onPastel), maxLines: 1, overflow: TextOverflow.ellipsis),
+          Text(label, style: text.labelSmall?.copyWith(color: textOn(color)), maxLines: 1, overflow: TextOverflow.ellipsis),
         ],
       ),
     );
@@ -593,7 +601,6 @@ class _BigButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = context.stride;
     return BrutalCard(
       color: color,
       height: 72,
@@ -602,11 +609,11 @@ class _BigButton extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, size: 30, color: c.onPastel),
+          Icon(icon, size: 30, color: textOn(color)),
           const SizedBox(width: 10),
           Text(
             label,
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(color: c.onPastel),
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(color: textOn(color)),
           ),
         ],
       ),

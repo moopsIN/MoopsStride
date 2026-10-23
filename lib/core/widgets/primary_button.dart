@@ -26,7 +26,7 @@ class PrimaryButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.stride;
     final bg = color ?? c.brand;
-    final fg = foregroundColor ?? (color == null ? c.onBrand : c.onPastel);
+    final fg = foregroundColor ?? (color == null ? c.onBrand : textOn(bg));
 
     return Padding(
       padding: const EdgeInsets.only(right: Brutal.shadow, bottom: Brutal.shadow),

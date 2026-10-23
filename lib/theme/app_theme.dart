@@ -120,6 +120,14 @@ class StrideColors extends ThemeExtension<StrideColors> {
   }
 }
 
+/// Ink or cream, whichever reads on [background]. Pastels are light in the
+/// light theme but go/pause/stop stay light in dark mode too, so a fixed
+/// "on pastel" colour can't be right for every block.
+Color textOn(Color background) =>
+    ThemeData.estimateBrightnessForColor(background) == Brightness.dark
+        ? const Color(0xFFFBF7EC)
+        : const Color(0xFF211F1B);
+
 extension StrideTheme on BuildContext {
   StrideColors get stride => Theme.of(this).extension<StrideColors>()!;
 }
