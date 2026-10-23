@@ -373,7 +373,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                                   ],
                                 ),
                               ),
-                              const Moop(size: 104, mood: MoopMood.happy),
+                              const Moop(size: 104, mood: MoopMood.happy, greet: true, idleWave: Duration(seconds: 9)),
                             ],
                           ),
                           const SizedBox(height: 16),

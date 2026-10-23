@@ -6,6 +6,10 @@ import 'package:flutter/material.dart';
 /// Moop's expressions, mirroring the mascot on moops.in.
 enum MoopMood { idle, happy, excited, sleepy, shocked }
 
+/// One-shot reactions: [wave] hello, [hop] a little bounce, [cheer] a hop
+/// with a grin and raised arms, [nod] a tiny dip (e.g. per keystroke).
+enum MoopReaction { wave, hop, cheer, nod }
+
 /// Moop, the Moops mascot, drawn from the same geometry as the moops.in SVG
 /// (200 × 230 viewBox) so it stays on-brand at any size.
 ///
@@ -19,6 +23,16 @@ class Moop extends StatefulWidget {
   /// How grown-up Moop is (from the runner's level): 0 sprout, 1 bushy
   /// sprout, 2 flower, 3 flower and crown.
   final int growth;
+  /// Plays [reaction] each time [reactionTick] changes.
+  final MoopReaction? reaction;
+  final int reactionTick;
+  /// Where Moop's eyes look, in its 200 × 230 drawing units (a few units
+  /// is plenty; e.g. Offset(-4, 5) watches a field below and to the left).
+  final Offset look;
+  /// Wave hello when first shown.
+  final bool greet;
+  /// If set, wave again now and then while idle.
+  final Duration? idleWave;
 
   const Moop({
     super.key,
@@ -27,6 +41,11 @@ class Moop extends StatefulWidget {
     this.animate = true,
     this.running = false,
     this.growth = 0,
+    this.reaction,
+    this.reactionTick = 0,
+    this.look = Offset.zero,
+    this.greet = false,
+    this.idleWave,
   });
 
   @override
@@ -38,20 +57,54 @@ class _MoopState extends State<Moop> with TickerProviderStateMixin {
       AnimationController(vsync: this, duration: const Duration(milliseconds: 3400));
   late final AnimationController _stride =
       AnimationController(vsync: this, duration: const Duration(milliseconds: 520));
+  late final AnimationController _react = AnimationController(vsync: this);
+  MoopReaction? _current;
+  Timer? _waveTimer;
   Timer? _blinkTimer;
   double _blink = 0;
   final _random = math.Random();
+
+  static const _durations = {
+    MoopReaction.wave: Duration(milliseconds: 1400),
+    MoopReaction.hop: Duration(milliseconds: 420),
+    MoopReaction.cheer: Duration(milliseconds: 700),
+    MoopReaction.nod: Duration(milliseconds: 240),
+  };
 
   @override
   void initState() {
     super.initState();
     _sync();
+    if (widget.greet) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _play(MoopReaction.wave));
+    }
+    _scheduleIdleWave();
   }
 
   @override
   void didUpdateWidget(Moop old) {
     super.didUpdateWidget(old);
     if (old.animate != widget.animate || old.running != widget.running) _sync();
+    if (widget.reaction != null && widget.reactionTick != old.reactionTick) _play(widget.reaction!);
+    if (widget.idleWave != old.idleWave) _scheduleIdleWave();
+  }
+
+  void _play(MoopReaction reaction) {
+    if (!mounted || MediaQuery.of(context).disableAnimations) return;
+    // A tiny nod never interrupts a bigger reaction that's mid-way.
+    if (reaction == MoopReaction.nod && _react.isAnimating && _current != MoopReaction.nod) return;
+    _current = reaction;
+    _react.duration = _durations[reaction];
+    _react.forward(from: 0);
+  }
+
+  void _scheduleIdleWave() {
+    _waveTimer?.cancel();
+    final every = widget.idleWave;
+    if (every == null) return;
+    _waveTimer = Timer.periodic(every, (_) {
+      if (!_react.isAnimating) _play(MoopReaction.wave);
+    });
   }
 
   void _sync() {
@@ -85,6 +138,8 @@ class _MoopState extends State<Moop> with TickerProviderStateMixin {
   @override
   void dispose() {
     _blinkTimer?.cancel();
+    _waveTimer?.cancel();
+    _react.dispose();
     _idle.dispose();
     _stride.dispose();
     super.dispose();
@@ -96,17 +151,36 @@ class _MoopState extends State<Moop> with TickerProviderStateMixin {
     return SizedBox(
       width: widget.size,
       height: widget.size * MoopPainter.viewHeight / MoopPainter.viewWidth,
-      child: AnimatedBuilder(
-        animation: Listenable.merge([_idle, _stride]),
-        builder: (context, _) => CustomPaint(
-          painter: MoopPainter(
-            mood: widget.mood,
-            palette: dark ? MoopPalette.dark : MoopPalette.light,
-            idlePhase: _idle.value,
-            stridePhase: widget.running ? _stride.value : null,
-            blink: _blink,
-            growth: widget.growth,
-          ),
+      child: TweenAnimationBuilder<Offset>(
+        // Eyes glide to where Moop is looking rather than jumping.
+        tween: Tween(end: widget.look),
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOut,
+        builder: (context, look, _) => AnimatedBuilder(
+          animation: Listenable.merge([_idle, _stride, _react]),
+          builder: (context, _) {
+            final t = _react.value;
+            final r = _current;
+            final playing = _react.status == AnimationStatus.forward;
+            return CustomPaint(
+              painter: MoopPainter(
+                mood: r == MoopReaction.cheer && playing ? MoopMood.excited : widget.mood,
+                palette: dark ? MoopPalette.dark : MoopPalette.light,
+                idlePhase: _idle.value,
+                stridePhase: widget.running ? _stride.value : null,
+                blink: _blink,
+                growth: widget.growth,
+                wave: r == MoopReaction.wave ? t : 0,
+                lift: switch (r) {
+                  MoopReaction.hop => math.sin(math.pi * t) * 14,
+                  MoopReaction.cheer => math.sin(math.pi * t) * 18,
+                  _ => 0,
+                },
+                nod: r == MoopReaction.nod ? math.sin(math.pi * t) * 4 : 0,
+                look: look,
+              ),
+            );
+          },
         ),
       ),
     );
@@ -147,6 +221,14 @@ class MoopPainter extends CustomPainter {
   final double blink;
   /// 0..3, see [Moop.growth].
   final int growth;
+  /// 0..1 progress of a wave (0 = arm at rest).
+  final double wave;
+  /// How far Moop is lifted off the ground (hop/cheer), drawing units.
+  final double lift;
+  /// How far the body dips for a nod, drawing units.
+  final double nod;
+  /// Eye offset, drawing units.
+  final Offset look;
 
   MoopPainter({
     required this.mood,
@@ -155,6 +237,10 @@ class MoopPainter extends CustomPainter {
     this.stridePhase,
     this.blink = 0,
     this.growth = 0,
+    this.wave = 0,
+    this.lift = 0,
+    this.nod = 0,
+    this.look = Offset.zero,
   });
 
   Paint _fill(Color c) => Paint()..color = c..isAntiAlias = true;
@@ -186,15 +272,15 @@ class MoopPainter extends CustomPainter {
     final bob = stride == null ? 0.0 : -(math.sin(stridePhase! * 4 * math.pi).abs()) * 7;
     final lean = stride == null ? 0.0 : 0.07;
 
-    // Ground shadow shrinks as Moop bobs up.
-    final shadowScale = 1 + bob / 60;
+    // Ground shadow shrinks as Moop bobs or hops up.
+    final shadowScale = 1 + (bob - lift) / 60;
     canvas.drawOval(
       Rect.fromCenter(center: const Offset(100, 219), width: 104 * shadowScale, height: 12 * shadowScale),
       _fill(_shadowColor),
     );
 
     canvas.save();
-    canvas.translate(0, bob);
+    canvas.translate(0, bob - lift);
     _rotated(canvas, const Offset(100, 200), lean, () {
       _legs(canvas, stride);
       _arms(canvas, stride);
@@ -235,6 +321,12 @@ class MoopPainter extends CustomPainter {
       left += -stride * 0.6;
       right += -stride * 0.6;
     }
+    if (wave > 0) {
+      // Raise the right arm quickly, wave it three times, lower it.
+      final reach = (math.min(wave, 1 - wave) * 6).clamp(0.0, 1.0);
+      final waving = -2.3 + math.sin(wave * 6 * math.pi) * 0.35;
+      right = right * (1 - reach) + waving * reach;
+    }
     final limb = _stroke(palette.limb, 6);
     final hand = _fill(palette.limb);
     _rotated(canvas, const Offset(36, 130), left, () {
@@ -249,6 +341,7 @@ class MoopPainter extends CustomPainter {
 
   void _bodyGroup(Canvas canvas, double breathe) {
     canvas.save();
+    canvas.translate(0, nod);
     // Breathe: squash/stretch from the feet.
     final sy = 1 + breathe * 0.018;
     final sx = 1 - breathe * 0.012;
@@ -276,7 +369,10 @@ class MoopPainter extends CustomPainter {
     canvas.drawCircle(const Offset(92, 66), 4, shine);
 
     if (growth >= 3) _crown(canvas);
+    canvas.save();
+    canvas.translate(look.dx.clamp(-7.0, 7.0), look.dy.clamp(-7.0, 7.0));
     _face(canvas);
+    canvas.restore();
     canvas.restore();
   }
 
@@ -407,5 +503,9 @@ class MoopPainter extends CustomPainter {
       old.idlePhase != idlePhase ||
       old.stridePhase != stridePhase ||
       old.blink != blink ||
-      old.growth != growth;
+      old.growth != growth ||
+      old.wave != wave ||
+      old.lift != lift ||
+      old.nod != nod ||
+      old.look != look;
 }

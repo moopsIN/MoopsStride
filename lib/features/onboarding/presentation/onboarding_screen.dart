@@ -28,7 +28,39 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   static const _stepCount = 5;
 
+  // Moop reacts to what the user does on each step.
+  MoopReaction _moopReaction = MoopReaction.wave;
+  int _moopTick = 0;
+  bool _typing = false;
+
+  void _react(MoopReaction reaction) => setState(() {
+        _moopReaction = reaction;
+        _moopTick++;
+      });
+
+  /// Waves hello on each step and now and then after; cheers at choices,
+  /// hops on Next, and watches (and nods along to) whatever is being typed.
+  Widget _moop(int step) => Moop(
+        size: 64,
+        mood: step == _stepCount ? MoopMood.excited : MoopMood.idle,
+        greet: true,
+        idleWave: const Duration(seconds: 7),
+        reaction: _moopReaction,
+        reactionTick: _moopTick,
+        look: _typing ? const Offset(-5, 6) : Offset.zero,
+      );
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    _heightController.dispose();
+    _weightController.dispose();
+    _ageController.dispose();
+    super.dispose();
+  }
+
   void _nextPage() {
+    _react(MoopReaction.hop);
     FocusScope.of(context).unfocus();
     if (_currentPage < _stepCount - 1) {
       _pageController.nextPage(
@@ -168,6 +200,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     return _StepContainer(
       step: 1,
       total: _stepCount,
+      moop: _moop(1),
       title: 'What is your primary goal?',
       children: [
         _buildOptionChip('Build Endurance', () {
@@ -187,6 +220,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     return _StepContainer(
       step: 2,
       total: _stepCount,
+      moop: _moop(2),
       title: 'What is your experience level?',
       children: [
         _buildOptionChip('Beginner', () {
@@ -206,6 +240,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     return _StepContainer(
       step: 3,
       total: _stepCount,
+      moop: _moop(3),
       title: 'What is your gender & age?',
       children: [
         Row(
@@ -234,6 +269,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       height: 100,
       color: isSelected ? c.butter : c.surface,
       onTap: () {
+        _react(MoopReaction.cheer);
         ref.read(onboardingProvider.notifier).setGenderAge(label, int.tryParse(_ageController.text) ?? 25);
       },
       child: Column(
@@ -256,6 +292,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     return _StepContainer(
       step: 4,
       total: _stepCount,
+      moop: _moop(4),
       title: 'Tell us a bit about yourself',
       children: [
         Row(
@@ -420,18 +457,23 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       child: Column(
         children: [
           Text(label.toUpperCase(), style: theme.textTheme.labelSmall),
-          TextField(
-            controller: controller,
-            keyboardType: TextInputType.numberWithOptions(decimal: !isInt),
-            textAlign: TextAlign.center,
-            style: theme.textTheme.displayLarge?.copyWith(fontSize: 26),
-            decoration: InputDecoration(
-              border: InputBorder.none,
-              enabledBorder: InputBorder.none,
-              focusedBorder: InputBorder.none,
-              filled: false,
-              suffixText: unit,
-              suffixStyle: theme.textTheme.bodyMedium,
+          Focus(
+            // Moop looks at the field being typed in and nods per keystroke.
+            onFocusChange: (focused) => setState(() => _typing = focused),
+            child: TextField(
+              controller: controller,
+              onChanged: (_) => _react(MoopReaction.nod),
+              keyboardType: TextInputType.numberWithOptions(decimal: !isInt),
+              textAlign: TextAlign.center,
+              style: theme.textTheme.displayLarge?.copyWith(fontSize: 26),
+              decoration: InputDecoration(
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                filled: false,
+                suffixText: unit,
+                suffixStyle: theme.textTheme.bodyMedium,
+              ),
             ),
           ),
         ],
@@ -443,6 +485,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     return _StepContainer(
       step: 5,
       total: _stepCount,
+      moop: _moop(5),
       title: 'How active are you normally?',
       children: [
         _buildOptionChip('Sedentary', () {
@@ -473,7 +516,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         color: isSelected ? c.butter : c.surface,
         onTap: () {
           onTap();
-          setState(() {}); // options read the provider directly, so rebuild
+          _react(MoopReaction.cheer); // also rebuilds: options read the provider directly
         },
         child: Row(
           children: [
@@ -506,12 +549,14 @@ class _StepContainer extends StatelessWidget {
   final int step;
   final int total;
   final String title;
+  final Widget moop;
   final List<Widget> children;
 
   const _StepContainer({
     required this.step,
     required this.total,
     required this.title,
+    required this.moop,
     required this.children,
   });
 
@@ -538,7 +583,7 @@ class _StepContainer extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              Moop(size: 64, mood: step == total ? MoopMood.excited : MoopMood.idle),
+              moop,
             ],
           ).animate().fadeIn(duration: 350.ms),
           const SizedBox(height: 28),
