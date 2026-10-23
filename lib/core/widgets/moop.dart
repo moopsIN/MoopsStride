@@ -16,6 +16,9 @@ class Moop extends StatefulWidget {
   final MoopMood mood;
   final bool animate;
   final bool running;
+  /// How grown-up Moop is (from the runner's level): 0 sprout, 1 bushy
+  /// sprout, 2 flower, 3 flower and crown.
+  final int growth;
 
   const Moop({
     super.key,
@@ -23,6 +26,7 @@ class Moop extends StatefulWidget {
     this.mood = MoopMood.idle,
     this.animate = true,
     this.running = false,
+    this.growth = 0,
   });
 
   @override
@@ -101,6 +105,7 @@ class _MoopState extends State<Moop> with TickerProviderStateMixin {
             idlePhase: _idle.value,
             stridePhase: widget.running ? _stride.value : null,
             blink: _blink,
+            growth: widget.growth,
           ),
         ),
       ),
@@ -128,6 +133,9 @@ class MoopPainter extends CustomPainter {
   static const _leafRight = Color(0xFFA3D17A);
   static const _blushColor = Color(0xFFF7A1B4);
   static const _shadowColor = Color(0x244A3E18); // rgb(74 62 24 / 0.14)
+  static const _petal = Color(0xFFF4A3B5);
+  static const _butter = Color(0xFFFFE58A);
+  static const _ink = Color(0xFF211F1B);
 
   final MoopMood mood;
   final MoopPalette palette;
@@ -137,6 +145,8 @@ class MoopPainter extends CustomPainter {
   final double? stridePhase;
   /// 1 = eyes closed.
   final double blink;
+  /// 0..3, see [Moop.growth].
+  final int growth;
 
   MoopPainter({
     required this.mood,
@@ -144,6 +154,7 @@ class MoopPainter extends CustomPainter {
     this.idlePhase = 0,
     this.stridePhase,
     this.blink = 0,
+    this.growth = 0,
   });
 
   Paint _fill(Color c) => Paint()..color = c..isAntiAlias = true;
@@ -264,8 +275,28 @@ class MoopPainter extends CustomPainter {
     });
     canvas.drawCircle(const Offset(92, 66), 4, shine);
 
+    if (growth >= 3) _crown(canvas);
     _face(canvas);
     canvas.restore();
+  }
+
+  /// A small butter crown sitting on the head, around the sprout's stem.
+  void _crown(Canvas canvas) {
+    final crown = Path()
+      ..moveTo(72, 66)
+      ..lineTo(68, 40)
+      ..lineTo(85, 53)
+      ..lineTo(100, 32)
+      ..lineTo(115, 53)
+      ..lineTo(132, 40)
+      ..lineTo(128, 66)
+      ..close();
+    canvas.drawPath(crown, _fill(_butter));
+    canvas.drawPath(crown, _stroke(_ink, 3));
+    final jewel = _fill(_petal);
+    for (final x in const [86.0, 100.0, 114.0]) {
+      canvas.drawCircle(Offset(x, 59), 3.4, jewel);
+    }
   }
 
   void _sprout(Canvas canvas, double breathe) {
@@ -288,7 +319,29 @@ class MoopPainter extends CustomPainter {
           ..close(),
         _fill(_leafRight),
       );
+      if (growth >= 1) {
+        // A taller stem topped by a third, upright leaf: the sprout grows up.
+        canvas.drawPath(Path()..moveTo(101, 36)..quadraticBezierTo(103, 26, 100, 16), _stroke(palette.limb, 3.5));
+        canvas.drawPath(
+          Path()
+            ..moveTo(100, 18)
+            ..cubicTo(94, 11, 95, 2, 103, -4)
+            ..cubicTo(109, 4, 107, 13, 100, 18)
+            ..close(),
+          _fill(_leafRight),
+        );
+      }
+      if (growth >= 2) _flower(canvas, const Offset(100, 12));
     });
+  }
+
+  void _flower(Canvas canvas, Offset center) {
+    final petal = _fill(_petal);
+    for (var i = 0; i < 5; i++) {
+      final a = -math.pi / 2 + i * 2 * math.pi / 5;
+      canvas.drawCircle(center + Offset(math.cos(a), math.sin(a)) * 6.5, 5.2, petal);
+    }
+    canvas.drawCircle(center, 4.2, _fill(_butter));
   }
 
   void _face(Canvas canvas) {
@@ -353,5 +406,6 @@ class MoopPainter extends CustomPainter {
       old.palette != palette ||
       old.idlePhase != idlePhase ||
       old.stridePhase != stridePhase ||
-      old.blink != blink;
+      old.blink != blink ||
+      old.growth != growth;
 }

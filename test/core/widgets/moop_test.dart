@@ -24,4 +24,11 @@ void main() {
     await tester.pumpWidget(const SizedBox());
     expect(tester.takeException(), isNull);
   });
+
+  for (var growth = 0; growth <= 3; growth++) {
+    testWidgets('Moop renders growth stage $growth', (tester) async {
+      await tester.pumpWidget(MaterialApp(home: Center(child: Moop(growth: growth, animate: false))));
+      expect(tester.takeException(), isNull);
+    });
+  }
 }
